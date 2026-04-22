@@ -1,841 +1,167 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="icon" href="sigea_logo.png">
-</head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIGEA+ — Sistema Integrado de Gestão Escolar Avançada</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --purple:  #7c3aed;
-    --magenta: #d946a8;
-    --cyan:    #06b6d4;
-    --green:   #84cc16;
-    --orange:  #f97316;
-    --ink:     #1a1040;
-    --soft:    #f4f2ff;
-    --card:    #ffffff;
-    --muted:   #7c7a8e;
-    --line:    #e4e0f4;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--soft);
-    color: var(--ink);
-    overflow-x: hidden;
-  }
-
-  /* ─── NAV ─── */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 48px;
-    background: rgba(244,242,255,0.85);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--line);
-  }
-  .nav-logo {
-    display: flex; align-items: center; gap: 10px;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 900;
-    font-size: 1.5rem;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    text-decoration: none;
-  }
-  .nav-logo img { width: 36px; height: 36px; object-fit: contain; }
-  .nav-logo .plus {
-    background: linear-gradient(135deg, var(--purple), var(--cyan));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-
-  .nav-access {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%);
-    color: #fff;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 800;
-    font-size: 0.88rem;
-    letter-spacing: 0.02em;
-    text-decoration: none;
-    padding: 10px 24px;
-    border-radius: 50px;
-    box-shadow: 0 4px 20px rgba(124,58,237,0.35);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .nav-access:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(124,58,237,0.45); }
-  .nav-access svg { width: 14px; height: 14px; }
-
-  /* ─── HERO ─── */
-  .hero-wrap {
-    min-height: 100vh;
-    position: relative;
-    overflow: hidden;
-    display: flex; align-items: center;
-  }
-  .blob {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.18;
-    pointer-events: none;
-  }
-  .blob-1 { width: 600px; height: 600px; background: var(--purple); top: -150px; left: -200px; }
-  .blob-2 { width: 500px; height: 500px; background: var(--cyan);   top: 200px; right: -150px; }
-  .blob-3 { width: 350px; height: 350px; background: var(--magenta); bottom: -80px; left: 30%; }
-
-  .hero {
-    max-width: 1200px; margin: 0 auto;
-    padding: 130px 48px 80px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: 60px;
-    position: relative; z-index: 1;
-    width: 100%;
-  }
-
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: rgba(124,58,237,0.1);
-    border: 1px solid rgba(124,58,237,0.25);
-    color: var(--purple);
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    padding: 6px 14px;
-    border-radius: 50px;
-    margin-bottom: 24px;
-  }
-  .hero-badge-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--green);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
-
-  .hero-title {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 900;
-    font-size: clamp(2.8rem, 5.5vw, 5rem);
-    line-height: 1.0;
-    letter-spacing: -0.04em;
-    color: var(--ink);
-    margin-bottom: 28px;
-  }
-  .grad-1 {
-    background: linear-gradient(135deg, var(--purple), var(--magenta));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .grad-2 {
-    background: linear-gradient(135deg, var(--cyan), var(--green));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-
-  .hero-body {
-    font-size: 1.08rem;
-    line-height: 1.75;
-    color: var(--muted);
-    max-width: 440px;
-    margin-bottom: 40px;
-    font-weight: 400;
-  }
-
-  .hero-cta {
-    display: inline-flex; align-items: center; gap: 12px;
-    background: linear-gradient(135deg, var(--purple) 0%, var(--magenta) 100%);
-    color: #fff;
-    font-family: 'Nunito', sans-serif;
-    font-weight: 800;
-    font-size: 1rem;
-    text-decoration: none;
-    padding: 16px 36px;
-    border-radius: 50px;
-    box-shadow: 0 8px 32px rgba(124,58,237,0.4);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(124,58,237,0.5); }
-
-  .hero-visual { display: flex; justify-content: flex-end; position: relative; }
-  .card-stack { position: relative; width: 340px; height: 420px; }
-
-  .hcard {
-    position: absolute;
-    background: var(--card);
-    border-radius: 20px;
-    padding: 22px 26px;
-    box-shadow: 0 12px 48px rgba(26,16,64,0.12);
-    font-size: 0.82rem;
-    font-family: 'DM Sans', sans-serif;
-  }
-  .hcard-1 { width: 300px; top: 0; right: 0; transform: rotate(4deg); border-top: 3px solid var(--green); animation: fl1 4s ease-in-out infinite; }
-  .hcard-2 { width: 290px; top: 110px; left: 0; transform: rotate(-3deg); border-top: 3px solid var(--purple); animation: fl2 5s ease-in-out infinite; z-index: 2; }
-  .hcard-3 { width: 270px; bottom: 0; right: 10px; transform: rotate(2deg); border-top: 3px solid var(--cyan); animation: fl3 3.5s ease-in-out infinite; }
-
-  @keyframes fl1 { 0%,100%{transform:rotate(4deg) translateY(0)} 50%{transform:rotate(4deg) translateY(-9px)} }
-  @keyframes fl2 { 0%,100%{transform:rotate(-3deg) translateY(0)} 50%{transform:rotate(-3deg) translateY(-11px)} }
-  @keyframes fl3 { 0%,100%{transform:rotate(2deg) translateY(0)} 50%{transform:rotate(2deg) translateY(-7px)} }
-
-  .hcard-label {
-    font-family: 'Nunito', sans-serif; font-weight: 800;
-    font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 14px;
-  }
-  .hcard-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 6px 0; border-bottom: 1px dashed var(--line); color: var(--ink);
-  }
-  .hcard-row:last-child { border-bottom: none; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 7px; flex-shrink: 0; }
-  .dot-green  { background: var(--green); }
-  .dot-purple { background: var(--purple); }
-  .dot-orange { background: var(--orange); }
-
-  .badge { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.66rem; padding: 2px 8px; border-radius: 20px; }
-  .bg-green  { background: #f0fdf4; color: #16a34a; }
-  .bg-red    { background: #fef2f2; color: #dc2626; }
-  .bg-orange { background: #fff7ed; color: #ea580c; }
-  .bg-purple { background: #f5f3ff; color: var(--purple); }
-
-  /* ─── MARQUEE ─── */
-  .strip {
-    background: linear-gradient(135deg, var(--ink) 0%, #2d1870 100%);
-    padding: 13px 0; overflow: hidden; white-space: nowrap;
-  }
-  .strip-inner { display: inline-flex; gap: 0; animation: marquee 24s linear infinite; }
-  .strip-item { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 28px; color: rgba(255,255,255,0.4); }
-  .c1 { color: #a78bfa; }
-  .c2 { color: var(--cyan); }
-  .c3 { color: var(--green); }
-  .c4 { color: var(--magenta); }
-  @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-
-  /* ─── STATS ─── */
-  .stats-wrap { max-width: 1200px; margin: 0 auto; padding: 80px 48px 0; }
-  .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-  .stat-card {
-    background: var(--card); border-radius: 18px;
-    padding: 32px 28px; border: 1px solid var(--line);
-    text-align: center; transition: transform 0.2s;
-  }
-  .stat-card:hover { transform: translateY(-4px); }
-  .stat-num {
-    font-family: 'Nunito', sans-serif; font-weight: 900;
-    font-size: 2.8rem; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px;
-  }
-  .sn-purple  { background: linear-gradient(135deg, var(--purple), var(--magenta)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .sn-cyan    { background: linear-gradient(135deg, var(--cyan), var(--green));    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .sn-orange  { background: linear-gradient(135deg, var(--orange), var(--green));  -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .sn-magenta { background: linear-gradient(135deg, var(--magenta), var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .stat-label { font-size: 0.85rem; color: var(--muted); }
-
-  /* ─── SECTION COMMON ─── */
-  .section { max-width: 1200px; margin: 0 auto; padding: 100px 48px; }
-  .s-kicker { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
-  .s-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.03em; line-height: 1.05; }
-
-  /* ─── ROLES ─── */
-  .roles-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 22px; border-bottom: 2px solid var(--line); }
-  .roles-note { font-size: 0.82rem; color: var(--muted); font-style: italic; text-align: right; max-width: 190px; line-height: 1.5; }
-  .roles-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-
-  .role-card {
-    background: var(--card); border-radius: 18px; padding: 32px 28px;
-    border: 1px solid var(--line); position: relative; overflow: hidden;
-    transition: transform 0.22s, box-shadow 0.22s;
-  }
-  .role-card:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(26,16,64,0.12); }
-  .role-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 18px 18px 0 0; }
-  .rc-purple::before  { background: linear-gradient(90deg, var(--purple), var(--magenta)); }
-  .rc-cyan::before    { background: linear-gradient(90deg, var(--cyan), var(--green)); }
-  .rc-orange::before  { background: linear-gradient(90deg, var(--orange), var(--green)); }
-  .rc-dim::before     { background: var(--line); }
-
-  .role-card.coming::after {
-    content: 'EM BREVE'; position: absolute; top: 14px; right: 14px;
-    font-family: 'Nunito', sans-serif; font-size: 0.6rem; font-weight: 800;
-    letter-spacing: 0.08em; padding: 3px 8px;
-    background: #fff7ed; color: var(--orange); border-radius: 20px; border: 1px solid #fed7aa;
-  }
-  .role-card.beta::after {
-    content: 'BETA'; position: absolute; top: 14px; right: 14px;
-    font-family: 'Nunito', sans-serif; font-size: 0.6rem; font-weight: 800;
-    letter-spacing: 0.08em; padding: 3px 8px;
-    background: #ede9fe; color: var(--purple); border-radius: 20px; border: 1px solid #c4b5fd;
-  }
-
-  .role-icon { font-size: 2rem; margin-bottom: 16px; display: block; }
-  .role-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.08rem; margin-bottom: 8px; color: var(--ink); }
-  .role-desc { font-size: 0.87rem; line-height: 1.65; color: var(--muted); }
-  .role-card.dim { opacity: 0.55; }
-
-  /* ─── FEATURES DARK ─── */
-  .features-wrap {
-    background: linear-gradient(160deg, var(--ink) 0%, #1b0e4d 100%);
-    padding: 100px 0; position: relative; overflow: hidden;
-  }
-  .features-wrap::before {
-    content: ''; position: absolute; width: 700px; height: 700px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%);
-    top: -200px; right: -200px; pointer-events: none;
-  }
-  .features-wrap::after {
-    content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(6,182,212,0.15) 0%, transparent 70%);
-    bottom: -150px; left: -100px; pointer-events: none;
-  }
-  .features-inner { max-width: 1200px; margin: 0 auto; padding: 0 48px; position: relative; z-index: 1; }
-  .features-inner .s-kicker { color: var(--green); }
-  .features-inner .s-title  { color: #fff; }
-
-  .feat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 56px; }
-  .feat {
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px; padding: 36px 32px; position: relative; overflow: hidden;
-    transition: background 0.22s, transform 0.22s;
-  }
-  .feat:hover { background: rgba(255,255,255,0.08); transform: translateY(-4px); }
-  .feat-glow { position: absolute; width: 120px; height: 120px; border-radius: 50%; opacity: 0.15; top: -30px; right: -30px; pointer-events: none; }
-  .fg-purple  { background: var(--purple); }
-  .fg-cyan    { background: var(--cyan); }
-  .fg-green   { background: var(--green); }
-  .fg-magenta { background: var(--magenta); }
-  .fg-orange  { background: var(--orange); }
-  .feat-icon  { font-size: 1.8rem; margin-bottom: 18px; display: block; }
-  .feat-title { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1.05rem; color: #fff; margin-bottom: 10px; }
-  .feat-desc  { font-size: 0.86rem; line-height: 1.7; color: rgba(255,255,255,0.45); }
-
-  /* ─── CALLOUT ─── */
-  .callout-section { padding: 100px 48px 100px; max-width: 1200px; margin: 0 auto; }
-  .callout-box {
-    background: linear-gradient(135deg, var(--purple) 0%, var(--magenta) 50%, var(--cyan) 100%);
-    border-radius: 28px; padding: 72px 80px;
-    display: flex; align-items: center; justify-content: space-between; gap: 40px;
-    position: relative; overflow: hidden;
-    box-shadow: 0 24px 80px rgba(124,58,237,0.4);
-  }
-  .callout-box::before {
-    content: 'SIDED+'; font-family: 'Nunito', sans-serif; font-weight: 900;
-    font-size: 20rem; color: rgba(255,255,255,0.06);
-    position: absolute; right: -30px; top: -60px;
-    line-height: 1; pointer-events: none; user-select: none;
-  }
-  .callout-text { position: relative; z-index: 1; }
-  .callout-title { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(1.8rem,3.5vw,2.8rem); color: #fff; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 10px; }
-  .callout-sub   { font-size: 1rem; color: rgba(255,255,255,0.8); }
-  .callout-btn {
-    flex-shrink: 0;
-    display: inline-flex; align-items: center; gap: 10px;
-    background: #fff; color: var(--purple);
-    font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.92rem;
-    text-decoration: none; padding: 16px 36px; border-radius: 50px;
-    position: relative; z-index: 1;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
-    transition: transform 0.2s, box-shadow 0.2s;
-    white-space: nowrap;
-  }
-  .callout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,0,0,0.2); }
-
-  /* ─── FOOTER ─── */
-  footer { border-top: 1px solid var(--line); padding: 28px 48px; display: flex; align-items: center; justify-content: space-between; }
-  .footer-logo { display: flex; align-items: center; gap: 8px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 1rem; color: var(--muted); letter-spacing: -0.02em; text-decoration: none; }
-  .footer-logo img { width: 26px; height: 26px; object-fit: contain; opacity: 0.6; }
-  .footer-copy { font-size: 0.78rem; color: var(--muted); }
-
-  /* ─── REVEAL ─── */
-  .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.65s ease, transform 0.65s ease; }
-  .reveal.visible { opacity: 1; transform: translateY(0); }
-
-  /* ─── HAMBURGER BUTTON (mobile only) ─── */
-  .nav-hamburger {
-    display: none;
-    flex-direction: column; justify-content: center; gap: 5px;
-    width: 40px; height: 40px; cursor: pointer;
-    background: none; border: none; padding: 8px;
-    border-radius: 10px; transition: background .2s;
-  }
-  .nav-hamburger:hover { background: rgba(124,58,237,0.08); }
-  .nav-hamburger span {
-    display: block; height: 2px; border-radius: 2px;
-    background: var(--ink); transition: all .3s cubic-bezier(.4,0,.2,1);
-    transform-origin: center;
-  }
-  .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-  .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-  .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-  /* Mobile nav drawer */
-  .nav-drawer {
-    display: none;
-    position: fixed; top: 61px; left: 0; right: 0; z-index: 99;
-    background: rgba(244,242,255,0.97);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--line);
-    padding: 20px 20px 28px;
-    flex-direction: column; gap: 12px;
-    animation: drawerIn .25s ease-out;
-  }
-  @keyframes drawerIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
-  .nav-drawer.open { display: flex; }
-  .nav-drawer-cta {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%);
-    color: #fff; font-family: 'Nunito', sans-serif; font-weight: 800;
-    font-size: 1rem; text-decoration: none;
-    padding: 14px 28px; border-radius: 50px;
-    box-shadow: 0 6px 24px rgba(124,58,237,0.35);
-  }
-  .nav-drawer-label {
-    font-family: 'Nunito', sans-serif; font-weight: 700;
-    font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted); text-align: center;
-  }
-
-  /* ─── RESPONSIVE: TABLET ─── */
-  @media(max-width:900px) {
-    nav { padding: 14px 20px; }
-    .hero { grid-template-columns:1fr; padding: 100px 24px 60px; gap: 40px; }
-    .hero-visual { justify-content: center; }
-    .card-stack { width: 290px; height: 360px; }
-    .hcard-1 { width: 260px; } .hcard-2 { width: 250px; } .hcard-3 { width: 240px; }
-    .section { padding: 70px 24px; }
-    .roles-header { flex-direction: column; align-items: flex-start; gap: 14px; }
-    .roles-note { text-align: left; max-width: 100%; }
-    .roles-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-    .feat-grid { grid-template-columns: 1fr 1fr; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .features-inner { padding: 0 24px; }
-    .callout-section { padding: 70px 24px; }
-    .callout-box { flex-direction: column; padding: 48px 32px; border-radius: 20px; }
-    .stats-wrap { padding: 60px 24px 0; }
-    footer { flex-direction: column; gap: 10px; text-align: center; padding: 20px 24px; }
-  }
-
-  /* ─── RESPONSIVE: MOBILE ─── */
-  @media(max-width:560px) {
-    /* Nav */
-    nav { padding: 12px 16px; }
-    .nav-access { display: none; }
-    .nav-hamburger { display: flex; }
-    .nav-logo { font-size: 1.25rem; }
-    .nav-logo img { width: 30px; height: 30px; }
-
-    /* Hero — layout vertical otimizado */
-    .hero {
-      grid-template-columns: 1fr;
-      padding: 80px 20px 52px;
-      gap: 0;
-      text-align: center;
-    }
-    .hero > div:first-child {
-      display: flex; flex-direction: column; align-items: center;
-    }
-    .hero-badge {
-      font-size: 0.67rem; padding: 5px 12px; margin-bottom: 18px;
-      align-self: center;
-    }
-    .hero-title {
-      font-size: clamp(2.4rem, 11vw, 3.2rem);
-      margin-bottom: 16px;
-      line-height: 1.0;
-    }
-    .hero-body {
-      font-size: 0.96rem; margin-bottom: 28px;
-      max-width: 100%; text-align: center;
-    }
-    .hero-cta {
-      padding: 15px 32px; font-size: 0.95rem;
-      width: 100%; justify-content: center;
-      border-radius: 16px;
-    }
-
-    /* Cards visuais — mostrar apenas 1 cartão centralizado no mobile */
-    .hero-visual {
-      justify-content: center;
-      margin-top: 44px;
-      height: 200px;
-      position: relative;
-    }
-    .card-stack { width: 100%; height: 200px; }
-
-    /* Esconde cards 1 e 3, deixa só o card 2 centralizado e sem rotação */
-    .hcard-1, .hcard-3 { display: none; }
-    .hcard-2 {
-      position: relative; top: auto; left: auto;
-      width: 100%; max-width: 320px;
-      margin: 0 auto;
-      transform: none !important;
-      animation: none !important;
-      border-top-color: var(--purple);
-      box-shadow: 0 8px 32px rgba(124,58,237,0.18);
-    }
-
-    /* Strip marquee */
-    .strip-item { padding: 0 20px; font-size: 0.74rem; }
-
-    /* Stats — 2 colunas compactas */
-    .stats-wrap { padding: 48px 16px 0; }
-    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-    .stat-card { padding: 24px 16px; border-radius: 16px; }
-    .stat-num { font-size: 2.4rem; }
-    .stat-label { font-size: 0.78rem; line-height: 1.4; }
-
-    /* Roles */
-    .section { padding: 56px 16px; }
-    .roles-header { margin-bottom: 24px; padding-bottom: 16px; gap: 10px; }
-    .s-title { font-size: 1.75rem; letter-spacing: -0.03em; }
-    .roles-note { font-size: 0.8rem; }
-    .roles-grid { grid-template-columns: 1fr; gap: 10px; }
-    .role-card {
-      padding: 22px 20px; border-radius: 16px;
-      display: flex; flex-direction: row; align-items: flex-start; gap: 14px;
-    }
-    .role-card::before { height: 100%; width: 4px; right: auto; top: 0; border-radius: 16px 0 0 16px; }
-    .role-icon { font-size: 1.7rem; margin-bottom: 0; flex-shrink: 0; margin-top: 2px; }
-    .role-name { font-size: 1rem; margin-bottom: 4px; }
-    .role-desc { font-size: 0.82rem; line-height: 1.55; }
-
-    /* Features dark */
-    .features-wrap { padding: 60px 0; }
-    .features-inner { padding: 0 16px; }
-    .feat-grid { grid-template-columns: 1fr; gap: 10px; margin-top: 32px; }
-    .feat {
-      padding: 22px 20px; border-radius: 16px;
-      display: flex; flex-direction: row; align-items: flex-start; gap: 14px;
-    }
-    .feat-glow { width: 80px; height: 80px; top: -20px; right: -20px; }
-    .feat-icon { font-size: 1.6rem; margin-bottom: 0; flex-shrink: 0; margin-top: 2px; }
-    .feat-title { font-size: 0.98rem; margin-bottom: 6px; }
-    .feat-desc { font-size: 0.82rem; line-height: 1.6; }
-
-    /* Callout */
-    .callout-section { padding: 40px 16px 56px; }
-    .callout-box {
-      padding: 36px 24px 40px; border-radius: 22px; gap: 24px;
-      text-align: center; flex-direction: column; align-items: center;
-    }
-    .callout-box::before { font-size: 9rem; top: -10px; right: -5px; }
-    .callout-title { font-size: 1.7rem; }
-    .callout-sub { font-size: 0.92rem; }
-    .callout-btn {
-      width: 100%; justify-content: center;
-      padding: 15px 28px; border-radius: 14px; font-size: 0.95rem;
-    }
-
-    /* Footer */
-    footer { padding: 20px 16px; gap: 8px; flex-direction: column; text-align: center; }
-    .footer-copy { font-size: 0.72rem; }
-  }
-
-  /* Telas muito pequenas */
-  @media(max-width:360px) {
-    .hero-title { font-size: 2.1rem; }
-    .hcard-2 { max-width: 280px; }
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .stat-num { font-size: 2rem; }
-  }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0d0d1a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="SIDED+"/>
+  <link rel="icon" href="sided_logo.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>SIDED+ — Portal do Professor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0d0d1a;--surface:#13132a;--accent:#4f7dff;--accent2:#ff6b35;--text:#e8e8f0;--muted:rgba(232,232,240,0.45);--border:rgba(79,125,255,0.2)}
+    body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,125,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(79,125,255,0.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:18px 40px;background:rgba(13,13,26,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--text)}
+    .nav-brand img{width:32px;height:32px;border-radius:8px;object-fit:cover}
+    .nav-brand span{color:var(--accent)}
+    .nav-cta{padding:9px 22px;background:var(--accent);border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:background 0.2s,transform 0.1s}
+    .nav-cta:hover{background:#3a6aee}
+    .hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px}
+    .hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(79,125,255,0.18) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-60%);pointer-events:none}
+    .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(79,125,255,0.12);border:1px solid rgba(79,125,255,0.3);border-radius:100px;padding:6px 16px;font-size:12px;font-weight:600;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:28px;animation:fadeUp 0.6s ease both}
+    .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+    .hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,10vw,96px);line-height:0.95;letter-spacing:3px;color:var(--text);margin-bottom:16px;animation:fadeUp 0.6s 0.1s ease both}
+    .hero h1 em{color:var(--accent);font-style:normal}
+    .hero p{font-size:clamp(14px,2vw,17px);color:var(--muted);max-width:500px;line-height:1.7;margin-bottom:48px;animation:fadeUp 0.6s 0.2s ease both}
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp 0.6s 0.3s ease both}
+    .btn-primary{padding:14px 36px;background:var(--accent);border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#fff;cursor:pointer;box-shadow:0 8px 32px rgba(79,125,255,0.35);transition:all 0.2s}
+    .btn-primary:hover{background:#3a6aee;transform:translateY(-2px)}
+    .features{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding:0 40px 100px;max-width:1000px;margin:0 auto;animation:fadeUp 0.6s 0.4s ease both}
+    .feat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 24px;transition:border-color 0.2s,transform 0.2s}
+    .feat-card:hover{border-color:var(--accent);transform:translateY(-4px)}
+    .feat-icon{font-size:28px;margin-bottom:14px}
+    .feat-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+    .feat-desc{font-size:13px;color:var(--muted);line-height:1.6}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .login-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(13,13,26,0.92);backdrop-filter:blur(16px);align-items:center;justify-content:center;padding:20px}
+    .login-overlay.active{display:flex}
+    .login-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 40px;position:relative;animation:popIn 0.3s ease}
+    @keyframes popIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+    .login-close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;transition:color 0.2s}
+    .login-close:hover{color:var(--text)}
+    .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+    .login-logo img{width:40px;height:40px;border-radius:10px;object-fit:cover}
+    .login-logo-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px}
+    .login-logo-name span{color:var(--accent)}
+    .login-logo-sub{font-size:11px;color:var(--muted)}
+    .login-title{font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+    .login-subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+    .form-group{margin-bottom:16px}
+    .form-label{display:block;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px}
+    .form-input{width:100%;padding:12px 14px;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,125,255,0.15)}
+    .form-input::placeholder{color:rgba(232,232,240,0.25)}
+    .input-wrap{position:relative}
+    .input-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);background:none;border:none;display:flex;align-items:center}
+    .btn-login{width:100%;padding:13px;background:var(--accent);border:none;border-radius:9px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-top:6px;transition:background 0.2s,transform 0.1s;box-shadow:0 4px 20px rgba(79,125,255,0.3);display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-login:hover{background:#3a6aee}
+    .btn-login:active{transform:scale(0.98)}
+    .btn-login:disabled{opacity:0.6;cursor:not-allowed}
+    .divider{display:flex;align-items:center;gap:12px;margin:18px 0}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .divider span{font-size:11px;color:var(--muted)}
+    .btn-google{width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.2s,border-color 0.2s}
+    .btn-google:hover{background:rgba(255,255,255,0.09);border-color:rgba(79,125,255,0.4)}
+    .btn-google svg{width:18px;height:18px}
+    .error-msg{display:none;background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);border-radius:8px;padding:10px 13px;font-size:13px;color:#f87171;margin-bottom:14px;text-align:center}
+    .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @media(max-width:600px){nav{padding:14px 20px}.features{padding:0 20px 80px}.login-card{padding:36px 24px}}
+  </style>
 </head>
 <body>
-
-<div class="blob blob-1"></div>
-<div class="blob blob-2"></div>
-<div class="blob blob-3"></div>
-
-<!-- NAV -->
 <nav>
-  <a class="nav-logo" href="#">
-    <img src="sigea_logo.png" alt="SIGEA+" style="width:36px;height:36px;object-fit:contain;border-radius:8px;">
-    SIGEA<span class="plus">+</span>
-  </a>
-  <a class="nav-access" href="#" onclick="abrirPortal(event)">
-    Acessar SIGEA+
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-  </a>
-  <button class="nav-hamburger" id="hamburger" onclick="toggleDrawer()" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
+  <div class="nav-brand"><img src="sided_logo.png" alt="SIDED+"/>SIDED<span>+</span></div>
+  <button class="nav-cta" onclick="abrirLogin()">Acessar</button>
 </nav>
 
-<!-- MOBILE DRAWER -->
-<div class="nav-drawer" id="navDrawer">
-  <div class="nav-drawer-label">Sistema Escolar Inteligente</div>
-  <a class="nav-drawer-cta" href="#" onclick="closeDrawer();abrirPortal(event)">
-    Acessar SIGEA+
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-  </a>
-</div>
-
-<!-- HERO -->
-<div class="hero-wrap">
-  <div class="hero">
-    <div>
-      <div class="hero-badge">
-        <span class="hero-badge-dot"></span>
-        Sistema Escolar Inteligente
-      </div>
-      <h1 class="hero-title">
-        Chega de<br>
-        <span class="grad-1">papelada.</span><br>
-        agora É <span class="grad-2">SIDED+.</span>
-      </h1>
-      <p class="hero-body">
-        O SIDED+ organiza o dia a dia da escola — chamadas, notas, planejamentos e relatórios — tudo em um só lugar, rápido e sem complicação.
-      </p>
-      <a class="hero-cta" href="#" onclick="abrirPortal(event)">
-        Entrar no sistema
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <div class="hero-visual">
-      <div class="card-stack">
-        <div class="hcard hcard-1">
-          <div class="hcard-label">✅ Chamada — 7º A · Hoje</div>
-          <div class="hcard-row"><span><span class="dot dot-green"></span>Ana Beatriz</span><span class="badge bg-green">Presente</span></div>
-          <div class="hcard-row"><span><span class="dot dot-purple"></span>Carlos Eduardo</span><span class="badge bg-red">Falta</span></div>
-          <div class="hcard-row"><span><span class="dot dot-green"></span>Fernanda Lima</span><span class="badge bg-green">Presente</span></div>
-          <div class="hcard-row"><span><span class="dot dot-orange"></span>João Pedro</span><span class="badge bg-orange">Tardança</span></div>
-          <div class="hcard-row"><span><span class="dot dot-green"></span>Maria Clara</span><span class="badge bg-green">Presente</span></div>
-        </div>
-        <div class="hcard hcard-2">
-          <div class="hcard-label">📊 Notas — Trimestre 2</div>
-          <div class="hcard-row"><span>Prova</span><strong>7.5</strong></div>
-          <div class="hcard-row"><span>Trabalho</span><strong>9.0</strong></div>
-          <div class="hcard-row"><span>Participação</span><strong>8.2</strong></div>
-          <div class="hcard-row" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--line);">
-            <span style="font-family:'Nunito',sans-serif;font-weight:800;">Média</span>
-            <strong style="font-family:'Nunito',sans-serif;font-size:1.15rem;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">8.4</strong>
-          </div>
-        </div>
-        <div class="hcard hcard-3">
-          <div class="hcard-label">📅 Planejamento · Setembro</div>
-          <div class="hcard-row"><span>Conteúdo</span><span style="color:var(--muted)">Frações</span></div>
-          <div class="hcard-row"><span>Aulas</span><span style="color:var(--muted)">12 / 15</span></div>
-          <div class="hcard-row"><span>Status</span><span class="badge bg-purple">Em dia ✓</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MARQUEE -->
-<div class="strip">
-  <div class="strip-inner">
-    <span class="strip-item c1">✦ SIDED+</span>
-    <span class="strip-item">Chamada Digital</span>
-    <span class="strip-item c2">✦ Notas Online</span>
-    <span class="strip-item">Planejamento Fácil</span>
-    <span class="strip-item c3">✦ Relatórios Automáticos</span>
-    <span class="strip-item">Secretaria Integrada</span>
-    <span class="strip-item c4">✦ Chega de Papelada</span>
-    <span class="strip-item">Para Professores</span>
-    <span class="strip-item c1">✦ SIDED+</span>
-    <span class="strip-item">Chamada Digital</span>
-    <span class="strip-item c2">✦ Notas Online</span>
-    <span class="strip-item">Planejamento Fácil</span>
-    <span class="strip-item c3">✦ Relatórios Automáticos</span>
-    <span class="strip-item">Secretaria Integrada</span>
-    <span class="strip-item c4">✦ Chega de Papelada</span>
-    <span class="strip-item">Para Professores</span>
-  </div>
-</div>
-
-<!-- STATS -->
-<div class="stats-wrap reveal">
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-num sn-purple">100%</div>
-      <div class="stat-label">Na nuvem, sem instalar nada</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num sn-cyan">6</div>
-      <div class="stat-label">Perfis de acesso diferentes</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num sn-orange">0</div>
-      <div class="stat-label">Papelada necessária</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num sn-magenta">∞</div>
-      <div class="stat-label">Turmas e alunos gerenciados</div>
-    </div>
-  </div>
-</div>
-
-<!-- QUEM USA -->
-<section class="section reveal">
-  <div class="roles-header">
-    <div>
-      <div class="s-kicker" style="color:var(--purple)">Módulos por Perfil</div>
-      <h2 class="s-title">Quem usa o SIDED+?</h2>
-    </div>
-    <p class="roles-note">Cada perfil tem seu próprio painel e funcionalidades</p>
-  </div>
-  <div class="roles-grid">
-    <div class="role-card rc-purple">
-      <span class="role-icon">🎓</span>
-      <div class="role-name">Professor</div>
-      <p class="role-desc">Chamada digital, lançamento de notas, planejamento de aulas e relatórios completos. O módulo mais completo do sistema.</p>
-    </div>
-    <div class="role-card rc-cyan beta">
-      <span class="role-icon">🗂️</span>
-      <div class="role-name">Secretaria</div>
-      <p class="role-desc">Gestão de turmas, alunos e boletins. Visão administrativa com geração de documentos em PDF.</p>
-    </div>
-    <div class="role-card rc-orange">
-      <span class="role-icon">⚙️</span>
-      <div class="role-name">Diretor / Admin</div>
-      <p class="role-desc">Visão geral, gerenciamento de usuários, turmas e acompanhamento pedagógico centralizado.</p>
-    </div>
-    <div class="role-card rc-dim coming dim">
-      <span class="role-icon">🎒</span>
-      <div class="role-name">Aluno</div>
-      <p class="role-desc">Acesso às notas, frequência e comunicados. Tudo que o estudante precisa em um só lugar.</p>
-    </div>
-    <div class="role-card rc-dim coming dim">
-      <span class="role-icon">⭐</span>
-      <div class="role-name">Líder de Classe</div>
-      <p class="role-desc">Representante da turma com recursos específicos para comunicação e organização coletiva.</p>
-    </div>
-    <div class="role-card rc-dim coming dim">
-      <span class="role-icon">🔬</span>
-      <div class="role-name">Especialista</div>
-      <p class="role-desc">Coordenadores com acesso a relatórios detalhados de desenvolvimento dos alunos.</p>
-    </div>
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="badge"><span class="badge-dot"></span> Portal do Professor & Diretor</div>
+  <h1>O diário escolar<br/>na era <em>digital</em></h1>
+  <p>Gerencie chamadas, notas e planejamentos com agilidade — de qualquer dispositivo, a qualquer hora.</p>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="abrirLogin()">Entrar no sistema →</button>
   </div>
 </section>
 
-<!-- FEATURES DARK -->
-<div class="features-wrap">
-  <div class="features-inner reveal">
-    <div class="s-kicker">Funcionalidades</div>
-    <h2 class="s-title">O que o SIDED+ faz por você</h2>
-    <div class="feat-grid">
-      <div class="feat"><div class="feat-glow fg-green"></div><span class="feat-icon">✋</span><div class="feat-title">Chamada Digital</div><p class="feat-desc">Registre presenças e faltas em segundos. Histórico completo por aluno, turma e período.</p></div>
-      <div class="feat"><div class="feat-glow fg-purple"></div><span class="feat-icon">📝</span><div class="feat-title">Lançamento de Notas</div><p class="feat-desc">Avaliações por trimestre com pesos configuráveis. Médias calculadas automaticamente.</p></div>
-      <div class="feat"><div class="feat-glow fg-cyan"></div><span class="feat-icon">📅</span><div class="feat-title">Planejamento de Aulas</div><p class="feat-desc">Planos diários, semanais, quinzenais, mensais e trimestrais. Conteúdos e objetivos organizados.</p></div>
-      <div class="feat"><div class="feat-glow fg-magenta"></div><span class="feat-icon">📊</span><div class="feat-title">Relatórios Automáticos</div><p class="feat-desc">Relatório geral da turma e individual por aluno. Exportação rápida em PDF.</p></div>
-      <div class="feat"><div class="feat-glow fg-orange"></div><span class="feat-icon">🗃️</span><div class="feat-title">Gestão de Turmas</div><p class="feat-desc">Secretaria e direção gerenciam turmas, vínculos de professores e dados de alunos com facilidade.</p></div>
-      <div class="feat"><div class="feat-glow fg-green"></div><span class="feat-icon">☁️</span><div class="feat-title">100% na Nuvem</div><p class="feat-desc">Acesse de qualquer lugar, sem instalar nada. Dados seguros e em tempo real para toda a escola.</p></div>
+<div class="features">
+  <div class="feat-card"><div class="feat-icon">📋</div><div class="feat-title">Chamada Digital</div><div class="feat-desc">Registre frequência em segundos com histórico completo.</div></div>
+  <div class="feat-card"><div class="feat-icon">📊</div><div class="feat-title">Notas & Avaliações</div><div class="feat-desc">Lançamento de notas com cálculo automático de médias.</div></div>
+  <div class="feat-card"><div class="feat-icon">📅</div><div class="feat-title">Planejamento</div><div class="feat-desc">Organize aulas e cronogramas com visualização clara.</div></div>
+  <div class="feat-card"><div class="feat-icon">💬</div><div class="feat-title">Comunicados</div><div class="feat-desc">Envie avisos para alunos e responsáveis pelo sistema.</div></div>
+</div>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <button class="login-close" onclick="fecharLogin()">✕</button>
+    <div class="login-logo">
+      <img src="sided_logo.png" alt="SIDED+"/>
+      <div><div class="login-logo-name">SIDED<span>+</span></div><div class="login-logo-sub">Sistema de Diário Escolar Digital</div></div>
     </div>
+    <div class="login-title">Bem-vindo de volta</div>
+    <div class="login-subtitle">Acesse com seu login institucional</div>
+    <div id="error-msg" class="error-msg"></div>
+    <div class="form-group">
+      <label class="form-label">Login</label>
+      <input class="form-input" id="input-id" type="text" placeholder="Seu login institucional" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <div class="input-wrap">
+        <input class="form-input" id="input-senha" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:42px;"/>
+        <button class="input-eye" onclick="toggleSenha()" type="button">
+          <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn-login" id="btn-login" onclick="fazerLogin()">
+      <span class="spinner" id="spinner"></span><span id="btn-text">Entrar</span>
+    </button>
+    <div class="divider"><span>ou continue com</span></div>
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 16 19.1 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.1 6.8 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.2 0-9.6-3.3-11.3-8H6.1C9.5 37.3 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.2 5.2C37 38.7 44 33 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+      Entrar com Google
+    </button>
   </div>
 </div>
 
-<!-- CALLOUT -->
-<section class="callout-section reveal">
-  <div class="callout-box">
-    <div class="callout-text">
-      <h2 class="callout-title">Pronto para largar<br>o papel de vez?</h2>
-      <p class="callout-sub">Acesse o SIDED+ agora e comece a usar.</p>
-    </div>
-    <a class="callout-btn" href="#" onclick="abrirPortal(event)">
-      Acessar Agora
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <a class="footer-logo" href="#">
-    <img src="sigea_logo.png" alt="SIGEA+" onerror="this.style.display='none'">
-    SIGEA+
-  </a>
-  <span class="footer-copy">Sistema de Gestão Escolar · Todos os direitos reservados</span>
-</footer>
-
 <script>
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target); } });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-  // Hamburger menu
-  function toggleDrawer() {
-    const btn = document.getElementById('hamburger');
-    const drawer = document.getElementById('navDrawer');
-    btn.classList.toggle('open');
-    drawer.classList.toggle('open');
+  const SUPABASE_URL='https://biocjxggjjfeqmpuysik.supabase.co';
+  const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb2NqeGdnampmZXFtcHV5c2lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODUwOTQsImV4cCI6MjA4OTc2MTA5NH0.3bL3dKqiWGoHROE6vSzf-7Orp0GLcLpn4mHtUSwC0dU';
+  function abrirLogin(){document.getElementById('loginOverlay').classList.add('active');setTimeout(()=>document.getElementById('input-id').focus(),100)}
+  function fecharLogin(){document.getElementById('loginOverlay').classList.remove('active')}
+  document.getElementById('loginOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('loginOverlay'))fecharLogin()});
+  function toggleSenha(){const i=document.getElementById('input-senha'),ic=document.getElementById('eye-icon');if(i.type==='password'){i.type='text';ic.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';}else{i.type='password';ic.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}}
+  function mostrarErro(m){const e=document.getElementById('error-msg');e.textContent=m;e.style.display='block'}
+  function esconderErro(){document.getElementById('error-msg').style.display='none'}
+  function setLoading(on){document.getElementById('btn-login').disabled=on;document.getElementById('spinner').style.display=on?'block':'none';document.getElementById('btn-text').textContent=on?'Verificando...':'Entrar'}
+  async function fazerLogin(){
+    const login=document.getElementById('input-id').value.trim();
+    const senha=document.getElementById('input-senha').value;
+    esconderErro();
+    if(!login||!senha){mostrarErro('Preencha login e senha.');return}
+    setLoading(true);
+    try{
+      const url=`${SUPABASE_URL}/rest/v1/users?login=eq.${encodeURIComponent(login)}&senha=eq.${encodeURIComponent(senha)}&select=id,login,role,nome,escola_id,escolas_ids,tipo_secretaria,aluno_id,turma_id`;
+      const res=await fetch(url,{headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});
+      const data=await res.json();
+      if(Array.isArray(data)&&data.length>0){
+        sessionStorage.setItem('ded_user',JSON.stringify(data[0]));
+        window.location.href='professor_dashboard.html';
+      }else{mostrarErro('Login ou senha incorretos.')}
+    }catch{mostrarErro('Erro de conexão. Tente novamente.')}
+    finally{setLoading(false)}
   }
-  function closeDrawer() {
-    document.getElementById('hamburger').classList.remove('open');
-    document.getElementById('navDrawer').classList.remove('open');
-  }
-  // Fecha ao clicar fora
-  document.addEventListener('click', e => {
-    const btn = document.getElementById('hamburger');
-    const drawer = document.getElementById('navDrawer');
-    if (!btn.contains(e.target) && !drawer.contains(e.target)) closeDrawer();
-  });
-  // Fecha ao rolar
-  window.addEventListener('scroll', closeDrawer, { passive: true });
-</script>
-
-<!-- MODAL PORTAL -->
-<div id="portalOverlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(10,8,30,0.92);backdrop-filter:blur(18px);align-items:center;justify-content:center;padding:20px;">
-  <div style="width:100%;max-width:520px;background:#13112a;border:1px solid rgba(124,58,237,0.25);border-radius:24px;padding:44px 36px;position:relative;animation:portalIn 0.3s ease;">
-    <button onclick="fecharPortal()" style="position:absolute;top:16px;right:18px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:22px;cursor:pointer;line-height:1;transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.35)'">✕</button>
-
-    <div style="text-align:center;margin-bottom:32px;">
-      <img src="sigea_logo.png" alt="SIGEA+" style="width:52px;height:52px;border-radius:12px;object-fit:cover;margin-bottom:14px;"/>
-      <div style="font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#fff;margin-bottom:6px;">Qual é o seu portal?</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.45);">Selecione o perfil de acesso correspondente</div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <a href="https://sidedplus.vercel.app" style="text-decoration:none;">
-        <div class="portal-card" style="background:#0d0d1a;border:1.5px solid rgba(79,125,255,0.25);border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#4f7dff';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(79,125,255,0.25)';this.style.transform='translateY(0)'">
-          <img src="sided_logo.png" alt="SIDED+" style="width:44px;height:44px;border-radius:10px;object-fit:cover;margin-bottom:10px;"/>
-          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#4f7dff;margin-bottom:4px;">SIDED+</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.45);">Professor & Diretor</div>
-        </div>
-      </a>
-
-      <a href="https://sialuno.vercel.app" style="text-decoration:none;">
-        <div class="portal-card" style="background:#0a1628;border:1.5px solid rgba(245,158,11,0.25);border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#f59e0b';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(245,158,11,0.25)';this.style.transform='translateY(0)'">
-          <img src="sialuno_logo.png" alt="SIALUNO" style="width:44px;height:44px;border-radius:10px;object-fit:cover;margin-bottom:10px;"/>
-          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#f59e0b;margin-bottom:4px;">SIALUNO</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.45);">Aluno</div>
-        </div>
-      </a>
-
-      <a href="https://sirecplus.vercel.app" style="text-decoration:none;">
-        <div class="portal-card" style="background:#0d1a0d;border:1.5px solid rgba(34,197,94,0.25);border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#22c55e';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(34,197,94,0.25)';this.style.transform='translateY(0)'">
-          <img src="sirec_logo.png" alt="SIREC" style="width:44px;height:44px;border-radius:10px;object-fit:cover;margin-bottom:10px;"/>
-          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#22c55e;margin-bottom:4px;">SIREC</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.45);">Representante</div>
-        </div>
-      </a>
-
-      <a href="https://siproplus.vercel.app" style="text-decoration:none;">
-        <div class="portal-card" style="background:#00101f;border:1.5px solid rgba(56,189,248,0.25);border-radius:14px;padding:22px 18px;text-align:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#38bdf8';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(56,189,248,0.25)';this.style.transform='translateY(0)'">
-          <img src="sipro_logo.png" alt="SIPRO+" style="width:44px;height:44px;border-radius:10px;object-fit:cover;margin-bottom:10px;"/>
-          <div style="font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#38bdf8;margin-bottom:4px;">SIPRO+</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.45);">Secretaria & Admin</div>
-        </div>
-      </a>
-    </div>
-  </div>
-</div>
-
-<style>
-@keyframes portalIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
-</style>
-
-<script>
-  function abrirPortal(e){e.preventDefault();const o=document.getElementById('portalOverlay');o.style.display='flex';}
-  function fecharPortal(){document.getElementById('portalOverlay').style.display='none';}
-  document.getElementById('portalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('portalOverlay'))fecharPortal();});
+  function loginGoogle(){window.location.href=`${SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin+'/professor_dashboard.html')}`}
+  document.addEventListener('keydown',e=>{if(e.key==='Enter')fazerLogin()});
+  if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
