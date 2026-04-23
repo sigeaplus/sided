@@ -1281,7 +1281,7 @@ const api = async (path, opts = {}) => {
 // SESSÃO
 const session = JSON.parse(sessionStorage.getItem('ded_user') || 'null');
 if (!session || !session.role || !['professor','admin'].includes(session.role)) {
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 // Estado
@@ -3986,7 +3986,7 @@ function voltarMobile() {
   }
 }
 
-function sair() { sessionStorage.clear(); window.location.href = 'login.html'; }
+function sair() { sessionStorage.clear(); window.location.href = 'index.html'; }
 // ============================================================
 // FECHAR TRIMESTRE
 // ============================================================
