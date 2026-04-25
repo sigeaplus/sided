@@ -19,15 +19,15 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --purple: #6C4FD4;
-      --purple-light: #EDE8FF;
-      --purple-dark: #4A2C6E;
+      --purple: #2563EB;
+      --purple-light: #E8F0FF;
+      --purple-dark: #3B4FE4;
       --orange: #FF8C38;
-      --bg: #F4F2FF;
+      --bg: #F5F8FF;
       --white: #ffffff;
-      --text: #1E1248;
-      --text-muted: #9A8FC0;
-      --border: #E4DDFF;
+      --text: #1B2550;
+      --text-muted: #6E7BA8;
+      --border: #DBE4FF;
       --success: #22C55E;
       --warning: #F59E0B;
       --danger: #EF4444;
@@ -37,49 +37,49 @@
 
     body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    /* SIDEBAR — direita no desktop */
+    /* SIDEBAR — esquerda no desktop */
     .sidebar {
-      position: fixed; top: 0; right: 0; bottom: 0;
+      position: fixed; top: 0; left: 0; bottom: 0;
       width: 220px;
-      background: #E8D8F4;
+      background: #EAF1FF;
       display: flex; flex-direction: column;
       z-index: 200;
-      transition: transform 0.3s ease;
+      transition: transform 0.35s ease;
     }
 
     /* Logo no topo do drawer mobile */
     .sidebar-logo {
       padding: 18px 16px 14px;
-      border-bottom: 1px solid rgba(90,52,128,0.12);
+      border-bottom: 1px solid rgba(37,99,235,0.16);
       display: flex; align-items: center; gap: 10px;
-      background: #E8D8F4;
+      background: #EAF1FF;
     }
     .logo-icon { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-    .logo-name { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #5A3480; letter-spacing: 1px; }
-    .logo-sub { font-size: 10px; color: rgba(90,52,128,0.5); }
+    .logo-name { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #1D4ED8; letter-spacing: 1px; }
+    .logo-sub { font-size: 10px; color: rgba(37,99,235,0.6); }
 
     .sidebar-profile {
       padding: 20px 16px 16px;
-      border-bottom: 1px solid rgba(90,52,128,0.12);
+      border-bottom: 1px solid rgba(37,99,235,0.16);
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      background: #E8D8F4;
+      background: #EAF1FF;
     }
-    button.sidebar-profile:hover { background: rgba(90,52,128,0.08) !important; }
-    .prof-avatar { width: 64px; height: 64px; border-radius: 50%; background: #5A3480; display: flex; align-items: center; justify-content: center; }
+    button.sidebar-profile:hover { background: rgba(37,99,235,0.08) !important; }
+    .prof-avatar { width: 64px; height: 64px; border-radius: 50%; background: #3B4FE4; display: flex; align-items: center; justify-content: center; }
     .prof-avatar svg { width: 32px; height: 32px; }
     .prof-label { font-size: 12px; font-weight: 700; color: #333; }
     .prof-nome { font-size: 12px; font-weight: 600; color: #333; text-align: center; width: 100%; border: 1px solid #ccc; border-radius: 8px; padding: 5px 8px; background: #fff; min-height: 28px; display: flex; align-items: center; justify-content: center; }
     .prof-escola { font-size: 10px; font-weight: 700; color: #555; text-align: center; text-transform: uppercase; letter-spacing: 0.4px; }
 
-    .sidebar-nav { flex: 1; padding: 16px 12px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #E8D8F4; }
+    .sidebar-nav { flex: 1; padding: 16px 12px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #EAF1FF; }
 
     .btn-fechar-tri {
       width: 100%; padding: 14px 10px;
-      background: #5A3480;
+      background: #2563EB;
       border: none;
       border-radius: 14px; color: #fff;
       font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: opacity 0.15s;
+      cursor: pointer; transition: opacity 0.25s ease;
       display: flex; flex-direction: column; align-items: center; gap: 7px;
     }
     .btn-fechar-tri:hover { opacity: 0.85; }
@@ -90,7 +90,7 @@
       border: none;
       border-radius: 14px; color: #fff;
       font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: opacity 0.15s;
+      cursor: pointer; transition: opacity 0.25s ease;
       display: flex; flex-direction: column; align-items: center; gap: 7px;
     }
     .btn-planos:hover { opacity: 0.85; }
@@ -98,7 +98,7 @@
     .btn-sair {
       width: 100%; padding: 10px 12px; border-radius: 8px;
       border: none; background: none;
-      color: #5A3480; font-family: 'Sora', sans-serif;
+      color: #1D4ED8; font-family: 'Sora', sans-serif;
       font-size: 13px; font-weight: 600; cursor: pointer;
       display: flex; align-items: center; justify-content: center; gap: 7px;
       text-decoration: underline;
@@ -155,9 +155,38 @@
       border-radius: 0 0 20px 20px;
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     }
+    .desktop-sidebar-toggle {
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+    .desktop-sidebar-toggle:hover { background: rgba(255,255,255,0.2); }
     .escola-bar-info { font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 500; }
     .escola-bar-name { font-size: 16px; color: #fff; font-weight: 700; }
     .bem-vindo { font-size: 13px; color: rgba(255,255,255,0.6); }
+    #col-sidebar {
+      transition: transform 0.3s ease, opacity 0.25s ease, width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+      transform-origin: left center;
+    }
+    #layout-wrapper.sidebar-hidden #col-sidebar {
+      transform: translateX(-110%);
+      opacity: 0;
+      width: 0 !important;
+      min-width: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
 
     /* SIDEBAR ESQUERDA — só no mobile */
     .sidebar { display: none; }
@@ -165,8 +194,30 @@
     /* CONTENT */
     .content { padding: 56px 0 0 0; flex: 1; min-height: 100vh; }
 
-    /* FILTROS */
-    .filtros-card {
+    /* ── Botões do menu lateral da turma ── */
+    .stb {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      padding: 7px 8px; border-radius: 9px; border: 1.5px solid transparent;
+      background: rgba(255,255,255,0.7); cursor: pointer;
+      font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600;
+      color: #334155; text-align: left;
+      transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
+    }
+    .stb:hover {
+      background: #fff;
+      border-color: var(--c, #CBD5E1);
+      color: var(--c, #334155);
+      transform: translateX(2px);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+    .stb-icon {
+      width: 26px; height: 26px; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    /* Aplicar --c via atributo data-c */
+    .stb[data-c] { --c: attr(data-c); }
+
+  
       background: var(--white);
       border-radius: 14px; border: 1px solid var(--border);
       padding: 18px 20px; margin-bottom: 24px;
@@ -341,9 +392,9 @@
     .aval-card {
       background: var(--white); border: 1.5px solid var(--border);
       border-radius: 12px; padding: 16px 18px; cursor: pointer;
-      transition: all 0.15s; margin-bottom: 10px; position: relative;
+      transition: all 0.25s ease; margin-bottom: 10px; position: relative;
     }
-    .aval-card:hover { border-color: #C8A8E8; }
+    .aval-card:hover { border-color: #A9C5FF; box-shadow: 0 6px 18px rgba(37,99,235,0.08); transform: translateY(-1px); }
     .aval-nome { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
     .aval-meta { font-size: 12px; color: var(--text-muted); }
     .aval-status-badge { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
@@ -358,7 +409,7 @@
       border-radius: 20px;
       padding: 18px 22px;
       margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(108,79,212,0.06);
+      box-shadow: 0 2px 10px rgba(31,62,134,0.05);
     }
     .nota-aluno-card.abaixo { border-color: #FBBFBF; background: #FFF8F8; }
 
@@ -433,7 +484,7 @@
     /* MODAL */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9000; align-items: center; justify-content: center; padding: 20px; }
     .modal-overlay.open { display: flex; }
-    .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto; animation: slideUp 0.2s ease; }
+    .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto; animation: slideUp 0.24s ease; }
     .modal-header { padding: 20px 22px 0; display: flex; align-items: center; justify-content: space-between; }
     .modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
     .modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
@@ -478,6 +529,48 @@
     .alert-box { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
     .alert-box.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
     .alert-box.error { background: #FFF4F4; border: 1px solid #FBBFBF; color: #C0392B; }
+    .tipo-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .tipo-card {
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      background: #F6F9FF;
+      padding: 12px 10px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      text-align: center;
+    }
+    .tipo-card strong { display: block; font-size: 12px; color: var(--text); margin-bottom: 2px; }
+    .tipo-card span { font-size: 10px; color: var(--text-muted); }
+    .tipo-card.active { border-color: var(--purple); background: var(--purple-light); box-shadow: 0 6px 14px rgba(37,99,235,0.1); }
+    .tipo-card-rec { grid-column: 1 / -1; }
+    .grupo-composicao {
+      display: none;
+      background: #F7FAFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+    .grupo-composicao.open { display: block; }
+    .grupo-avaliacoes-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .grupo-avaliacoes-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); }
+    .grupo-avaliacoes-item input { accent-color: var(--purple); }
+    .grupo-total { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+    .grupo-total strong { color: var(--purple); }
+    .grupo-card-soma { background: #EDF4FF; border-color: #BFDBFE; }
+    .grupo-card-media { background: #ECFDF3; border-color: #BBF7D0; }
+    .grupo-sublista { margin-top: 8px; padding-left: 16px; border-left: 2px solid rgba(37,99,235,0.2); display: flex; flex-direction: column; gap: 8px; }
+    .grupo-subitem { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text); }
+    .btn-entrar-grupo, .btn-editar-grupo {
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: #fff;
+      color: var(--purple);
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
     .icone-acao {
       display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -497,12 +590,22 @@
     .icone-circulo.purple { background: var(--purple-light); color: var(--purple); }
     .icone-circulo.orange { background: #FFF0E6; color: var(--orange); }
     .icone-circulo.teal { background: #E0F7F4; color: #0F766E; }
+    .icone-circulo.lime { background: #ECFCCB; color: #65A30D; }
+    .icone-circulo.blood { background: #FEE2E2; color: #B91C1C; }
     .icone-circulo svg { stroke: currentColor; }
+    .atalho-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
 
     @media print {
       body * { visibility: hidden; }
       #area-impressao, #area-impressao * { visibility: visible; }
       #area-impressao { position: fixed; inset: 0; background: #fff; padding: 20px; font-family: 'Sora', sans-serif; }
+      #relped-print-area, #relped-print-area * { visibility: visible; }
+      #relped-print-area { position: fixed; inset: 0; background: #fff; padding: 0; }
       .no-print { display: none !important; }
     }
     @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
@@ -521,11 +624,11 @@
       /* Sidebar mobile — mesmo visual do desktop, abre pelo hambúrguer */
       .sidebar {
         display: flex;
-        transform: translateX(100%);
-        right: 0;
+        transform: translateX(-100%);
+        left: 0;
         width: var(--sidebar-w); /* 220px igual ao desktop */
         background: var(--purple-dark);
-        box-shadow: -4px 0 24px rgba(0,0,0,0.3);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.25);
       }
       .sidebar.open { transform: translateX(0); }
 
@@ -672,10 +775,6 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Fechar Trimestre
     </button>
-    <button class="btn-planos" onclick="fecharSidebar(); window.location.href='planejamento.html'">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3l7 7-7 7"/><path d="M5 12h14"/></svg>
-      Ir aos Planos (Site 2)
-    </button>
     <button class="btn-sair" onclick="sair()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A3480" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       Sair do sistema
@@ -712,11 +811,17 @@
   </header>
   <!-- CABEÇALHO ÚNICO — muda conforme a tela -->
   <div class="escola-bar" id="cabecalho-principal">
-    <div>
-      <div class="escola-bar-info" id="escola-bar-codigo">—</div>
-      <div class="escola-bar-name" id="escola-bar-nome">Carregando...</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button id="btn-toggle-sidebar-desktop" onclick="toggleSidebarDesktop()" title="Ocultar menu lateral" style="width:32px;height:32px;border-radius:8px;border:none;background:rgba(255,255,255,0.15);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="escola-bar-info" id="escola-bar-codigo">—</div>
+        <div class="escola-bar-name" id="escola-bar-nome">Carregando...</div>
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px;">
+
       <button onclick="voltarDashboard()" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;padding:6px;border-radius:6px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='none'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
       </button>
@@ -788,56 +893,13 @@
 
     <!-- TELA INTERNA DA TURMA -->
     <div class="turma-screen" id="turma-screen">
-      <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:24px 20px;margin-bottom:24px;display:flex;justify-content:center;gap:48px;flex-wrap:wrap;">
-        <button class="icone-acao" onclick="abrirPagina('chamada')" id="ico-chamada">
-          <div class="icone-circulo purple">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg>
-          </div>
-          <span>Chamada do Dia</span>
-        </button>
-        <button class="icone-acao" onclick="abrirPagina('avaliacoes')" id="ico-avaliacoes">
-          <div class="icone-circulo orange">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          </div>
-          <span>Avaliações</span>
-        </button>
-        <button class="icone-acao" onclick="abrirPagina('aulas')" id="ico-aulas">
-          <div class="icone-circulo teal">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </div>
-          <span>Aulas</span>
-        </button>
-      </div>
-      <div id="relatorio-geral">
-        <div style="background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden;">
-          <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-            <div>
-              <div style="font-size:14px;font-weight:700;color:var(--text);">Relatório Geral</div>
-              <div style="font-size:12px;color:var(--text-muted);" id="relatorio-total-alunos">Total de alunos: —</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <select id="sel-rel-tri" onchange="carregarRelatorio(parseInt(this.value))" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;">
-                <option value="1">1º Trimestre</option>
-                <option value="2">2º Trimestre</option>
-                <option value="3">3º Trimestre</option>
-              </select>
-              <select id="sel-rel-ordem" onchange="ordenarRelatorio(this.value)" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;">
-                <option value="alfa">Ordem alfabética</option>
-                <option value="nota">Por nota</option>
-                <option value="faltas">Por faltas</option>
-              </select>
-              <button onclick="imprimirRelatorioGeral()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--purple);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                Imprimir planilha
-              </button>
-            </div>
-          </div>
-          <div style="overflow-x:auto;">
-            <table class="relatorio-table">
-              <thead><tr id="relatorio-thead"><th>Aluno</th><th>Total de Notas</th><th>Total de Faltas</th></tr></thead>
-              <tbody id="relatorio-body"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr></tbody>
-            </table>
-          </div>
+      <div class="atalho-card" style="margin-bottom:18px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;">Acesso rápido</div>
+        <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap;">
+          <button class="icone-acao" onclick="abrirPagina('aulas')" id="ico-aulas"><div class="icone-circulo teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><span>Aulas</span></button>
+          <button class="icone-acao" onclick="abrirPagina('avaliacoes')" id="ico-avaliacoes"><div class="icone-circulo orange"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span>Avaliações</span></button>
+          <button class="icone-acao" onclick="abrirPagina('chamada')" id="ico-chamada"><div class="icone-circulo purple"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg></div><span>Chamada do dia</span></button>
+          <button class="icone-acao" onclick="abrirPagina('relatorio-geral')"><div class="icone-circulo teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></div><span>Relatório geral</span></button>
         </div>
       </div>
     </div>
@@ -1086,11 +1148,284 @@
       </div>
     </div>
 
+    <div id="pagina-relatorio-geral" style="display:none;">
+      <div style="background:var(--white);border-radius:14px;border:1px solid var(--border);overflow:hidden;">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">Relatório Geral</div>
+            <div style="font-size:12px;color:var(--text-muted);" id="relatorio-total-alunos">Total de alunos: —</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <select id="sel-rel-tri" onchange="carregarRelatorio(parseInt(this.value))" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;">
+              <option value="1">1º Trimestre</option>
+              <option value="2">2º Trimestre</option>
+              <option value="3">3º Trimestre</option>
+            </select>
+            <select id="sel-rel-ordem" onchange="ordenarRelatorio(this.value)" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;">
+              <option value="alfa">Ordem alfabética</option>
+              <option value="nota">Por nota</option>
+              <option value="faltas">Por faltas</option>
+            </select>
+            <button onclick="imprimirRelatorioGeral()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--purple);cursor:pointer;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Imprimir planilha
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="relatorio-table">
+            <thead><tr id="relatorio-thead"><th>Aluno</th><th>Total de Notas</th><th>Total de Faltas</th></tr></thead>
+            <tbody id="relatorio-body"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="pagina-relatorio-individual" style="display:none;">
+
+      <!-- VIEW 1: Lista de alunos -->
+      <div id="relped-view-alunos">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);">Relatório Individual</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Selecione um aluno para ver ou criar relatórios pedagógicos</div>
+          </div>
+          <select id="relped-sel-tri" onchange="relpedMudarTri(this.value)" style="padding:7px 14px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--text);outline:none;cursor:pointer;">
+            <option value="1">1º Trimestre</option>
+            <option value="2">2º Trimestre</option>
+            <option value="3">3º Trimestre</option>
+          </select>
+        </div>
+        <div id="lista-relatorio-individual" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- VIEW 2: Lista de relatórios do aluno -->
+      <div id="relped-view-lista-rels" style="display:none;">
+        <button onclick="relpedVoltarAlunos()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--text-muted);font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;margin-bottom:20px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Todos os alunos
+        </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);" id="relped-aluno-titulo">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Relatórios pedagógicos</div>
+          </div>
+          <button onclick="relpedAbrirEditor(null)" style="display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;border:none;background:#0D9488;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo relatório
+          </button>
+        </div>
+        <div id="relped-lista-rels" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- VIEW 3: Editor do relatório -->
+      <div id="relped-view-editor" style="display:none;">
+        <button onclick="relpedVoltarListaRels()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--text-muted);font-family:'Sora',sans-serif;font-size:13px;cursor:pointer;margin-bottom:20px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Voltar para relatórios
+        </button>
+
+        <!-- Área de impressão -->
+        <div id="relped-print-area" style="background:var(--white);border-radius:14px;border:1.5px solid var(--border);overflow:hidden;">
+
+          <!-- Header colorido -->
+          <div style="background:#0D9488;padding:22px 24px;color:#fff;display:flex;align-items:center;gap:16px;">
+            <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg viewBox="0 0 36 36" fill="none" width="26" height="26"><circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/><path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;opacity:0.65;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px;">Relatório Pedagógico</div>
+              <div style="font-size:17px;font-weight:700;" id="relped-print-nome">—</div>
+              <div style="font-size:12px;opacity:0.75;margin-top:2px;" id="relped-print-meta">—</div>
+            </div>
+            <button class="no-print" onclick="relpedExportarPDF()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Exportar PDF
+            </button>
+          </div>
+
+          <div style="padding:24px;">
+            <!-- Data + Trimestre -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:6px;">Data do Relatório</label>
+                <input type="date" id="relped-data" style="width:100%;padding:10px 12px;background:#F0FDFA;border:1.5px solid #CCFBF1;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='#0D9488'" onblur="this.style.borderColor='#CCFBF1'"/>
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:6px;">Trimestre</label>
+                <select id="relped-tri" style="width:100%;padding:10px 12px;background:#F0FDFA;border:1.5px solid #CCFBF1;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer;">
+                  <option value="1">1º Trimestre</option>
+                  <option value="2">2º Trimestre</option>
+                  <option value="3">3º Trimestre</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Critérios -->
+            <div style="margin-bottom:24px;">
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;">Avaliação por critério</div>
+              <div id="relped-criterios" style="display:flex;flex-direction:column;gap:14px;"></div>
+            </div>
+
+            <!-- Observações -->
+            <div>
+              <label style="font-size:11px;font-weight:700;color:#0D9488;text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:6px;">Observações Gerais</label>
+              <textarea id="relped-obs" rows="5" placeholder="Escreva suas observações sobre o aluno..." style="width:100%;padding:12px;background:#F0FDFA;border:1.5px solid #CCFBF1;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;transition:border-color 0.2s;" onfocus="this.style.borderColor='#0D9488'" onblur="this.style.borderColor='#CCFBF1'"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão salvar -->
+        <div class="no-print" style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+          <button onclick="relpedSalvar()" id="btn-relped-salvar" style="display:flex;align-items:center;gap:7px;padding:11px 24px;border-radius:9px;border:none;background:#0D9488;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar relatório
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="pagina-mapeamento-sala" style="display:none;padding:24px 28px;">
+
+      <!-- ── LISTA DE MAPEAMENTOS ── -->
+      <div id="mapa-lista-view">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Mapeamentos de Sala</div>
+          <button onclick="abrirModalCriarMapa()" style="display:flex;align-items:center;gap:7px;padding:10px 18px;border-radius:10px;border:none;background:#8B5CF6;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Criar mapeamento
+          </button>
+        </div>
+        <div id="mapa-lista-grid" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- ── CANVAS DO MAPA ── -->
+      <div id="mapa-canvas-view" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button onclick="voltarListaMapa()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Voltar
+          </button>
+          <div id="mapa-canvas-titulo" style="font-size:15px;font-weight:700;color:var(--text);flex:1;"></div>
+          <button onclick="salvarMapaSala()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#8B5CF6;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar
+          </button>
+          <button onclick="resetarMapaSala()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+            Resetar
+          </button>
+        </div>
+        <div id="mapa-canvas" style="position:relative;width:100%;min-height:560px;background:#F8FAFF;border:1.5px solid var(--border);border-radius:16px;overflow:hidden;background-image:radial-gradient(circle,#CBD5E1 1px,transparent 1px);background-size:28px 28px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:10px;text-align:center;">Arraste os cartões para organizar a sala · Mesa do professor também é arrastável</div>
+      </div>
+
+      <!-- ── MODAL CRIAR MAPEAMENTO ── -->
+      <div id="modal-criar-mapa" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:18px;padding:28px;width:100%;max-width:400px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px;">Novo mapeamento</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Nome do mapeamento</label>
+              <input id="mapa-input-nome" type="text" placeholder="Ex: Semana 1, Grupos, Prova..." style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Fileiras</label>
+                <input id="mapa-input-fileiras" type="number" min="1" max="10" value="4" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Colunas</label>
+                <input id="mapa-input-colunas" type="number" min="1" max="10" value="5" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);" />
+              </div>
+            </div>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;">
+              <input id="mapa-input-aleatorio" type="checkbox" style="width:16px;height:16px;accent-color:#8B5CF6;cursor:pointer;" />
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);">Distribuição aleatória</div>
+                <div style="font-size:11px;color:var(--text-muted);">Embaralha os alunos antes de posicionar</div>
+              </div>
+            </label>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:22px;">
+            <button onclick="fecharModalCriarMapa()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button onclick="confirmarCriarMapa()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#8B5CF6;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Criar</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div id="pagina-calendario-escolar" style="display:none;padding:24px 28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Calendário Escolar</div>
+          <div id="cal-escola-label" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+        </div>
+        <label id="cal-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#0EA5E9';this.style.color='#0EA5E9'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Trocar arquivo
+          <input id="cal-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="calHandleFile(this)" />
+        </label>
+      </div>
+
+      <!-- Estado: sem arquivo -->
+      <div id="cal-empty" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:340px;border:2px dashed var(--border);border-radius:16px;gap:14px;background:#F8FAFF;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Nenhum calendário enviado ainda</div>
+        <label style="display:flex;align-items:center;gap:7px;padding:11px 22px;border-radius:10px;border:none;background:#0EA5E9;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Enviar calendário (PDF ou imagem)
+          <input type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="calHandleFile(this)" />
+        </label>
+        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · máx. 4 MB</div>
+      </div>
+
+      <!-- Visualizador -->
+      <div id="cal-viewer" style="display:none;">
+        <iframe id="cal-iframe" style="width:100%;height:72vh;border:1.5px solid var(--border);border-radius:12px;background:#fff;" title="Calendário Escolar"></iframe>
+        <img id="cal-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Calendário Escolar" />
+      </div>
+    </div>
+    <div id="pagina-ocorrencias" style="display:none;"><div class="atalho-card"><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">Ocorrência Escolar / Má Conduta</div><div style="font-size:12px;color:var(--text-muted);">Registro de ocorrências por aluno (base pronta para persistência).</div></div></div>
+
+    <div id="pagina-comunicacao" style="display:none;"><div class="atalho-card"><div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">Aviso ao Representante</div><div style="font-size:12px;color:var(--text-muted);">Canal de comunicação com responsáveis.</div></div></div>
+
+    <div id="pagina-plano-curso" style="display:none;padding:24px 28px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Plano de Curso</div>
+          <div id="plano-turma-label" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+        </div>
+        <label id="plano-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#BE185D';this.style.color='#BE185D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Trocar arquivo
+          <input id="plano-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="planoHandleFile(this)" />
+        </label>
+      </div>
+
+      <div id="plano-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;border:2px dashed var(--border);border-radius:16px;gap:14px;background:#F8FAFF;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Nenhum plano de curso enviado ainda</div>
+        <label style="display:flex;align-items:center;gap:7px;padding:11px 22px;border-radius:10px;border:none;background:#BE185D;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Enviar plano de curso (PDF ou imagem)
+          <input type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="planoHandleFile(this)" />
+        </label>
+        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · máx. 4 MB</div>
+      </div>
+
+      <div id="plano-viewer" style="display:none;">
+        <iframe id="plano-iframe" style="width:100%;height:72vh;border:1.5px solid var(--border);border-radius:12px;background:#fff;" title="Plano de Curso"></iframe>
+        <img id="plano-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Plano de Curso" />
+      </div>
+    </div>
+
     <!-- TELA DE NOTAS — separada, fora do pagina-avaliacoes -->
     <div id="notas-screen" style="display:none;">
 
       <!-- Botão voltar -->
-      <button class="back-btn" onclick="voltarTurma()" style="margin:16px 0 18px;">
+      <button class="back-btn" onclick="voltarAvaliacoes()" style="margin:16px 0 18px;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         Voltar à turma
       </button>
@@ -1107,7 +1442,7 @@
       </div>
 
       <!-- Nota Padrão -->
-      <div style="background:#F8F6FF;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;">
+      <div id="nota-padrao-wrap" style="background:#F8F6FF;border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-end;">
         <div style="flex:1;">
           <label style="font-size:12px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:8px;">Nota padrão</label>
           <input id="nota-padrao" type="number" min="0" step="0.5" placeholder="Digite uma nota para aplicar a todos" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;outline:none;"/>
@@ -1137,25 +1472,81 @@
       </div><!-- fim col-main -->
 
       <!-- SIDEBAR DIREITA INLINE -->
-      <div id="col-sidebar" style="width:200px;flex-shrink:0;background:#E8D8F4;border-radius:20px 0 0 20px;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 24px;gap:0;position:sticky;top:0;align-self:flex-start;height:100vh;z-index:20;">
-        <button type="button" id="btn-perfil-desktop" onclick="abrirPerfil()" style="width:72px;height:72px;border-radius:50%;background:#5A3480;display:flex;align-items:center;justify-content:center;margin-bottom:14px;border:none;cursor:pointer;transition:opacity 0.15s;position:relative;z-index:2;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1" title="Ver perfil">
-          <svg viewBox="0 0 36 36" fill="none" width="36" height="36">
-            <circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/>
-            <path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
+      <div id="col-sidebar" style="position:relative;width:200px;flex-shrink:0;background:#EAF1FF;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;position:sticky;top:0;align-self:flex-start;height:100vh;z-index:20;order:-1;overflow-y:auto;overflow-x:hidden;">
+
+        <!-- ── ESTADO NORMAL: perfil + escola ── -->
+        <div id="sidebar-estado-normal" style="display:flex;flex-direction:column;align-items:center;">
+          <button type="button" id="btn-perfil-desktop" onclick="abrirPerfil()"
+            style="width:64px;height:64px;border-radius:50%;background:#3B4FE4;display:flex;align-items:center;justify-content:center;margin-bottom:10px;border:none;cursor:pointer;transition:opacity 0.2s;flex-shrink:0;"
+            onmouseover="this.style.opacity=0.82" onmouseout="this.style.opacity=1" title="Ver perfil">
+            <svg viewBox="0 0 36 36" fill="none" width="30" height="30">
+              <circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.9)"/>
+              <path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-align:center;">Professor(a)</div>
+          <div style="width:100%;border:1.5px solid #BFDBFE;border-radius:8px;padding:5px 8px;background:#fff;font-size:11px;color:#334155;text-align:center;margin-bottom:10px;min-height:24px;font-family:'Sora',sans-serif;" id="sidebar-prof-nome-display"></div>
+          <div style="width:100%;height:1px;background:#BFDBFE;margin-bottom:8px;"></div>
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-align:center;letter-spacing:0.4px;margin-bottom:14px;text-transform:uppercase;line-height:1.4;" id="sidebar-escola-display">—</div>
+        </div>
+
+        <!-- ── BOTÃO FECHAR TRIMESTRE (sempre visível) ── -->
+        <button onclick="abrirFecharTrimestre()"
+          style="width:100%;background:#2563EB;border:none;border-radius:12px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;padding:11px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;transition:opacity 0.2s;"
+          onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Fechar Trimestre
         </button>
-        <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:8px;text-align:center;">Professor(a)</div>
-        <div style="width:100%;border:1px solid #ccc;border-radius:8px;padding:6px 10px;background:#fff;font-family:'Sora',sans-serif;font-size:12px;color:#333;text-align:center;margin-bottom:16px;min-height:30px;" id="sidebar-prof-nome-display"></div>
-        <div style="width:100%;height:1px;background:rgba(90,52,128,0.2);margin-bottom:16px;"></div>
-        <div style="font-size:11px;font-weight:700;color:#555;text-align:center;letter-spacing:0.4px;margin-bottom:16px;text-transform:uppercase;" id="sidebar-escola-display">—</div>
-        <button onclick="abrirFecharTrimestre()" style="width:100%;background:#5A3480;border:none;border-radius:14px;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;padding:16px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:12px;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Fechar<br>Trimestre
-        </button>
-        <button onclick="sair()" style="width:100%;background:none;border:none;color:#5A3480;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:underline;margin-top:8px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5A3480" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sair
-        </button>
+
+        <!-- ── MENU FERRAMENTAS DA TURMA (só ao entrar na turma) ── -->
+        <div id="sidebar-turma-menu" style="display:none;flex-direction:column;gap:2px;flex:1;">
+          <div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;padding-left:4px;">Ferramentas</div>
+
+          <button onclick="abrirPagina('relatorio-individual')" class="stb" data-c="#F97316">
+            <span class="stb-icon" style="background:#FFF7ED;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0114 0"/></svg></span>
+            Rel. individual
+          </button>
+          <button onclick="abrirPagina('mapeamento-sala')" class="stb" data-c="#8B5CF6">
+            <span class="stb-icon" style="background:#F5F3FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
+            Mapeamento de sala
+          </button>
+          <button onclick="sortearAlunoAleatorio()" class="stb" data-c="#65A30D">
+            <span class="stb-icon" style="background:#F7FEE7;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#65A30D" stroke-width="2.2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></span>
+            Sortear aluno
+          </button>
+          <button onclick="abrirPagina('calendario-escolar')" class="stb" data-c="#0891B2">
+            <span class="stb-icon" style="background:#ECFEFF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
+            Calendário escolar
+          </button>
+          <button onclick="abrirPagina('ocorrencias')" class="stb" data-c="#DC2626">
+            <span class="stb-icon" style="background:#FEF2F2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"><polygon points="10 2 2 20 22 20 14 2 10 2"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg></span>
+            Ocorrência
+          </button>
+          <button onclick="abrirPagina('comunicacao')" class="stb" data-c="#D97706">
+            <span class="stb-icon" style="background:#FFFBEB;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+            Aviso responsável
+          </button>
+          <button onclick="abrirPagina('plano-curso')" class="stb" data-c="#BE185D">
+            <span class="stb-icon" style="background:#FDF2F8;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#BE185D" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+            Plano de curso
+          </button>
+        </div>
+
+        <!-- ── RODAPÉ: avatar mini + sair ── -->
+        <div style="margin-top:auto;padding-top:12px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <button id="btn-perfil-mini" onclick="abrirPerfil()" title="Ver perfil"
+            style="display:none;width:38px;height:38px;border-radius:50%;background:#3B4FE4;border:2px solid #fff;cursor:pointer;align-items:center;justify-content:center;transition:opacity 0.2s;box-shadow:0 2px 8px rgba(37,99,235,0.25);"
+            onmouseover="this.style.opacity=0.8" onmouseout="this.style.opacity=1">
+            <svg viewBox="0 0 36 36" fill="none" width="20" height="20">
+              <circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.95)"/>
+              <path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.95)" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button onclick="sair()" style="background:none;border:none;color:#2563EB;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;text-decoration:underline;opacity:0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sair
+          </button>
+        </div>
       </div>
 
     </div><!-- fim layout-wrapper -->
@@ -1243,7 +1634,7 @@
         <div class="field"><label>Pontos</label><input id="aval-pontos" type="number" min="0.5" step="0.5" placeholder="Ex: 10"/></div>
         <div class="field">
           <label>Trimestre</label>
-          <select id="aval-tri">
+          <select id="aval-tri" onchange="if (_isGrupoTipo(document.getElementById('aval-tipo').value)) _renderChecklistGrupo();">
             <option value="1">1º Trimestre</option>
             <option value="2">2º Trimestre</option>
             <option value="3">3º Trimestre</option>
@@ -1252,10 +1643,30 @@
       </div>
       <div class="field">
         <label>Tipo</label>
-        <select id="aval-tipo">
-          <option value="normal">Normal</option>
-          <option value="recuperacao">Recuperação</option>
-        </select>
+        <input type="hidden" id="aval-tipo" value="normal"/>
+        <div class="tipo-cards">
+          <button type="button" class="tipo-card active" data-tipo="normal" onclick="selecionarTipoAvaliacao(this)">
+            <strong>Normal</strong>
+            <span>Avaliação padrão</span>
+          </button>
+          <button type="button" class="tipo-card" data-tipo="soma" onclick="selecionarTipoAvaliacao(this)">
+            <strong>Soma</strong>
+            <span>Agrupa sub-avaliações</span>
+          </button>
+          <button type="button" class="tipo-card" data-tipo="media" onclick="selecionarTipoAvaliacao(this)">
+            <strong>Média</strong>
+            <span>Média das sub-avaliações</span>
+          </button>
+          <button type="button" class="tipo-card tipo-card-rec" data-tipo="recuperacao" onclick="selecionarTipoAvaliacao(this)">
+            <strong>Recuperação</strong>
+            <span>Linha completa</span>
+          </button>
+        </div>
+      </div>
+      <div id="grupo-composicao" class="grupo-composicao">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;">Avaliações do trimestre</div>
+        <div id="grupo-avaliacoes-list" class="grupo-avaliacoes-list"></div>
+        <div class="grupo-total">Pontos totais automáticos: <strong id="grupo-pontos-total">0</strong></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1357,6 +1768,10 @@ let feriadosCache = [];
 let editandoAulaId = null, editandoAvalId = null, triAtivo = '';
 let modoSelecaoAulas = false;
 let aulasSelecionadas = new Set();
+let grupoComposicaoSelecionada = [];
+let grupoEntrouId = null;
+let gruposAvaliacaoConfig = JSON.parse(localStorage.getItem('sided_grupos_avaliacoes') || '{}');
+let modoGrupoNotasAtivo = null; // { grupoId, tipo, subAvals }
 
 // ── CACHE DE TURMA ──────────────────────────────────────────────
 // Evita re-buscar dados já carregados ao alternar entre turmas
@@ -1389,6 +1804,7 @@ function chamadaCacheGet(aulaId) { return _chamadaCache[aulaId]; }
 
 // INIT
 async function init() {
+  aplicarPreferenciaSidebarDesktop();
   const prof = await api(`professores?id_login=eq.${session.login}&select=*,escolas(*)&limit=1`);
   if (!prof || !prof[0]) { sair(); return; }
   const p = prof[0];
@@ -1591,6 +2007,15 @@ function renderTurmas(lista) {
 }
 
 // ABRIR TURMA
+function _setSidebarEstadoTurma(dentroTurma) {
+  const normal = document.getElementById('sidebar-estado-normal');
+  const menu   = document.getElementById('sidebar-turma-menu');
+  const mini   = document.getElementById('btn-perfil-mini');
+  if (normal) normal.style.display = dentroTurma ? 'none' : 'flex';
+  if (menu)   { menu.style.display = dentroTurma ? 'flex' : 'none'; }
+  if (mini)   { mini.style.display = dentroTurma ? 'flex' : 'none'; }
+}
+
 async function abrirTurma(id) {
   turmaAtiva = todasTurmas.find(t => t.id === id);
   esconderTudo();
@@ -1599,6 +2024,7 @@ async function abrirTurma(id) {
   const meta = `${turmaAtiva.ano} · ${turmaAtiva.disciplina || 'Sem disciplina'} · ${turmaAtiva.turno}`;
   atualizarCabecalho({ info: meta, titulo: turmaAtiva.nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: 'var(--purple-dark)' });
   atualizarHeaderMobile(turmaAtiva.nome, meta, true, false);
+  _setSidebarEstadoTurma(true);
   await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
   carregarRelatorio(1);
 }
@@ -1607,6 +2033,7 @@ function voltarDashboard() {
   esconderTudo();
   document.getElementById('dashboard-screen').style.display = 'block';
   turmaAtiva = null;
+  _setSidebarEstadoTurma(false);
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const escola = profData.escolas?.nome || '';
   const codigo = profData.escolas?.codigo_escola ? `Código: ${profData.escolas.codigo_escola}` : '';
@@ -1615,7 +2042,12 @@ function voltarDashboard() {
 }
 
 // NAVEGAÇÃO ENTRE PÁGINAS
-const todasPaginas = ['turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen'];
+const todasPaginas = [
+  'turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen',
+  'pagina-relatorio-geral','pagina-relatorio-individual','pagina-mapeamento-sala',
+  'pagina-calendario-escolar','pagina-ocorrencias','pagina-comunicacao',
+  'pagina-plano-curso'
+];
 
 function esconderTudo() {
   todasPaginas.forEach(p => {
@@ -1654,6 +2086,42 @@ async function abrirPagina(pagina) {
     atualizarHeaderMobile('Avaliações', nome, true, true);
     await _inicializarFiltroDiscAval();
     carregarAvaliacoes();
+  } else if (pagina === 'relatorio-geral') {
+    document.getElementById('pagina-relatorio-geral').style.display = 'block';
+    atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#16A34A' });
+    atualizarHeaderMobile('Relatório Geral', nome, true, true);
+    carregarRelatorio(parseInt(document.getElementById('sel-rel-tri')?.value || '1'));
+  } else if (pagina === 'relatorio-individual') {
+    document.getElementById('pagina-relatorio-individual').style.display = 'block';
+    atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#65A30D' });
+    atualizarHeaderMobile('Relatório Individual', nome, true, true);
+    renderRelatorioIndividualMenu();
+  } else if (pagina === 'mapeamento-sala') {
+    document.getElementById('pagina-mapeamento-sala').style.display = 'block';
+    document.getElementById('mapa-lista-view').style.display = 'block';
+    document.getElementById('mapa-canvas-view').style.display = 'none';
+    _mapaAtivo = null;
+    atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#8B5CF6' });
+    atualizarHeaderMobile('Mapeamento de Sala', nome, true, true);
+    renderListaMapeamentos();
+  } else if (pagina === 'calendario-escolar') {
+    document.getElementById('pagina-calendario-escolar').style.display = 'block';
+    atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0EA5E9' });
+    atualizarHeaderMobile('Calendário Escolar', nome, true, true);
+    iniciarCalendario();
+  } else if (pagina === 'ocorrencias') {
+    document.getElementById('pagina-ocorrencias').style.display = 'block';
+    atualizarCabecalho({ info: 'Disciplina', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#B91C1C' });
+    atualizarHeaderMobile('Ocorrências', nome, true, true);
+  } else if (pagina === 'comunicacao') {
+    document.getElementById('pagina-comunicacao').style.display = 'block';
+    atualizarCabecalho({ info: 'Comunicação', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#EA580C' });
+    atualizarHeaderMobile('Aviso ao Representante', nome, true, true);
+  } else if (pagina === 'plano-curso') {
+    document.getElementById('pagina-plano-curso').style.display = 'block';
+    atualizarCabecalho({ info: 'Plano de Curso', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
+    atualizarHeaderMobile('Plano de Curso', nome, true, true);
+    iniciarPlanoCurso();
   }
 }
 
@@ -1669,6 +2137,41 @@ function voltarTurma() {
 
 // compatibilidade com chamadas antigas
 function trocarTab(tab) { abrirPagina(tab); }
+
+function sortearAlunoAleatorio() {
+  if (!alunosTurma.length) {
+    mostrarToast('Sem alunos carregados nesta turma.');
+    return;
+  }
+  const idx = Math.floor(Math.random() * alunosTurma.length);
+  const aluno = alunosTurma[idx];
+  mostrarToast(`Aluno sorteado: ${aluno.nome_completo}`);
+}
+
+function renderRelatorioIndividualMenu() {
+  const el = document.getElementById('lista-relatorio-individual');
+  if (!el) return;
+  if (!alunosTurma.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Nenhum aluno carregado.</div>';
+    return;
+  }
+  el.innerHTML = alunosTurma.map(a => `
+    <button onclick="abrirFichaAluno('${a.id}')" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;cursor:pointer;font-family:'Sora',sans-serif;">
+      <span style="font-size:13px;color:var(--text);font-weight:600;">${a.nome_completo}</span>
+      <span style="font-size:12px;color:var(--purple);font-weight:700;">Abrir ficha</span>
+    </button>
+  `).join('');
+}
+
+function processarPlanoCursoPDF(event) {
+  const status = document.getElementById('plano-curso-status');
+  const file = event?.target?.files?.[0];
+  if (!file) {
+    status.textContent = 'Nenhum arquivo analisado.';
+    return;
+  }
+  status.textContent = `PDF "${file.name}" anexado. Leitura automática será aplicada ao plano de aula (estrutura preparada).`;
+}
 
 // AULAS
 async function carregarAulas(forcarReload = false) {
@@ -2014,6 +2517,9 @@ function toggleMenuStatusSelecao() {
   if (!menu) return;
   menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
 }
+
+// Aplicar --c nos botões .stb para hover colorido
+document.querySelectorAll('.stb[data-c]').forEach(b => b.style.setProperty('--c', b.dataset.c));
 
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('menu-status-selecao');
@@ -2878,6 +3384,96 @@ async function abrirChamadaDeAula(aulaId) {
   if (btnSel) selecionarAulaChamada(aulaId);
 }
 
+function _configGrupoKey(id) { return `${turmaAtiva?.id || 'turma'}:${id}`; }
+function _salvarConfigsGrupo() { localStorage.setItem('sided_grupos_avaliacoes', JSON.stringify(gruposAvaliacaoConfig)); }
+function _obterConfigGrupo(id) {
+  const cfg = gruposAvaliacaoConfig[_configGrupoKey(id)] || {};
+  return { children: cfg.children || [], mode: cfg.mode || null };
+}
+function _setConfigGrupo(id, cfg) {
+  gruposAvaliacaoConfig[_configGrupoKey(id)] = { children: cfg.children || [], mode: cfg.mode || null };
+  _salvarConfigsGrupo();
+}
+function _mapaFilhosGrupos() {
+  const ownerByChild = {};
+  avaliacoesTurma.forEach(av => {
+    const cfg = _obterConfigGrupo(av.id);
+    if (!_isGrupoTipo(cfg.mode)) return;
+    (cfg.children || []).forEach(childId => {
+      ownerByChild[childId] = av.id;
+    });
+  });
+  return ownerByChild;
+}
+function _isGrupoTipo(tipo) { return tipo === 'soma' || tipo === 'media'; }
+function _tipoExibicaoAval(aval) {
+  if (!aval) return 'normal';
+  const cfg = _obterConfigGrupo(aval.id);
+  if (aval.tipo === 'normal' && _isGrupoTipo(cfg.mode)) return cfg.mode;
+  return aval.tipo;
+}
+function _labelTipo(tipo) {
+  if (tipo === 'soma') return 'Soma';
+  if (tipo === 'media') return 'Média';
+  if (tipo === 'recuperacao') return 'Recuperação';
+  return 'Normal';
+}
+function _recalcularPontosGrupo() {
+  const tipo = document.getElementById('aval-tipo').value;
+  const subAvals = avaliacoesTurma.filter(a => grupoComposicaoSelecionada.includes(a.id));
+  const total = subAvals.reduce((acc, a) => acc + Number(a.pontos || 0), 0);
+  const pontosCalculados = tipo === 'media' && subAvals.length ? (total / subAvals.length) : total;
+  document.getElementById('grupo-pontos-total').textContent = pontosCalculados.toFixed(1).replace('.0', '');
+  document.getElementById('aval-pontos').value = pontosCalculados ? pontosCalculados.toFixed(1).replace('.0', '') : '';
+}
+function _renderChecklistGrupo() {
+  const tri = parseInt(document.getElementById('aval-tri').value);
+  const listEl = document.getElementById('grupo-avaliacoes-list');
+  const ownerByChild = _mapaFilhosGrupos();
+  const candidates = avaliacoesTurma.filter(a =>
+    !_isGrupoTipo(_tipoExibicaoAval(a)) &&
+    a.tipo !== 'recuperacao' &&
+    parseInt(a.trimestre) === tri &&
+    a.id !== editandoAvalId &&
+    (!ownerByChild[a.id] || ownerByChild[a.id] === editandoAvalId)
+  );
+  if (!candidates.length) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Nenhuma avaliação normal disponível neste trimestre.</div>';
+    grupoComposicaoSelecionada = [];
+    _recalcularPontosGrupo();
+    return;
+  }
+  listEl.innerHTML = candidates.map(a => `
+    <label class="grupo-avaliacoes-item">
+      <input type="checkbox" ${grupoComposicaoSelecionada.includes(a.id) ? 'checked' : ''} onchange="toggleSubAvaliacaoGrupo('${a.id}', this.checked)">
+      <span>${a.nome} (${Number(a.pontos || 0)} pts)</span>
+    </label>
+  `).join('');
+  _recalcularPontosGrupo();
+}
+function selecionarTipoAvaliacao(btn) {
+  document.querySelectorAll('.tipo-card').forEach(el => el.classList.remove('active'));
+  btn.classList.add('active');
+  const tipo = btn.dataset.tipo;
+  document.getElementById('aval-tipo').value = tipo;
+  const isGrupo = _isGrupoTipo(tipo);
+  document.getElementById('grupo-composicao').classList.toggle('open', isGrupo);
+  document.getElementById('aval-pontos').readOnly = isGrupo;
+  document.getElementById('aval-pontos').style.opacity = isGrupo ? '0.75' : '1';
+  if (isGrupo) _renderChecklistGrupo();
+}
+function toggleSubAvaliacaoGrupo(id, checked) {
+  if (checked) {
+    if (!grupoComposicaoSelecionada.includes(id)) grupoComposicaoSelecionada.push(id);
+  } else {
+    grupoComposicaoSelecionada = grupoComposicaoSelecionada.filter(v => v !== id);
+  }
+  _recalcularPontosGrupo();
+}
+function entrarNoGrupo(id) {
+  abrirNotasGrupo(id);
+}
+
 async function carregarAvaliacoes() {
   avaliacoesTurma = await apiCached(
     `avaliacoes?turma_id=eq.${turmaAtiva.id}&select=*&order=created_at`,
@@ -2937,6 +3533,7 @@ async function carregarAvaliacoes() {
   // salvar globalmente para uso no fechar trimestre
   window._pontosLancadosPorTri = window._pontosLancadosPorTri || {};
   window._pontosLancadosPorTri[triSel] = { pontosLancados, maxEsperado, totalAlunos };
+  window._contPorAval = contPorAval;
 
   renderAvaliacoes(avaliacoesTurma, contPorAval, totalAlunos);
 }
@@ -2969,6 +3566,16 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
     listaFiltrada = listaFiltrada.filter(a => a.disciplina === avalDiscFiltro);
   }
 
+  // Sub-avaliações vinculadas a grupos não aparecem na listagem principal.
+  // Elas ficam visíveis apenas dentro do card do grupo.
+  const ownerByChild = _mapaFilhosGrupos();
+  listaFiltrada = listaFiltrada.filter(a => {
+    const ownerId = ownerByChild[a.id];
+    if (!ownerId) return true;
+    const tipoExibicao = _tipoExibicaoAval(a);
+    return _isGrupoTipo(tipoExibicao);
+  });
+
   if (!listaFiltrada.length) {
     el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Nenhuma avaliação cadastrada</div>';
     return;
@@ -2989,26 +3596,47 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
         <div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
       ${grupos[tri].map(a => {
+        const tipoExibicao = _tipoExibicaoAval(a);
+        const isGrupo = _isGrupoTipo(tipoExibicao);
+        const cfg = isGrupo ? _obterConfigGrupo(a.id) : { children: [] };
+        const subs = cfg.children.map(id => lista.find(x => x.id === id)).filter(Boolean);
         const lancadas = contPorAval[a.id] || 0;
         const status = lancadas === 0 ? 'vazia' : lancadas < totalAlunos ? 'pendente' : 'lancada';
         const statusTxt = status === 'lancada' ? 'Nota registrada' : status === 'pendente' ? 'Nota pendente' : '';
         const statusBg = status === 'lancada' ? '#DCFCE7' : '#FEF3C7';
         const statusClr = status === 'lancada' ? '#166534' : '#92400E';
         return `
-        <div style="background:#E8E0F0;border-radius:12px;padding:14px 18px;margin-bottom:10px;position:relative;cursor:pointer;" onclick="abrirNotas('${a.id}')">
-          ${status !== 'vazia' ? `<span style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
+        <div class="aval-card ${tipoExibicao === 'soma' ? 'grupo-card-soma' : ''} ${tipoExibicao === 'media' ? 'grupo-card-media' : ''}" style="cursor:${isGrupo ? 'default' : 'pointer'};" ${isGrupo ? '' : `onclick="abrirNotas('${a.id}')"`}>
+          ${!isGrupo && status !== 'vazia' ? `<span style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:130px;">
             <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${a.nome}</span>
             ${a.disciplina ? `<span style="font-size:10px;font-weight:700;background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;">${a.disciplina}</span>` : ''}
-            <button onclick="event.stopPropagation();editarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="Editar">
+            <button onclick="event.stopPropagation();editarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="${isGrupo ? 'Editar grupo' : 'Editar'}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
           </div>
           <div style="font-size:13px;color:var(--text);line-height:1.8;">
             Valor Total: <strong>${a.pontos}</strong><br>
-            Tipo: <strong>${a.tipo === 'normal' ? 'Normal' : 'Recuperação'}</strong><br>
+            Tipo: <strong>${_labelTipo(tipoExibicao)}</strong><br>
             Divisão: <strong>${nomesTri[a.trimestre] || ''}</strong>
           </div>
+          ${isGrupo ? `
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn-entrar-grupo" onclick="event.stopPropagation();entrarNoGrupo('${a.id}')">→ Entrar</button>
+              <button class="btn-editar-grupo" onclick="event.stopPropagation();editarAvaliacao('${a.id}')">Editar grupo</button>
+            </div>
+            <div class="grupo-sublista" style="${grupoEntrouId === a.id ? '' : 'opacity:0.95;'}">
+              ${subs.length ? subs.map(s => `
+                <div class="grupo-subitem">
+                  <span>${s.nome} (${Number(s.pontos || 0)} pts)</span>
+                  <span>
+                    <button class="btn-editar-grupo" onclick="event.stopPropagation();editarAvaliacao('${s.id}')">Editar</button>
+                    <button class="btn-entrar-grupo" onclick="event.stopPropagation();abrirNotas('${s.id}')">Lançar</button>
+                  </span>
+                </div>
+              `).join('') : '<div style="font-size:12px;color:var(--text-muted);">Sem sub-avaliações selecionadas.</div>'}
+            </div>
+          ` : ''}
           <div style="display:flex;justify-content:flex-end;margin-top:10px;">
             <button onclick="event.stopPropagation();excluirAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;color:#E24B4A;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
@@ -3022,12 +3650,14 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
 
 async function abrirModalAvaliacao(data) {
   editandoAvalId = data?.id || null;
+  const tipoAtual = data ? _tipoExibicaoAval(data) : 'normal';
   document.getElementById('modal-aval-title').textContent = editandoAvalId ? 'Editar avaliação' : 'Nova avaliação';
   document.getElementById('aval-nome').value = data?.nome || '';
   document.getElementById('aval-pontos').value = data?.pontos || '';
   document.getElementById('aval-tri').value = data?.trimestre || detectarTrimestreAtual().tri || '1';
-  document.getElementById('aval-tipo').value = data?.tipo || 'normal';
+  document.getElementById('aval-tipo').value = tipoAtual;
   document.getElementById('aval-alert').style.display = 'none';
+  grupoComposicaoSelecionada = editandoAvalId ? [..._obterConfigGrupo(editandoAvalId).children] : [];
 
   // Verificar se é Fundamental I
   const isFundI = isFundamentalI();
@@ -3064,6 +3694,17 @@ async function abrirModalAvaliacao(data) {
     selDisc.innerHTML = '';
   }
 
+  document.querySelectorAll('.tipo-card').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tipo === tipoAtual);
+  });
+  selecionarTipoAvaliacao(document.querySelector(`.tipo-card[data-tipo="${tipoAtual}"]`));
+
+  const isGrupo = _isGrupoTipo(tipoAtual);
+  const triSelect = document.getElementById('aval-tri');
+  triSelect.disabled = !!(isGrupo && editandoAvalId);
+  if (isGrupo && editandoAvalId) triSelect.title = 'Trimestre do grupo não pode ser alterado.';
+  else triSelect.title = '';
+
   document.getElementById('modal-avaliacao').classList.add('open');
 }
 
@@ -3076,7 +3717,14 @@ async function salvarAvaliacao() {
   alEl.style.display = 'none';
   const nome = document.getElementById('aval-nome').value.trim();
   const pontos = parseFloat(document.getElementById('aval-pontos').value);
+  const tipo = document.getElementById('aval-tipo').value;
   if (!nome || !pontos) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (_isGrupoTipo(tipo) && !grupoComposicaoSelecionada.length) {
+    alEl.textContent = 'Selecione ao menos uma sub-avaliação para o grupo.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
 
   // Disciplina — obrigatória se campo visível (Fundamental I)
   const fieldDisc = document.getElementById('aval-field-disciplina');
@@ -3085,7 +3733,7 @@ async function salvarAvaliacao() {
   if (isFundI && !disciplina) { alEl.textContent = 'Selecione a disciplina.'; alEl.style.display = 'block'; btn.disabled = false; return; }
 
   // Validação: em Fundamental I, cada disciplina tem máximo 30 pts
-  if (isFundI && disciplina) {
+  if (isFundI && disciplina && !_isGrupoTipo(tipo)) {
     const triAtual = parseInt(document.getElementById('aval-tri').value);
     let totalPontosDisc = 0;
     
@@ -3108,10 +3756,11 @@ async function salvarAvaliacao() {
   }
 
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const tipoPersistir = _isGrupoTipo(tipo) ? 'normal' : tipo;
   const body = {
     nome, pontos,
     trimestre: parseInt(document.getElementById('aval-tri').value),
-    tipo: document.getElementById('aval-tipo').value,
+    tipo: tipoPersistir,
     turma_id: turmaAtiva.id,
     professor_id: profData.id,
     ...(disciplina ? { disciplina } : {})
@@ -3121,11 +3770,17 @@ async function salvarAvaliacao() {
       await api(`avaliacoes?id=eq.${editandoAvalId}`, { method: 'PATCH', body: JSON.stringify(body) });
       const idx = avaliacoesTurma.findIndex(a => a.id === editandoAvalId);
       if (idx !== -1) avaliacoesTurma[idx] = { ...avaliacoesTurma[idx], ...body };
+      if (_isGrupoTipo(tipo)) _setConfigGrupo(editandoAvalId, { children: grupoComposicaoSelecionada, mode: tipo });
+      else {
+        delete gruposAvaliacaoConfig[_configGrupoKey(editandoAvalId)];
+        _salvarConfigsGrupo();
+      }
     } else {
       const res = await api('avaliacoes', { method: 'POST', body: JSON.stringify(body) });
       // Garantir que disciplina está no objeto local (Supabase às vezes omite campos no retorno)
       const nova = (res && res[0]) ? { ...body, ...res[0], disciplina: body.disciplina || res[0].disciplina } : { ...body, id: Date.now() };
       avaliacoesTurma.push(nova);
+      if (_isGrupoTipo(tipo)) _setConfigGrupo(nova.id, { children: grupoComposicaoSelecionada, mode: tipo });
     }
     cacheSalvar(turmaAtiva.id, 'avaliacoes', avaliacoesTurma);
     fecharModal('modal-avaliacao');
@@ -3133,7 +3788,10 @@ async function salvarAvaliacao() {
     delete _cache[_cacheKey(turmaAtiva.id, 'avaliacoes')];
     // Recarregar com contagem real de notas
     await carregarAvaliacoes();
-  } catch(e) { alEl.textContent = 'Erro ao salvar.'; alEl.style.display = 'block'; }
+  } catch(e) {
+    alEl.textContent = `Erro ao salvar. ${e?.message || ''}`.trim();
+    alEl.style.display = 'block';
+  }
   btn.disabled = false;
 }
 
@@ -3141,6 +3799,8 @@ async function excluirAvaliacao(id) {
   if (!confirm('Excluir esta avaliação?')) return;
   await api(`avaliacoes?id=eq.${id}`, { method: 'DELETE' });
   avaliacoesTurma = avaliacoesTurma.filter(a => a.id !== id);
+  delete gruposAvaliacaoConfig[_configGrupoKey(id)];
+  _salvarConfigsGrupo();
   cacheSalvar(turmaAtiva.id, 'avaliacoes', avaliacoesTurma);
   renderAvaliacoes(avaliacoesTurma, {}, alunosTurma.length);
 }
@@ -3150,9 +3810,12 @@ async function excluirAvaliacao(id) {
 let alunosRecuperacaoExtra = new Set();
 
 async function abrirNotas(avalId) {
+  modoGrupoNotasAtivo = null;
   avaliacaoAtiva = avaliacoesTurma.find(a => a.id === avalId);
   if (!avaliacaoAtiva) return;
   alunosRecuperacaoExtra = new Set();
+  const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
+  if (notaPadraoWrap) notaPadraoWrap.style.display = 'flex';
 
   // Garantir alunos carregados (Fundamental I pode ter chegado aqui sem carregarAlunos)
   if (!alunosTurma.length) {
@@ -3218,6 +3881,81 @@ async function abrirNotas(avalId) {
 
   // Configurar navegação com Enter
   setTimeout(() => configurarNavegacaoNotas(), 100);
+}
+
+async function abrirNotasGrupo(grupoId) {
+  const grupo = avaliacoesTurma.find(a => a.id === grupoId);
+  if (!grupo) return;
+  const cfg = _obterConfigGrupo(grupoId);
+  const tipoGrupo = _tipoExibicaoAval(grupo);
+  const subAvals = (cfg.children || []).map(id => avaliacoesTurma.find(a => a.id === id)).filter(Boolean);
+  if (!subAvals.length) {
+    mostrarToast('Grupo sem sub-avaliações para editar.');
+    return;
+  }
+  modoGrupoNotasAtivo = { grupoId, tipo: tipoGrupo, subAvals };
+  avaliacaoAtiva = grupo;
+  alunosRecuperacaoExtra = new Set();
+  if (!alunosTurma.length) {
+    alunosTurma = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
+  }
+
+  document.getElementById('pagina-avaliacoes').style.display = 'none';
+  document.getElementById('notas-screen').style.display = 'block';
+  const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
+  if (notaPadraoWrap) notaPadraoWrap.style.display = 'none';
+
+  const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
+  atualizarCabecalho({ info: 'Avaliações — Grupo', titulo: grupo.nome, detalhe: 'Voltar às avaliações', voltarFn: 'voltarAvaliacoes', cor: '#FF8C38' });
+  atualizarHeaderMobile(grupo.nome, `${_labelTipo(tipoGrupo)} · ${nomesTri[grupo.trimestre] || ''}`, true, true);
+
+  document.getElementById('notas-title').textContent = `${grupo.nome} (Grupo)`;
+  document.getElementById('notas-pontos').textContent = `${grupo.pontos} pts`;
+  document.getElementById('notas-tri').textContent = nomesTri[grupo.trimestre] || '';
+  document.getElementById('notas-tipo').textContent = `${_labelTipo(tipoGrupo)} (editável)`;
+  document.getElementById('notas-total-tri').textContent = `${subAvals.length} sub-avaliações`;
+
+  const ids = subAvals.map(a => a.id).join(',');
+  const notasTodas = await api(`notas?avaliacao_id=in.(${ids})&select=*`) || [];
+  const notasPorAvalAluno = {};
+  notasTodas.forEach(n => {
+    notasPorAvalAluno[`${n.avaliacao_id}::${n.aluno_id}`] = n;
+  });
+
+  const headerCols = subAvals.map(sa => `<th style="white-space:nowrap;">${sa.nome}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${Number(sa.pontos || 0)} pts</span></th>`).join('');
+  const rotuloFinal = tipoGrupo === 'media' ? 'Média do aluno' : 'Soma do aluno';
+  document.getElementById('notas-list').innerHTML = `
+    <div style="overflow:auto;border:1px solid var(--border);border-radius:12px;background:#fff;">
+      <table class="relatorio-table" style="min-width:880px;">
+        <thead><tr><th>Aluno</th>${headerCols}<th>${rotuloFinal}</th></tr></thead>
+        <tbody>
+          ${alunosTurma.map(al => `
+            <tr>
+              <td style="font-weight:600;">${al.nome_completo}${tagRemanejado(al)}</td>
+              ${subAvals.map(sa => {
+                const notaAtual = notasPorAvalAluno[`${sa.id}::${al.id}`]?.nota;
+                return `<td><input id="gnota-${sa.id}-${al.id}" type="number" min="0" max="${Number(sa.pontos || 0)}" step="0.5"
+                  value="${notaAtual !== null && notaAtual !== undefined ? Number(notaAtual) : ''}"
+                  oninput="atualizarTotalGrupoAluno('${al.id}')"
+                  style="width:86px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;outline:none;" /></td>`;
+              }).join('')}
+              <td id="gtotal-${al.id}" style="font-weight:700;color:var(--purple);">0.0</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  alunosTurma.forEach(al => atualizarTotalGrupoAluno(al.id));
+}
+
+function atualizarTotalGrupoAluno(alunoId) {
+  if (!modoGrupoNotasAtivo || !modoGrupoNotasAtivo.subAvals?.length) return;
+  const valores = modoGrupoNotasAtivo.subAvals.map(sa => Number(document.getElementById(`gnota-${sa.id}-${alunoId}`)?.value || 0));
+  const soma = valores.reduce((acc, v) => acc + v, 0);
+  const finalValor = modoGrupoNotasAtivo.tipo === 'media' && valores.length ? (soma / valores.length) : soma;
+  const target = document.getElementById(`gtotal-${alunoId}`);
+  if (target) target.textContent = finalValor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri) => {
@@ -3392,6 +4130,26 @@ async function salvarTodasNotas() {
   };
 
   try {
+    if (modoGrupoNotasAtivo && modoGrupoNotasAtivo.subAvals?.length) {
+      for (const sub of modoGrupoNotasAtivo.subAvals) {
+        const rowsSub = alunosTurma.map(a => ({
+          avaliacao_id: sub.id,
+          aluno_id: a.id,
+          nota: parseFloat(document.getElementById(`gnota-${sub.id}-${a.id}`)?.value) || null,
+          recuperacao_paralela: null,
+          nao_realizado: false,
+          lancado_em: new Date().toISOString()
+        }));
+        await api(`notas?avaliacao_id=eq.${sub.id}`, { method: 'DELETE' });
+        if (rowsSub.length) await api('notas', { method: 'POST', body: JSON.stringify(rowsSub) });
+      }
+      const chaveAval = turmaAtiva.id + '::avaliacoes';
+      Object.keys(_cache).forEach(k => { if (k === chaveAval) delete _cache[k]; });
+      mostrarToast('Grupo salvo com sucesso!');
+      setTimeout(() => voltarAvaliacoes(), 900);
+      return;
+    }
+
     // pegar apenas alunos que têm campos na tela
     const rows = alunosTurma
       .filter(a => document.getElementById(`nota-${a.id}`) !== null)
@@ -3491,8 +4249,11 @@ async function salvarNotas() {
 }
 
 function voltarAvaliacoes() {
+  modoGrupoNotasAtivo = null;
   document.getElementById('notas-screen').style.display = 'none';
   document.getElementById('pagina-avaliacoes').style.display = 'block';
+  const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
+  if (notaPadraoWrap) notaPadraoWrap.style.display = 'flex';
   atualizarCabecalho({ info: 'Avaliações', titulo: turmaAtiva?.nome || '', detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#FF8C38' });
   atualizarHeaderMobile('Avaliações', turmaAtiva?.nome || '', true, true);
   // Só busca do banco se cache inválido; senão renderiza o que já está em memória
@@ -3962,6 +4723,23 @@ function abrirSidebar() {
 function fecharSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebar-overlay').classList.remove('open');
+}
+function toggleSidebarDesktop() {
+  const wrapper = document.getElementById('layout-wrapper');
+  if (!wrapper) return;
+  wrapper.classList.toggle('sidebar-hidden');
+  const hidden = wrapper.classList.contains('sidebar-hidden');
+  localStorage.setItem('sided_sidebar_hidden_desktop', hidden ? '1' : '0');
+  const btn = document.getElementById('btn-toggle-sidebar-desktop');
+  if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
+}
+function aplicarPreferenciaSidebarDesktop() {
+  const wrapper = document.getElementById('layout-wrapper');
+  if (!wrapper) return;
+  const hidden = localStorage.getItem('sided_sidebar_hidden_desktop') === '1';
+  wrapper.classList.toggle('sidebar-hidden', hidden);
+  const btn = document.getElementById('btn-toggle-sidebar-desktop');
+  if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
 }
 
 // HEADER MOBILE — atualiza título e botões conforme a tela
@@ -4474,11 +5252,7 @@ window.abrirPerfil = async function() {
     // Switch de aba (se a função existir)
     if(typeof abaPerfilSwitch === 'function') abaPerfilSwitch('dados');
 
-    // Exibir botão de planejamento para perfil de professor/admin
-    const btnPlanejamento = document.getElementById('perfil-planejamento-btn');
-    if (btnPlanejamento) {
-      btnPlanejamento.style.display = (['professor','admin'].includes(session.role)) ? 'block' : 'none';
-    }
+    // Planejamento agora integrado no menu da turma
 
   } catch(e) {
     console.error('SIDED+: Erro ao abrir perfil:', e);
@@ -4804,9 +5578,6 @@ init();
         <button onclick="salvarDadosPerfil()" style="width:100%;padding:12px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           Salvar dados
         </button>
-        <button id="perfil-planejamento-btn" onclick="window.location.href='planejamento.html'" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--purple);background:#fff;color:var(--purple);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;display:none;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-          Ir aos planos
-        </button>
       </div>
 
       <!-- ABA SENHA -->
@@ -4860,9 +5631,604 @@ init();
 </style>
 
 <script>
-var _chamadaIndice = -1;
+// ══════════════════════════════════════════
+// CALENDÁRIO ESCOLAR
+// ══════════════════════════════════════════
+function _calKey() {
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const escolaId = profData.escola_id || profData.escolas?.id || profData.id || 'escola';
+  const ano = new Date().getFullYear();
+  return `calendario_escola_${escolaId}_${ano}`;
+}
 
-function _chamadaFoco(linhas) {
+function iniciarCalendario() {
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const escolaNome = profData.escolas?.nome || '—';
+  const ano = new Date().getFullYear();
+  document.getElementById('cal-escola-label').textContent = `${escolaNome} · ${ano}`;
+
+  const salvo = localStorage.getItem(_calKey());
+  if (salvo) {
+    _calExibir(salvo);
+  } else {
+    document.getElementById('cal-empty').style.display = 'flex';
+    document.getElementById('cal-viewer').style.display = 'none';
+    document.getElementById('cal-btn-trocar').style.display = 'none';
+  }
+}
+
+function _calExibir(dataUrl) {
+  document.getElementById('cal-empty').style.display = 'none';
+  document.getElementById('cal-viewer').style.display = 'block';
+  document.getElementById('cal-btn-trocar').style.display = 'flex';
+  const isPdf = dataUrl.startsWith('data:application/pdf');
+  const iframe = document.getElementById('cal-iframe');
+  const img    = document.getElementById('cal-img');
+  if (isPdf) {
+    iframe.style.display = 'block'; img.style.display = 'none';
+    iframe.src = dataUrl;
+  } else {
+    img.style.display = 'block'; iframe.style.display = 'none';
+    img.src = dataUrl;
+  }
+}
+
+function calHandleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { mostrarToast('Arquivo muito grande. Máx. 4 MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      localStorage.setItem(_calKey(), e.target.result);
+      _calExibir(e.target.result);
+      mostrarToast('Calendário salvo!');
+    } catch(err) {
+      mostrarToast('Erro ao salvar: arquivo pode ser grande demais.');
+    }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+// ══════════════════════════════════════════
+// PLANO DE CURSO
+// ══════════════════════════════════════════
+function _planoKey() {
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const ano = new Date().getFullYear();
+  return `plano_curso_${turmaAtiva?.id || 'turma'}_${ano}`;
+}
+
+function iniciarPlanoCurso() {
+  const label = document.getElementById('plano-turma-label');
+  if (label) label.textContent = turmaAtiva ? `${turmaAtiva.nome} · ${turmaAtiva.disciplina || ''} · ${new Date().getFullYear()}` : '';
+  const salvo = localStorage.getItem(_planoKey());
+  if (salvo) {
+    _planoExibir(salvo);
+  } else {
+    document.getElementById('plano-empty').style.display = 'flex';
+    document.getElementById('plano-viewer').style.display = 'none';
+    document.getElementById('plano-btn-trocar').style.display = 'none';
+  }
+}
+
+function _planoExibir(dataUrl) {
+  document.getElementById('plano-empty').style.display = 'none';
+  document.getElementById('plano-viewer').style.display = 'block';
+  document.getElementById('plano-btn-trocar').style.display = 'flex';
+  const isPdf = dataUrl.startsWith('data:application/pdf');
+  const iframe = document.getElementById('plano-iframe');
+  const img    = document.getElementById('plano-img');
+  if (isPdf) {
+    iframe.style.display = 'block'; img.style.display = 'none';
+    iframe.src = dataUrl;
+  } else {
+    img.style.display = 'block'; iframe.style.display = 'none';
+    img.src = dataUrl;
+  }
+}
+
+function planoHandleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { mostrarToast('Arquivo muito grande. Máx. 4 MB.'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      localStorage.setItem(_planoKey(), e.target.result);
+      _planoExibir(e.target.result);
+      mostrarToast('Plano de curso salvo!');
+    } catch(err) {
+      mostrarToast('Erro ao salvar: arquivo pode ser grande demais.');
+    }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+
+// ══════════════════════════════════════════
+let _mapaAtivo = null; // { id, nome, fileiras, colunas, posicoes:{}, professorPos:{x,y} }
+
+function _mapaStorageKey() { return `mapas_sala_${turmaAtiva?.id}`; }
+function _mapaCarregarTodos() { return JSON.parse(localStorage.getItem(_mapaStorageKey()) || '[]'); }
+function _mapaSalvarTodos(lista) { localStorage.setItem(_mapaStorageKey(), JSON.stringify(lista)); }
+
+function renderListaMapeamentos() {
+  const grid = document.getElementById('mapa-lista-grid');
+  if (!grid) return;
+  const lista = _mapaCarregarTodos();
+  if (!lista.length) {
+    grid.innerHTML = '';
+    return;
+  }
+  grid.innerHTML = lista.map((m, i) => `
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:14px;">
+      <div style="width:38px;height:38px;border-radius:10px;background:#EDE9FE;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">${m.nome}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${m.fileiras} fileiras × ${m.colunas} colunas</div>
+      </div>
+      <button onclick="abrirMapaCanvas(${i})" style="padding:8px 14px;border-radius:8px;border:none;background:#8B5CF6;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Abrir</button>
+      <button onclick="excluirMapa(${i})" style="padding:8px;border-radius:8px;border:1.5px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;" onmouseover="this.style.borderColor='var(--danger)';this.style.color='var(--danger)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+function excluirMapa(idx) {
+  const lista = _mapaCarregarTodos();
+  lista.splice(idx, 1);
+  _mapaSalvarTodos(lista);
+  renderListaMapeamentos();
+}
+
+function abrirModalCriarMapa() {
+  document.getElementById('mapa-input-nome').value = '';
+  document.getElementById('mapa-input-fileiras').value = 4;
+  document.getElementById('mapa-input-colunas').value = 5;
+  document.getElementById('mapa-input-aleatorio').checked = false;
+  const modal = document.getElementById('modal-criar-mapa');
+  modal.style.display = 'flex';
+}
+function fecharModalCriarMapa() {
+  document.getElementById('modal-criar-mapa').style.display = 'none';
+}
+
+function confirmarCriarMapa() {
+  const nome = document.getElementById('mapa-input-nome').value.trim() || 'Mapa sem nome';
+  const fileiras = Math.max(1, parseInt(document.getElementById('mapa-input-fileiras').value) || 4);
+  const colunas  = Math.max(1, parseInt(document.getElementById('mapa-input-colunas').value)  || 5);
+  const aleatorio = document.getElementById('mapa-input-aleatorio').checked;
+  const novoMapa = { id: Date.now(), nome, fileiras, colunas, posicoes: {}, professorPos: { x: null, y: null } };
+  const lista = _mapaCarregarTodos();
+  lista.push(novoMapa);
+  _mapaSalvarTodos(lista);
+  fecharModalCriarMapa();
+  abrirMapaCanvas(lista.length - 1, aleatorio);
+}
+
+function abrirMapaCanvas(idx, aleatorio) {
+  const lista = _mapaCarregarTodos();
+  _mapaAtivo = { ...lista[idx], _idx: idx };
+  document.getElementById('mapa-lista-view').style.display = 'none';
+  document.getElementById('mapa-canvas-view').style.display = 'block';
+  document.getElementById('mapa-canvas-titulo').textContent = _mapaAtivo.nome;
+  setTimeout(() => iniciarMapaSala(aleatorio), 50);
+}
+
+function voltarListaMapa() {
+  _mapaAtivo = null;
+  document.getElementById('mapa-canvas-view').style.display = 'none';
+  document.getElementById('mapa-lista-view').style.display = 'block';
+  renderListaMapeamentos();
+}
+
+function iniciarMapaSala(aleatorio) {
+  const canvas = document.getElementById('mapa-canvas');
+  if (!canvas || !_mapaAtivo) return;
+  canvas.innerHTML = '';
+
+  // Mesa do professor (arrastável)
+  const profPos = _mapaAtivo.professorPos;
+  const px = (profPos?.x != null) ? profPos.x : Math.floor(canvas.offsetWidth / 2) - 70;
+  const py = (profPos?.y != null) ? profPos.y : 16;
+  const mesa = document.createElement('div');
+  mesa.id = 'mapa-mesa-prof';
+  mesa.style.cssText = `position:absolute;left:${px}px;top:${py}px;background:#3B4FE4;color:#fff;border-radius:10px;padding:9px 22px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:grab;user-select:none;z-index:3;box-shadow:0 3px 12px rgba(59,79,228,0.3);white-space:nowrap;`;
+  mesa.textContent = '▲ Mesa do Professor';
+  _makeDraggable(mesa, canvas);
+  canvas.appendChild(mesa);
+
+  // Alunos
+  let alunos = [...(alunosTurma || [])];
+  if (aleatorio) alunos = alunos.sort(() => Math.random() - 0.5);
+
+  const colW = 106, rowH = 84, startX = 20, startY = 80;
+  alunos.forEach((a, i) => {
+    const pos = _mapaAtivo.posicoes[a.id];
+    const col = i % _mapaAtivo.colunas, row = Math.floor(i / _mapaAtivo.colunas);
+    const x = pos ? pos.x : startX + col * colW;
+    const y = pos ? pos.y : startY + row * rowH;
+    const card = document.createElement('div');
+    card.className = 'mapa-card';
+    card.dataset.id = a.id;
+    card.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:94px;background:#fff;border:1.5px solid #BFDBFE;border-radius:10px;padding:8px 6px;font-family:'Sora',sans-serif;font-size:10px;font-weight:600;color:#1B2550;text-align:center;cursor:grab;user-select:none;box-shadow:0 2px 8px rgba(37,99,235,0.08);z-index:1;`;
+    const initials = a.nome_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+    card.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:#EAF1FF;color:#2563EB;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 5px;">${initials}</div><div style="line-height:1.3;word-break:break-word;">${a.nome_completo.split(' ').slice(0,2).join(' ')}</div>`;
+    _makeDraggable(card, canvas);
+    canvas.appendChild(card);
+  });
+}
+
+function _makeDraggable(el, canvas) {
+  let ox, oy;
+  el.addEventListener('mousedown', start);
+  el.addEventListener('touchstart', e => { const t = e.touches[0]; start({ clientX: t.clientX, clientY: t.clientY, preventDefault: ()=>e.preventDefault() }); }, { passive: false });
+  function start(e) {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    ox = (e.clientX - r.left) - (er.left - r.left);
+    oy = (e.clientY - r.top)  - (er.top  - r.top);
+    el.style.cursor = 'grabbing';
+    el.style.zIndex = 99;
+    el.style.boxShadow = '0 6px 20px rgba(37,99,235,0.2)';
+    function move(e) {
+      const cx = e.clientX ?? e.touches[0].clientX;
+      const cy = e.clientY ?? e.touches[0].clientY;
+      const r = canvas.getBoundingClientRect();
+      let nx = Math.max(0, Math.min(cx - r.left - ox, canvas.offsetWidth  - el.offsetWidth));
+      let ny = Math.max(0, Math.min(cy - r.top  - oy, canvas.offsetHeight - el.offsetHeight));
+      el.style.left = nx + 'px'; el.style.top = ny + 'px';
+    }
+    function end() {
+      el.style.cursor = 'grab';
+      el.style.zIndex = el.id === 'mapa-mesa-prof' ? 3 : 1;
+      el.style.boxShadow = el.id === 'mapa-mesa-prof' ? '0 3px 12px rgba(59,79,228,0.3)' : '0 2px 8px rgba(37,99,235,0.08)';
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', end);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', end);
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', end);
+  }
+}
+
+function salvarMapaSala() {
+  const canvas = document.getElementById('mapa-canvas');
+  if (!canvas || !_mapaAtivo) return;
+  const posicoes = {};
+  canvas.querySelectorAll('.mapa-card').forEach(c => {
+    posicoes[c.dataset.id] = { x: parseInt(c.style.left), y: parseInt(c.style.top) };
+  });
+  const mesa = document.getElementById('mapa-mesa-prof');
+  const professorPos = mesa ? { x: parseInt(mesa.style.left), y: parseInt(mesa.style.top) } : _mapaAtivo.professorPos;
+  const lista = _mapaCarregarTodos();
+  lista[_mapaAtivo._idx] = { ...lista[_mapaAtivo._idx], posicoes, professorPos };
+  _mapaSalvarTodos(lista);
+  _mapaAtivo.posicoes = posicoes;
+  _mapaAtivo.professorPos = professorPos;
+  mostrarToast('Mapa salvo!');
+}
+
+function resetarMapaSala() {
+  if (!_mapaAtivo) return;
+  const lista = _mapaCarregarTodos();
+  lista[_mapaAtivo._idx].posicoes = {};
+  lista[_mapaAtivo._idx].professorPos = { x: null, y: null };
+  _mapaSalvarTodos(lista);
+  _mapaAtivo.posicoes = {};
+  _mapaAtivo.professorPos = { x: null, y: null };
+  iniciarMapaSala(false);
+  mostrarToast('Layout resetado.');
+}
+
+
+
+// ============================================================
+// RELATÓRIOS PEDAGÓGICOS — dentro de pagina-relatorio-individual
+// Fluxo: lista de alunos → lista de relatórios do aluno → editor
+// ============================================================
+
+const RELPED_CRITERIOS = [
+  { id: 'comportamento',  label: 'Comportamento'  },
+  { id: 'desempenho',     label: 'Desempenho'     },
+  { id: 'frequencia',     label: 'Frequência'     },
+  { id: 'participacao',   label: 'Participação'   },
+  { id: 'relacionamento', label: 'Relacionamento' }
+];
+
+const RELPED_OPCOES = ['Ótimo','Bom','Regular','Ruim'];
+
+const RELPED_COR = {
+  'Ótimo':   { bg:'#DCFCE7', text:'#166534', border:'#BBF7D0' },
+  'Bom':     { bg:'#DBEAFE', text:'#1D4ED8', border:'#BFDBFE' },
+  'Regular': { bg:'#FEF3C7', text:'#92400E', border:'#FCD34D' },
+  'Ruim':    { bg:'#FEE2E2', text:'#C0392B', border:'#FBBFBF' }
+};
+
+let _relpedTriAtivo = 1;
+let _relpedAlunoAtivo = null;     // objeto aluno
+let _relpedRelAtivo = null;       // relatório sendo editado (ou null = novo)
+
+// ── helpers de visibilidade ─────────────────────────────────
+function _relpedMostrar(id) {
+  ['relped-view-alunos','relped-view-lista-rels','relped-view-editor'].forEach(v => {
+    const el = document.getElementById(v);
+    if (el) el.style.display = v === id ? 'block' : 'none';
+  });
+}
+
+// ── VIEW 1: lista de alunos ─────────────────────────────────
+// Chamada pelo abrirPagina('relatorio-individual') via renderRelatorioIndividualMenu
+async function renderRelatorioIndividualMenu() {
+  _relpedTriAtivo = detectarTrimestreAtual().tri;
+  const sel = document.getElementById('relped-sel-tri');
+  if (sel) sel.value = String(_relpedTriAtivo);
+  _relpedMostrar('relped-view-alunos');
+  await _relpedRenderAlunos();
+}
+
+function relpedMudarTri(val) {
+  _relpedTriAtivo = parseInt(val);
+  _relpedRenderAlunos();
+}
+
+async function _relpedRenderAlunos() {
+  const el = document.getElementById('lista-relatorio-individual');
+  if (!el) return;
+
+  if (!alunosTurma.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:24px;text-align:center;">Nenhum aluno cadastrado nesta turma.</div>';
+    return;
+  }
+
+  el.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:16px;text-align:center;">Carregando...</div>';
+
+  // Buscar quais alunos já têm relatório neste trimestre
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  let existentes = [];
+  try {
+    existentes = await api(
+      `relatorios_pedagogicos?turma_id=eq.${turmaAtiva.id}&professor_id=eq.${profData.id}&trimestre=eq.${_relpedTriAtivo}&select=id,aluno_id,data`
+    ) || [];
+  } catch(e) {}
+
+  const relMap = {};
+  existentes.forEach(r => { relMap[r.aluno_id] = r; });
+
+  const sorted = [...alunosTurma].sort((a,b) => a.nome_completo.localeCompare(b.nome_completo));
+
+  el.innerHTML = sorted.map(a => {
+    const rel = relMap[a.id];
+    const initials = a.nome_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+    return `
+      <button onclick="relpedAbrirAluno('${a.id}')"
+        style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid ${rel ? '#BBF7D0' : 'var(--border)'};background:var(--white);cursor:pointer;font-family:'Sora',sans-serif;text-align:left;transition:all 0.15s;"
+        onmouseover="this.style.borderColor='${rel ? '#22C55E' : 'var(--purple)'}';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'"
+        onmouseout="this.style.borderColor='${rel ? '#BBF7D0' : 'var(--border)'  }';this.style.boxShadow='none'">
+        <div style="width:36px;height:36px;border-radius:50%;background:${rel ? '#DCFCE7' : 'var(--purple-light)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${rel ? '#166534' : 'var(--purple)'};flex-shrink:0;">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${a.nome_completo}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${rel ? '✓ Relatório em ' + formatarData(rel.data) : 'Sem relatório neste trimestre'}</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`;
+  }).join('');
+}
+
+// ── VIEW 2: lista de relatórios do aluno ────────────────────
+async function relpedAbrirAluno(alunoId) {
+  const aluno = alunosTurma.find(a => a.id === alunoId);
+  if (!aluno) return;
+  _relpedAlunoAtivo = aluno;
+
+  document.getElementById('relped-aluno-titulo').textContent = aluno.nome_completo;
+  _relpedMostrar('relped-view-lista-rels');
+
+  await _relpedRenderListaRels();
+}
+
+async function _relpedRenderListaRels() {
+  const el = document.getElementById('relped-lista-rels');
+  if (!el || !_relpedAlunoAtivo) return;
+  el.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:16px;text-align:center;">Carregando...</div>';
+
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  let rels = [];
+  try {
+    rels = await api(
+      `relatorios_pedagogicos?aluno_id=eq.${_relpedAlunoAtivo.id}&turma_id=eq.${turmaAtiva.id}&professor_id=eq.${profData.id}&select=*&order=trimestre`
+    ) || [];
+  } catch(e) {}
+
+  if (!rels.length) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;border:2px dashed var(--border);border-radius:12px;">
+        <div style="font-size:14px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Nenhum relatório ainda</div>
+        <div style="font-size:12px;color:var(--text-muted);">Clique em "Novo relatório" para criar o primeiro.</div>
+      </div>`;
+    return;
+  }
+
+  const nomesTri = { 1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre' };
+  const resumoCriterio = r => RELPED_CRITERIOS.map(c => {
+    const v = r[c.id];
+    if (!v) return '';
+    const cor = RELPED_COR[v];
+    return `<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${cor.bg};color:${cor.text};">${c.label[0]}:${v}</span>`;
+  }).filter(Boolean).join(' ');
+
+  el.innerHTML = rels.map(r => `
+    <div style="background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:700;color:var(--text);">${nomesTri[r.trimestre] || r.trimestre + 'º Tri'}</span>
+          <span style="font-size:11px;color:var(--text-muted);">${formatarData(r.data)}</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${r.observacoes ? '8px' : '0'};">${resumoCriterio(r)}</div>
+        ${r.observacoes ? `<div style="font-size:12px;color:var(--text-muted);line-height:1.5;white-space:pre-line;">${r.observacoes.substring(0, 120)}${r.observacoes.length > 120 ? '…' : ''}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button onclick="relpedAbrirEditor('${r.id}')" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--purple);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">Editar</button>
+        <button onclick="relpedExportarPDFRel('${r.id}')" style="padding:7px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--text)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'" title="Exportar PDF">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+function relpedVoltarAlunos() {
+  _relpedAlunoAtivo = null;
+  _relpedMostrar('relped-view-alunos');
+}
+
+function relpedVoltarListaRels() {
+  _relpedRelAtivo = null;
+  _relpedMostrar('relped-view-lista-rels');
+}
+
+// ── VIEW 3: editor ──────────────────────────────────────────
+async function relpedAbrirEditor(relId) {
+  // relId = null → novo; relId = uuid → editar existente
+  let rel = null;
+  if (relId) {
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    try {
+      const res = await api(`relatorios_pedagogicos?id=eq.${relId}&select=*&limit=1`);
+      rel = res && res[0] ? res[0] : null;
+    } catch(e) {}
+  }
+  _relpedRelAtivo = rel;
+
+  // Header
+  document.getElementById('relped-print-nome').textContent = _relpedAlunoAtivo?.nome_completo || '—';
+  document.getElementById('relped-print-meta').textContent =
+    `${turmaAtiva?.nome || ''} · ${turmaAtiva?.disciplina || ''} · ${turmaAtiva?.escolas?.nome || ''}`;
+
+  // Data
+  document.getElementById('relped-data').value = rel?.data
+    ? rel.data.substring(0, 10)
+    : new Date().toISOString().substring(0, 10);
+
+  // Trimestre
+  const triEl = document.getElementById('relped-tri');
+  triEl.value = String(rel?.trimestre || _relpedTriAtivo);
+
+  // Critérios
+  const container = document.getElementById('relped-criterios');
+  container.innerHTML = RELPED_CRITERIOS.map(c => {
+    const salvo = rel ? (rel[c.id] || '') : '';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="min-width:128px;font-size:13px;font-weight:600;color:var(--text);">${c.label}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${RELPED_OPCOES.map(op => {
+            const sel = salvo === op;
+            const cor = RELPED_COR[op];
+            return `<button type="button"
+              data-criterio="${c.id}" data-opcao="${op}" data-selected="${sel ? '1' : '0'}"
+              onclick="relpedSelecionarOpcao('${c.id}','${op}')"
+              style="padding:6px 14px;border-radius:20px;border:1.5px solid ${sel ? cor.border : 'var(--border)'};
+                background:${sel ? cor.bg : 'var(--white)'};color:${sel ? cor.text : 'var(--text-muted)'};
+                font-family:'Sora',sans-serif;font-size:12px;font-weight:${sel ? '700' : '500'};
+                cursor:pointer;transition:all 0.15s;">${op}</button>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Obs
+  document.getElementById('relped-obs').value = rel?.observacoes || '';
+
+  _relpedMostrar('relped-view-editor');
+}
+
+function relpedSelecionarOpcao(criterioId, opcao) {
+  const cor = RELPED_COR[opcao];
+  document.querySelectorAll(`[data-criterio="${criterioId}"]`).forEach(btn => {
+    const isThis = btn.dataset.opcao === opcao;
+    btn.dataset.selected = isThis ? '1' : '0';
+    btn.style.border = `1.5px solid ${isThis ? cor.border : 'var(--border)'}`;
+    btn.style.background = isThis ? cor.bg : 'var(--white)';
+    btn.style.color = isThis ? cor.text : 'var(--text-muted)';
+    btn.style.fontWeight = isThis ? '700' : '500';
+  });
+}
+
+// ── Salvar ──────────────────────────────────────────────────
+async function relpedSalvar() {
+  if (!_relpedAlunoAtivo || !turmaAtiva) return;
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+
+  const dados = {};
+  const faltando = [];
+  RELPED_CRITERIOS.forEach(c => {
+    const sel = document.querySelector(`[data-criterio="${c.id}"][data-selected="1"]`);
+    dados[c.id] = sel ? sel.dataset.opcao : null;
+    if (!dados[c.id]) faltando.push(c.label);
+  });
+
+  if (faltando.length) {
+    mostrarToast(`Preencha: ${faltando.join(', ')}`);
+    return;
+  }
+
+  const btn = document.getElementById('btn-relped-salvar');
+  const htmlOrig = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const payload = {
+    aluno_id: _relpedAlunoAtivo.id,
+    turma_id: turmaAtiva.id,
+    professor_id: profData.id,
+    trimestre: parseInt(document.getElementById('relped-tri').value),
+    data: document.getElementById('relped-data').value || new Date().toISOString().substring(0, 10),
+    observacoes: document.getElementById('relped-obs').value.trim(),
+    ...dados
+  };
+
+  try {
+    if (_relpedRelAtivo?.id) {
+      await api(`relatorios_pedagogicos?id=eq.${_relpedRelAtivo.id}`, {
+        method: 'PATCH', body: JSON.stringify(payload)
+      });
+    } else {
+      const res = await api('relatorios_pedagogicos', {
+        method: 'POST', body: JSON.stringify(payload)
+      });
+      if (res && res[0]) _relpedRelAtivo = res[0];
+    }
+    mostrarToast('Relatório salvo!');
+    await _relpedRenderListaRels(); // atualiza lista em background
+  } catch(e) {
+    console.error(e);
+    mostrarToast('Erro ao salvar. Verifique a conexão.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = htmlOrig;
+  }
+}
+
+// ── Exportar PDF ─────────────────────────────────────────────
+function relpedExportarPDF() { window.print(); }
+
+async function relpedExportarPDFRel(relId) {
+  // Abre o editor em modo visualização e dispara print
+  await relpedAbrirEditor(relId);
+  setTimeout(() => window.print(), 300);
+}
+
+
   linhas.forEach(function(l, i) {
     if (i === _chamadaIndice) {
       l.classList.add('focado');
