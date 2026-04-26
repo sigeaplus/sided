@@ -71,20 +71,154 @@
     .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media(max-width:600px){nav{padding:0 16px}.features{padding:40px 16px 60px}.login-card{padding:32px 22px}}
+
+    /* ===== CADASTRO ===== */
+    .cad-progress{height:4px;background:var(--border);border-radius:100px;margin-bottom:8px;overflow:hidden}
+    .cad-prog-bar{height:100%;background:linear-gradient(90deg,#6C4FD4,#9B7EF8);border-radius:100px;transition:width 0.4s ease}
+    .cad-step-label{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:4px}
+    .cad-back{text-align:center;font-size:12px;color:var(--muted);margin-top:12px;cursor:pointer;transition:color 0.2s}
+    .cad-back:hover{color:#6C4FD4}
+    .escola-drop{position:relative;z-index:10;background:#fff;border:1.5px solid var(--border);border-radius:9px;margin-top:4px;max-height:150px;overflow-y:auto;display:none}
+    .escola-drop.active{display:block}
+    .escola-drop-item{padding:9px 13px;font-size:13px;cursor:pointer;transition:background 0.15s}
+    .escola-drop-item:hover{background:var(--bg)}
+    .escola-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:0}
+    .escola-tag{display:inline-flex;align-items:center;gap:6px;background:rgba(108,79,212,0.1);border:1px solid rgba(108,79,212,0.25);border-radius:100px;padding:4px 10px 4px 12px;font-size:12px;font-weight:600;color:#6C4FD4}
+    .escola-tag button{background:none;border:none;cursor:pointer;color:#6C4FD4;font-size:14px;line-height:1;padding:0;opacity:0.6}
+    .escola-tag button:hover{opacity:1}
+    .resumo-box{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+    .resumo-row{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+    .resumo-label{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+    .resumo-value{color:var(--text);font-weight:600;text-align:right;max-width:220px;word-break:break-word}
+    .role-picker{display:flex;flex-direction:column;gap:10px}
+    .role-opt{display:flex;align-items:flex-start;gap:12px;padding:14px;border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:border-color 0.2s,background 0.2s;position:relative}
+    .role-opt input{position:absolute;opacity:0;width:0;height:0}
+    .role-opt:has(input:checked){border-color:#6C4FD4;background:rgba(108,79,212,0.04)}
+    .role-ico{font-size:24px;flex-shrink:0;margin-top:2px}
+    .role-info{font-size:12px;line-height:1.5;color:var(--muted)}
+    .role-info strong{font-size:13px;color:var(--text);display:block;margin-bottom:2px}
+    #cad-card{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+    /* link cadastro na tela de login */
+    .login-signup-link{text-align:center;font-size:12px;color:var(--muted);margin-top:18px}
+    .login-signup-link a{color:#6C4FD4;font-weight:700;text-decoration:none}
   </style>
 </head>
 <body>
 <nav>
   <a class="nav-brand" href="#"><img src="sided_logo.png" alt="SIDED+"/><span>SIDED+</span></a>
   <button class="nav-cta" onclick="abrirLogin()">Acessar</button>
+  <button class="nav-cta" onclick="abrirCad()" style="background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,0.5);margin-left:8px">Criar conta</button>
 </nav>
 <section class="hero">
   <div class="badge"><span class="badge-dot"></span>Professor & Diretor</div>
   <h1>Seu diário,<br/><span>sua turma.</span></h1>
   <p>Chamadas, notas e planejamentos em um só lugar — rápido, simples e de qualquer dispositivo.</p>
   <button class="btn-hero" onclick="abrirLogin()">Entrar no sistema →</button>
+  <button onclick="abrirCad()" style="margin-top:12px;background:transparent;border:1.5px solid rgba(255,255,255,0.5);border-radius:12px;padding:12px 28px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;position:relative;z-index:1;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Criar conta grátis</button>
 </section>
 <div class="features"><div class="feat-card"><div class="feat-icon">📋</div><div class="feat-title">Chamada</div><div class="feat-desc">Registro de frequência em segundos.</div></div><div class="feat-card"><div class="feat-icon">📊</div><div class="feat-title">Notas</div><div class="feat-desc">Lançamento e médias automáticas.</div></div><div class="feat-card"><div class="feat-icon">📅</div><div class="feat-title">Planejamento</div><div class="feat-desc">Grade e cronograma organizados.</div></div><div class="feat-card"><div class="feat-icon">💬</div><div class="feat-title">Comunicados</div><div class="feat-desc">Avisos diretos para alunos.</div></div></div>
+<!-- ===== OVERLAY CADASTRO ===== -->
+<div class="overlay" id="overlay-cad">
+  <div class="login-card" id="cad-card" style="max-width:440px;max-height:92vh;overflow-y:auto">
+    <button class="close-btn" onclick="fecharCad()">✕</button>
+
+    <!-- STEP 0: escolha método -->
+    <div id="cad-step-0">
+      <div class="lcard-logo"><img src="sided_logo.png" alt="SIDED+"/><div><div class="lcard-logo-name">SIDED+</div><div class="lcard-logo-sub">Diário Escolar Digital</div></div></div>
+      <div class="lcard-title" style="margin-bottom:4px">Criar conta</div>
+      <div class="lcard-sub" style="margin-bottom:24px">Como deseja se cadastrar?</div>
+      <button class="btn-google" onclick="cadGoogle()" style="margin-bottom:12px">
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+        Cadastrar com Google
+      </button>
+      <div class="divider"><span>ou</span></div>
+      <button class="btn-login" onclick="irStepManual()" style="background:#6C4FD4">✏️ &nbsp;Cadastro manual</button>
+      <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:18px">Já tem conta? <a href="#" onclick="fecharCad();abrirLogin()" style="color:#6C4FD4;font-weight:700;text-decoration:none">Entrar →</a></p>
+    </div>
+
+    <!-- STEP 1: dados pessoais (manual) -->
+    <div id="cad-step-1" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:33%"></div></div>
+      <div class="cad-step-label">Passo 1 de 3 &nbsp;·&nbsp; Dados pessoais</div>
+      <div class="lcard-title" style="margin:10px 0 4px">Quem é você?</div>
+      <div class="lcard-sub" style="margin-bottom:20px">Preencha suas informações básicas</div>
+      <div id="cad-err-1" class="error-msg"></div>
+      <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" id="cad-nome" type="text" placeholder="Ex: Maria da Silva" autocomplete="name"/></div>
+      <div class="form-group"><label class="form-label">E-mail</label><input class="form-input" id="cad-email" type="email" placeholder="professor@escola.com.br" autocomplete="email"/></div>
+      <div class="form-group"><label class="form-label">Senha</label>
+        <div class="input-wrap"><input class="form-input" id="cad-senha" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:40px"/>
+          <button class="eye-btn" onclick="toggleCadSenha()" type="button"><svg id="cad-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Login institucional</label><input class="form-input" id="cad-login" type="text" placeholder="Ex: msilva (sem espaços)" autocomplete="username"/></div>
+      <button class="btn-login" onclick="irStep2()">Continuar →</button>
+      <p class="cad-back" onclick="irStep(0)">← Voltar</p>
+    </div>
+
+    <!-- STEP 2: escola(s) -->
+    <div id="cad-step-2" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:66%"></div></div>
+      <div class="cad-step-label">Passo 2 de 3 &nbsp;·&nbsp; Escola</div>
+      <div class="lcard-title" style="margin:10px 0 4px">Onde você leciona?</div>
+      <div class="lcard-sub" style="margin-bottom:20px">Selecione ou crie sua(s) escola(s)</div>
+      <div id="cad-err-2" class="error-msg"></div>
+      <div class="form-group">
+        <label class="form-label">Buscar escola cadastrada</label>
+        <input class="form-input" id="cad-escola-busca" type="text" placeholder="Digite o nome da escola..." oninput="buscarEscola(this.value)"/>
+        <div id="escola-sugestoes" class="escola-drop"></div>
+      </div>
+      <div id="escolas-selecionadas" class="escola-tags"></div>
+      <div class="divider"><span>ou</span></div>
+      <div class="form-group"><label class="form-label">Criar nova escola</label><input class="form-input" id="cad-nova-escola" type="text" placeholder="Nome completo da escola"/></div>
+      <button class="btn-login" style="background:#22C55E;margin-bottom:8px" onclick="adicionarNovaEscola()">+ Adicionar escola</button>
+      <button class="btn-login" onclick="irStep3()" style="margin-top:4px">Continuar →</button>
+      <p class="cad-back" onclick="irStep(1)">← Voltar</p>
+    </div>
+
+    <!-- STEP 3: confirmação + opção turma -->
+    <div id="cad-step-3" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:100%"></div></div>
+      <div class="cad-step-label">Passo 3 de 3 &nbsp;·&nbsp; Finalizar</div>
+      <div class="lcard-title" style="margin:10px 0 4px">Quase lá! 🎉</div>
+      <div class="lcard-sub" style="margin-bottom:20px">Revise e escolha como deseja começar</div>
+      <div id="cad-err-3" class="error-msg"></div>
+      <div id="cad-resumo" class="resumo-box"></div>
+
+      <div class="role-picker" style="margin:20px 0">
+        <p style="font-size:11px;font-weight:700;color:#6C4FD4;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Perfil de acesso</p>
+        <label class="role-opt" id="role-ind">
+          <input type="radio" name="role" value="professor_individual" checked/>
+          <span class="role-ico">🧑‍🏫</span>
+          <span class="role-info"><strong>Professor independente</strong><br/><span>Cria e gerencia suas próprias turmas, chamadas e notas</span></span>
+        </label>
+        <label class="role-opt" id="role-escola">
+          <input type="radio" name="role" value="professor"/>
+          <span class="role-ico">🏫</span>
+          <span class="role-info"><strong>Professor de escola</strong><br/><span>Aguarda vínculo com escola e turmas pela direção</span></span>
+        </label>
+      </div>
+
+      <button class="btn-login" id="btn-cadastrar" onclick="finalizarCadastro()"><span class="spinner" id="spin-cad"></span><span id="txt-cad">Criar minha conta</span></button>
+      <p class="cad-back" onclick="irStep(2)">← Voltar</p>
+    </div>
+
+    <!-- STEP 4: sucesso -->
+    <div id="cad-step-4" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:64px;margin-bottom:16px">🎊</div>
+      <div class="lcard-title" style="margin-bottom:8px">Conta criada!</div>
+      <div class="lcard-sub" style="margin-bottom:24px">Bem-vindo(a) ao SIDED+. Agora você pode entrar no sistema.</div>
+      <div id="cad-turma-box" style="display:none;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;text-align:left">
+        <p style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">🚀 Crie sua primeira turma</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Como professor independente, você pode criar turmas agora mesmo!</p>
+        <input class="form-input" id="nome-turma" type="text" placeholder="Ex: 3º Ano A — Matemática" style="margin-bottom:8px"/>
+        <button class="btn-login" style="background:#6C4FD4" onclick="criarTurma()">Criar turma →</button>
+      </div>
+      <button class="btn-login" onclick="irParaDashboard()">Entrar no sistema →</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay">
   <div class="login-card">
     <button class="close-btn" onclick="fecharLogin()">✕</button>
@@ -100,6 +234,7 @@
       <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
       Entrar com Google
     </button>
+    <p class="login-signup-link">Não tem conta? <a href="#" onclick="fecharLogin();abrirCad()">Criar conta grátis →</a></p>
   </div>
 </div>
 <script>
@@ -133,6 +268,184 @@
   }
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('overlay').classList.contains('active'))fazerLogin()});
   if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+
+  /* ===== CADASTRO ===== */
+  let cadData = { nome:'', email:'', login:'', senha:'', escolaIds:[], escolaNomes:[], role:'professor_individual' };
+  let escolasSelecionadas = []; // [{id, nome}]
+
+  function abrirCad(){document.getElementById('overlay-cad').classList.add('active');irStep(0)}
+  function fecharCad(){document.getElementById('overlay-cad').classList.remove('active')}
+  document.getElementById('overlay-cad').addEventListener('click',e=>{if(e.target===document.getElementById('overlay-cad'))fecharCad()});
+
+  function irStep(n){
+    for(let i=0;i<=4;i++){const el=document.getElementById(`cad-step-${i}`);if(el)el.style.display=i===n?'block':'none'}
+    document.getElementById('cad-card').scrollTop=0;
+  }
+  function irStepManual(){irStep(1)}
+
+  function toggleCadSenha(){
+    const i=document.getElementById('cad-senha'),ic=document.getElementById('cad-eye');
+    if(i.type==='password'){i.type='text';ic.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';}
+    else{i.type='password';ic.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';}
+  }
+
+  function mostrarErroCad(step, msg){const e=document.getElementById(`cad-err-${step}`);e.textContent=msg;e.style.display='block'}
+  function esconderErroCad(step){const e=document.getElementById(`cad-err-${step}`);if(e)e.style.display='none'}
+
+  function irStep2(){
+    esconderErroCad(1);
+    const nome=document.getElementById('cad-nome').value.trim();
+    const email=document.getElementById('cad-email').value.trim();
+    const senha=document.getElementById('cad-senha').value;
+    const login=document.getElementById('cad-login').value.trim().replace(/\s/g,'');
+    if(!nome){mostrarErroCad(1,'Informe seu nome completo.');return}
+    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){mostrarErroCad(1,'Informe um e-mail válido.');return}
+    if(senha.length<6){mostrarErroCad(1,'A senha deve ter pelo menos 6 caracteres.');return}
+    if(!login){mostrarErroCad(1,'Crie um login institucional (sem espaços).');return}
+    cadData.nome=nome;cadData.email=email;cadData.senha=senha;cadData.login=login;
+    irStep(2);
+  }
+
+  async function buscarEscola(q){
+    const drop=document.getElementById('escola-sugestoes');
+    if(q.length<2){drop.classList.remove('active');return}
+    try{
+      const res=await fetch(`${SB_URL}/rest/v1/escolas?nome=ilike.*${encodeURIComponent(q)}*&select=id,nome&limit=6`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const data=await res.json();
+      drop.innerHTML='';
+      if(Array.isArray(data)&&data.length>0){
+        data.forEach(e=>{
+          const item=document.createElement('div');item.className='escola-drop-item';item.textContent=e.nome;
+          item.onclick=()=>{selecionarEscola(e.id,e.nome);drop.classList.remove('active');document.getElementById('cad-escola-busca').value=''};
+          drop.appendChild(item);
+        });
+        drop.classList.add('active');
+      } else {
+        drop.innerHTML='<div class="escola-drop-item" style="color:var(--muted);cursor:default">Nenhuma escola encontrada</div>';
+        drop.classList.add('active');
+      }
+    }catch{drop.classList.remove('active')}
+  }
+
+  function selecionarEscola(id, nome){
+    if(escolasSelecionadas.find(e=>e.id===id))return;
+    escolasSelecionadas.push({id,nome});
+    renderEscolaTags();
+  }
+
+  function removerEscola(id){
+    escolasSelecionadas=escolasSelecionadas.filter(e=>e.id!==id);
+    renderEscolaTags();
+  }
+
+  function renderEscolaTags(){
+    const c=document.getElementById('escolas-selecionadas');
+    c.innerHTML=escolasSelecionadas.map(e=>`<span class="escola-tag">${e.nome}<button onclick="removerEscola('${e.id}')">✕</button></span>`).join('');
+  }
+
+  async function adicionarNovaEscola(){
+    const nome=document.getElementById('cad-nova-escola').value.trim();
+    if(!nome){mostrarErroCad(2,'Informe o nome da nova escola.');return}
+    esconderErroCad(2);
+    try{
+      // Verificar se já existe
+      const check=await fetch(`${SB_URL}/rest/v1/escolas?nome=ilike.${encodeURIComponent(nome)}&select=id,nome&limit=1`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const exists=await check.json();
+      if(Array.isArray(exists)&&exists.length>0){selecionarEscola(exists[0].id,exists[0].nome);}
+      else{
+        const res=await fetch(`${SB_URL}/rest/v1/escolas`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify({nome})});
+        const data=await res.json();
+        if(Array.isArray(data)&&data.length>0)selecionarEscola(data[0].id,data[0].nome);
+        else mostrarErroCad(2,'Erro ao criar escola. Tente novamente.');
+      }
+      document.getElementById('cad-nova-escola').value='';
+      renderEscolaTags();
+    }catch{mostrarErroCad(2,'Erro de conexão ao criar escola.')}
+  }
+
+  function irStep3(){
+    esconderErroCad(2);
+    cadData.escolaIds=escolasSelecionadas.map(e=>e.id);
+    cadData.escolaNomes=escolasSelecionadas.map(e=>e.nome);
+    // preencher resumo
+    document.getElementById('cad-resumo').innerHTML=`
+      <div class="resumo-row"><span class="resumo-label">Nome</span><span class="resumo-value">${cadData.nome}</span></div>
+      <div class="resumo-row"><span class="resumo-label">E-mail</span><span class="resumo-value">${cadData.email}</span></div>
+      <div class="resumo-row"><span class="resumo-label">Login</span><span class="resumo-value">${cadData.login}</span></div>
+      <div class="resumo-row"><span class="resumo-label">Escola(s)</span><span class="resumo-value">${cadData.escolaNomes.length>0?cadData.escolaNomes.join(', '):'<em style="color:var(--muted)">Nenhuma</em>'}</span></div>
+    `;
+    irStep(3);
+  }
+
+  async function finalizarCadastro(){
+    esconderErroCad(3);
+    const role=document.querySelector('input[name="role"]:checked').value;
+    cadData.role=role;
+    document.getElementById('btn-cadastrar').disabled=true;
+    document.getElementById('spin-cad').style.display='block';
+    document.getElementById('txt-cad').textContent='Criando conta...';
+
+    try{
+      // Verificar login duplicado
+      const chk=await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(cadData.login)}&select=id`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const dupLogin=await chk.json();
+      if(Array.isArray(dupLogin)&&dupLogin.length>0){mostrarErroCad(3,'Este login já está em uso. Escolha outro.');return}
+
+      const chkEmail=await fetch(`${SB_URL}/rest/v1/users?email=ilike.${encodeURIComponent(cadData.email)}&select=id`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+      const dupEmail=await chkEmail.json();
+      if(Array.isArray(dupEmail)&&dupEmail.length>0){mostrarErroCad(3,'Este e-mail já está cadastrado.');return}
+
+      const payload={login:cadData.login,senha:cadData.senha,nome:cadData.nome,email:cadData.email,role:cadData.role};
+      if(cadData.escolaIds.length===1)payload.escola_id=cadData.escolaIds[0];
+      if(cadData.escolaIds.length>0)payload.escolas_ids=cadData.escolaIds;
+
+      const res=await fetch(`${SB_URL}/rest/v1/users`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(payload)});
+      const data=await res.json();
+
+      if(Array.isArray(data)&&data.length>0){
+        sessionStorage.setItem('ded_user',JSON.stringify(data[0]));
+        irStep(4);
+        if(role==='professor_individual')document.getElementById('cad-turma-box').style.display='block';
+      } else {
+        mostrarErroCad(3,'Erro ao criar conta. Tente novamente.');
+      }
+    }catch{mostrarErroCad(3,'Erro de conexão. Verifique sua internet.')}
+    finally{
+      document.getElementById('btn-cadastrar').disabled=false;
+      document.getElementById('spin-cad').style.display='none';
+      document.getElementById('txt-cad').textContent='Criar minha conta';
+    }
+  }
+
+  async function criarTurma(){
+    const nome=document.getElementById('nome-turma').value.trim();
+    if(!nome)return;
+    const user=JSON.parse(sessionStorage.getItem('ded_user')||'{}');
+    try{
+      await fetch(`${SB_URL}/rest/v1/turmas`,{method:'POST',headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({nome,professor_id:user.id,escola_id:user.escola_id||null})});
+      document.getElementById('cad-turma-box').innerHTML='<p style="color:#22C55E;font-weight:700;text-align:center;padding:10px">✅ Turma criada com sucesso!</p>';
+    }catch{alert('Erro ao criar turma.')}
+  }
+
+  function irParaDashboard(){window.location.href=DASH}
+
+  /* Cadastro com Google */
+  async function cadGoogle(){
+    const client=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'openid email profile',callback:async(r)=>{
+      if(r.error){alert('Erro ao autenticar com o Google.');return}
+      try{
+        const p=await(await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:`Bearer ${r.access_token}`}})).json();
+        if(!p.email){alert('Não foi possível obter o e-mail.');return}
+        // Pre-preencher dados e ir pro step 1 pulando nome/email
+        document.getElementById('cad-nome').value=p.name||'';
+        document.getElementById('cad-email').value=p.email;
+        document.getElementById('cad-login').value=p.email.split('@')[0].replace(/[^a-z0-9]/gi,'').toLowerCase();
+        cadData._googleToken=r.access_token;
+        irStep(1);
+      }catch{alert('Erro ao obter dados do Google.')}
+    }});
+    client.requestAccessToken();
+  }
 </script>
 </body>
 </html>
