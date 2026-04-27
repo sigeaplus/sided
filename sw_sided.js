@@ -5,8 +5,7 @@ const PRECACHE = [
   './professor_dashboard.html',
   './manifest.json',
   './favicon.png',
-  './icon-192.png',
-  './icon-512.png',
+  './sided_logo.png',
 ];
 
 self.addEventListener('install', event => {
