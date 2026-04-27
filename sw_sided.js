@@ -4,7 +4,6 @@ const CACHE_NAME = 'sided-v1';
 const PRECACHE = [
   './professor_dashboard.html',
   './manifest.json',
-  './favicon.png',
   './sided_logo.png',
 ];
 
