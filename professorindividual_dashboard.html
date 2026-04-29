@@ -7797,8 +7797,8 @@ function gaTab(aba) {
     if (btn) { btn.style.color = ativo ? 'var(--purple)' : 'var(--text-muted)'; btn.style.borderBottomColor = ativo ? 'var(--purple)' : 'transparent'; }
     if (pan) pan.style.display = ativo ? 'block' : 'none';
   });
-  document.getElementById('ga-btn-salvar').style.display = aba === 'adicionar' ? 'inline-flex' : 'none';
-  document.getElementById('ga-btn-multi').style.display = aba === 'multiplos' ? 'inline-flex' : 'none';
+  const _s = document.getElementById('ga-btn-salvar'); if(_s) _s.style.display = aba === 'adicionar' ? 'inline-flex' : 'none';
+  const _m = document.getElementById('ga-btn-multi'); if(_m) _m.style.display = aba === 'multiplos' ? 'inline-flex' : 'none';
   if (aba === 'lista') gaCarregarLista();
   if (aba === 'adicionar') { ['ga-nome','ga-email','ga-resp'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); ['ga-numero'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); }
   if (aba === 'multiplos') { const ta = document.getElementById('ga-multi-nomes'); if(ta) ta.value = ''; document.getElementById('ga-multi-preview').textContent = ''; }
