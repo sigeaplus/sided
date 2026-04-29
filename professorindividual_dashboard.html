@@ -193,18 +193,20 @@
     /* ── Botões do menu lateral da turma ── */
     .stb {
       width: 100%; display: flex; align-items: center; gap: 8px;
-      padding: 7px 8px; border-radius: 9px; border: 1.5px solid transparent;
-      background: rgba(255,255,255,0.7); cursor: pointer;
-      font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600;
-      color: #334155; text-align: left;
+      padding: 8px 10px; border-radius: 10px;
+      border: 1.5px solid #2563EB;
+      background: #ffffff; cursor: pointer;
+      font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700;
+      color: #1E3A5F; text-align: left;
       transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 1px 4px rgba(37,99,235,0.08);
     }
     .stb:hover {
-      background: #fff;
-      border-color: var(--c, #CBD5E1);
-      color: var(--c, #334155);
+      background: #EEF5FF;
+      border-color: #1D4ED8;
+      color: #1E3A5F;
       transform: translateX(2px);
-      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 10px rgba(37,99,235,0.14);
     }
     .stb-icon {
       width: 26px; height: 26px; border-radius: 7px;
@@ -253,7 +255,7 @@
       cursor: pointer; transition: all 0.15s;
       animation: fadeUp 0.3s ease both;
     }
-    .turma-card:hover { border-color: #C8A8E8; box-shadow: 0 4px 16px rgba(108,79,212,0.1); transform: translateY(-2px); }
+    .turma-card:hover { border-color: #C8A8E8; box-shadow: 0 4px 16px rgba(108,79,212,0.1); margin-top: -2px; margin-bottom: 2px; }
 
     .turma-ano { font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
     .turma-codigo { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -794,39 +796,39 @@
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg></span>
         Relatório geral
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('aulas')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('aulas')" class="stb" data-menu-key="aulas" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
         Aulas
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('avaliacoes')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('avaliacoes')" class="stb" data-menu-key="avaliacoes" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
         Avaliações
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('chamada')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('chamada')" class="stb" data-menu-key="chamada" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg></span>
         Chamada
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('relatorio-individual')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('relatorio-individual')" class="stb" data-menu-key="relatorio-individual" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0114 0"/></svg></span>
         Rel. individual
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('mapeamento-sala')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('mapeamento-sala')" class="stb" data-menu-key="mapeamento-sala" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
         Mapeamento de sala
       </button>
-      <button onclick="fecharSidebar(); sortearAlunoAleatorio()" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); sortearAlunoAleatorio()" class="stb" data-menu-key="sortear" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></span>
         Sortear aluno
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('calendario-escolar')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('calendario-escolar')" class="stb" data-menu-key="calendario-escolar" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
         Calendário escolar
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('ocorrencias')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('ocorrencias')" class="stb" data-menu-key="ocorrencias" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><polygon points="10 2 2 20 22 20 14 2 10 2"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg></span>
         Ocorrência
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('plano-curso')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('plano-curso')" class="stb" data-menu-key="plano-curso" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         Plano de curso
       </button>
@@ -1675,41 +1677,41 @@
         <div id="sidebar-turma-menu" style="display:none;flex-direction:column;gap:2px;flex:1;">
           <div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;padding-left:4px;">Ferramentas</div>
 
-          <button onclick="abrirPagina('aulas')" class="stb" data-c="#0F766E">
+          <button onclick="abrirPagina('aulas')" class="stb" data-menu-key="aulas" data-c="#0F766E">
             <span class="stb-icon" style="background:#F0FDF4;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
             Aulas
           </button>
-          <button onclick="abrirPagina('avaliacoes')" class="stb" data-c="#FF8C38">
+          <button onclick="abrirPagina('avaliacoes')" class="stb" data-menu-key="avaliacoes" data-c="#FF8C38">
             <span class="stb-icon" style="background:#FFF7ED;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF8C38" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
             Avaliações
           </button>
-          <button onclick="abrirPagina('chamada')" class="stb" data-c="#6C4FD4">
+          <button onclick="abrirPagina('chamada')" class="stb" data-menu-key="chamada" data-c="#6C4FD4">
             <span class="stb-icon" style="background:#F5F3FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C4FD4" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg></span>
             Chamada
           </button>
 
-          <button onclick="abrirPagina('relatorio-individual')" class="stb" data-c="#F97316">
+          <button onclick="abrirPagina('relatorio-individual')" class="stb" data-menu-key="relatorio-individual" data-c="#F97316">
             <span class="stb-icon" style="background:#FFF7ED;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0114 0"/></svg></span>
             Rel. individual
           </button>
-          <button onclick="abrirPagina('mapeamento-sala')" class="stb" data-c="#8B5CF6">
+          <button onclick="abrirPagina('mapeamento-sala')" class="stb" data-menu-key="mapeamento-sala" data-c="#8B5CF6">
             <span class="stb-icon" style="background:#F5F3FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
             Mapeamento de sala
           </button>
-          <button onclick="sortearAlunoAleatorio()" class="stb" data-c="#65A30D">
+          <button onclick="sortearAlunoAleatorio()" class="stb" data-menu-key="sortear" data-c="#65A30D">
             <span class="stb-icon" style="background:#F7FEE7;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#65A30D" stroke-width="2.2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></span>
             Sortear aluno
           </button>
-          <button onclick="abrirPagina('calendario-escolar')" class="stb" data-c="#0891B2">
+          <button onclick="abrirPagina('calendario-escolar')" class="stb" data-menu-key="calendario-escolar" data-c="#0891B2">
             <span class="stb-icon" style="background:#ECFEFF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
             Calendário escolar
           </button>
-          <button onclick="abrirPagina('ocorrencias')" class="stb" data-c="#DC2626">
+          <button onclick="abrirPagina('ocorrencias')" class="stb" data-menu-key="ocorrencias" data-c="#DC2626">
             <span class="stb-icon" style="background:#FEF2F2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"><polygon points="10 2 2 20 22 20 14 2 10 2"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg></span>
             Ocorrência
           </button>
 
-          <button onclick="abrirPagina('plano-curso')" class="stb" data-c="#BE185D">
+          <button onclick="abrirPagina('plano-curso')" class="stb" data-menu-key="plano-curso" data-c="#BE185D">
             <span class="stb-icon" style="background:#FDF2F8;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#BE185D" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
             Plano de curso
           </button>
@@ -1951,6 +1953,7 @@ function selecionarDiscAval(disc) {
 }
 let turmaAtiva = null, avaliacaoAtiva = null, chamadaTemp = {};
 let filtrosAtivos = { disciplina: null, ano: null, turno: null };
+let _piMenuAberto = false; // controle do dropdown dos três pontos
 const FUNDAMENTAL_I_DISCIPLINAS = ['PORTUGUES','MATEMATICA','CIENCIAS','GEOGRAFIA','HISTORIA','INGLES','ED FISICA','ENS RELIGIOSO','OUTRO'];
 let calState = { 'cal-aula': { ano: new Date().getFullYear(), mes: new Date().getMonth() }, 'cal-chamada': { ano: new Date().getFullYear(), mes: new Date().getMonth() } };
 let feriadosCache = [];
@@ -2246,9 +2249,28 @@ function renderTurmas(lista) {
   grid.innerHTML = lista.length
     ? lista.map((t, i) => {
         const discLabel = t.disciplina || '—';
+        const nome = (t.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
         return `
-          <div class="turma-card" style="animation-delay:${i * 0.04}s" onclick="abrirTurma('${t.id}')">
-            <div class="turma-ano">${t.ano}</div>
+          <div class="turma-card" style="animation-delay:${i * 0.04}s;position:relative;" onclick="abrirTurma('${t.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
+              <div class="turma-ano">${t.ano || '—'}</div>
+              <div style="position:relative;">
+                <button onclick="event.stopPropagation();piToggleMenu(this,'menu-${t.id}')" title="Opções" data-pi-menu-btn="1"
+                  style="background:none;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:3px 9px;color:#1E3A5F;display:flex;align-items:center;font-size:16px;font-weight:900;letter-spacing:2px;line-height:1;transition:all 0.15s;"
+                  onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='#1E3A5F'">
+                  ···
+                </button>
+                <div id="menu-${t.id}" class="pi-turma-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.14);z-index:9999;min-width:200px;overflow:hidden;">
+                  <div style="padding:6px 0;">
+                    <div style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;padding:6px 14px 4px;">Turma</div>
+                    <button onclick="event.stopPropagation();piFecharMenus();piGerenciarMenuLateral('${t.id}','${nome}')" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                      Menu lateral
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
             <div class="turma-endereco">${t.escolas?.nome || ''}</div>
             <div class="turma-disciplina">${discLabel}</div>
@@ -2645,6 +2667,161 @@ function exportarRelatorioPDF() {
     ${rel.obs ? `<div class="secao" style="margin-top:20px;">Observações</div><div class="obs">${rel.obs}</div>` : ''}
     <div style="margin-top:32px;font-size:11px;color:#94A3B8;">Gerado em ${new Date().toLocaleString('pt-BR')} · SIDED+</div>
     
+<!-- ═══════════ MODAL GERENCIAR ALUNOS ═══════════ -->
+<div class="modal-overlay" id="modal-gerenciar-alunos" onclick="piFecharModalOutside(event,'modal-gerenciar-alunos')">
+  <div class="modal" style="max-width:560px;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Gerenciar alunos</div>
+        <div id="ga-turma-sub" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-gerenciar-alunos')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;padding-top:0;">
+
+      <!-- Abas -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;margin-top:4px;">
+        <button id="ga-tab-lista" onclick="gaTab('lista')" style="padding:10px 16px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--purple);border-bottom:2px solid var(--purple);margin-bottom:-2px;">Lista</button>
+        <button id="ga-tab-adicionar" onclick="gaTab('adicionar')" style="padding:10px 16px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;">+ Adicionar</button>
+        <button id="ga-tab-multiplos" onclick="gaTab('multiplos')" style="padding:10px 16px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;">+ Vários de uma vez</button>
+      </div>
+
+      <!-- ABA LISTA -->
+      <div id="ga-painel-lista">
+        <div id="ga-err-lista" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+        <div id="ga-lista-alunos" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- ABA ADICIONAR 1 -->
+      <div id="ga-painel-adicionar" style="display:none;">
+        <div id="ga-err-add" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+        <div class="field"><label>Nome completo *</label><input id="ga-nome" placeholder="Nome do aluno"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="field"><label>Nº na lista</label><input id="ga-numero" type="number" placeholder="Ex: 01"/></div>
+          <div class="field"><label>Data de nascimento</label><input id="ga-nasc" placeholder="DD/MM/AAAA"/></div>
+        </div>
+        <div class="field"><label>E-mail (opcional)</label><input id="ga-email" type="email" placeholder="aluno@email.com"/></div>
+        <div class="field"><label>Responsável (opcional)</label><input id="ga-resp" placeholder="Nome do responsável"/></div>
+      </div>
+
+      <!-- ABA VÁRIOS -->
+      <div id="ga-painel-multiplos" style="display:none;">
+        <div id="ga-err-multi" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">Um nome por linha. Serão criados como alunos desta turma.</p>
+        <textarea id="ga-multi-nomes" placeholder="João Silva&#10;Maria Souza&#10;Pedro Alves&#10;..." style="width:100%;height:180px;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);resize:vertical;outline:none;line-height:1.7;"></textarea>
+        <div id="ga-multi-preview" style="margin-top:8px;font-size:11px;color:var(--text-muted);"></div>
+      </div>
+
+    </div>
+    <div class="modal-footer" id="ga-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-gerenciar-alunos')">Fechar</button>
+      <button class="btn-save" id="ga-btn-salvar" onclick="gaSalvar()" style="display:none;">Salvar aluno</button>
+      <button class="btn-save" id="ga-btn-multi" onclick="gaMultiSalvar()" style="display:none;">Criar alunos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL EDITAR TURMA ═══════════ -->
+<div class="modal-overlay" id="modal-editar-turma" onclick="piFecharModalOutside(event,'modal-editar-turma')">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Editar turma</div>
+      <button class="modal-close" onclick="fecharModal('modal-editar-turma')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="et-err" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+      <div class="field"><label>Nome da turma *</label><input id="et-nome" placeholder="Ex: Turma A — 2025"/></div>
+      <div class="field">
+        <label>Série / Ano</label>
+        <select id="et-ano" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);background:var(--bg);outline:none;">
+          <option value="">Selecione...</option>
+          <option>1º ano - Fundamental</option><option>2º ano - Fundamental</option><option>3º ano - Fundamental</option>
+          <option>4º ano - Fundamental</option><option>5º ano - Fundamental</option><option>6º ano - Fundamental</option>
+          <option>7º ano - Fundamental</option><option>8º ano - Fundamental</option><option>9º ano - Fundamental</option>
+          <option>1º ano - Ensino Médio</option><option>2º ano - Ensino Médio</option><option>3º ano - Ensino Médio</option>
+        </select>
+      </div>
+      <div class="field"><label>Descrição (opcional)</label><input id="et-desc" placeholder="Ex: Turma de reforço..."/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-editar-turma')">Cancelar</button>
+      <button class="btn-save" id="et-btn-salvar" onclick="piSalvarEdicaoTurma()">Salvar alterações</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL MENU LATERAL ═══════════ -->
+<div class="modal-overlay" id="modal-menu-lateral" onclick="piFecharModalOutside(event,'modal-menu-lateral')">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Menu lateral</div>
+        <div id="ml-sub" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-menu-lateral')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Escolha quais opções aparecerão no menu lateral quando esta turma for aberta.</p>
+      <div id="ml-opcoes" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-menu-lateral')">Cancelar</button>
+      <button class="btn-save" onclick="mlSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL EDITAR ALUNO ═══════════ -->
+<div class="modal-overlay" id="modal-editar-aluno" onclick="piFecharModalOutside(event,'modal-editar-aluno')">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Editar aluno</div>
+      <button class="modal-close" onclick="fecharModal('modal-editar-aluno')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="ea-err" style="display:none;background:#FEE2E2;color:#B91C1C;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:12px;"></div>
+      <div class="field"><label>Nome completo *</label><input id="ea-nome" placeholder="Nome do aluno"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field"><label>Nº na lista</label><input id="ea-numero" type="number" placeholder="Ex: 01"/></div>
+        <div class="field"><label>Data de nascimento</label><input id="ea-nasc" placeholder="DD/MM/AAAA"/></div>
+      </div>
+      <div class="field"><label>E-mail (opcional)</label><input id="ea-email" type="email" placeholder="aluno@email.com"/></div>
+      <div class="field"><label>Responsável (opcional)</label><input id="ea-resp" placeholder="Nome do responsável"/></div>
+      <div class="field" id="ea-turma-wrap">
+        <label>Mover para outra turma</label>
+        <select id="ea-turma" style="width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);background:var(--bg);outline:none;">
+          <option value="">— Manter na turma atual —</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-editar-aluno')">Cancelar</button>
+      <button class="btn-save" onclick="eaSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+</body></html>`;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+
+</script>
+
+
 <!-- ═══════════ MODAL NOVA TURMA (professor_individual) ═══════════ -->
 <div class="modal-overlay" id="modal-nova-turma" onclick="fecharModalOutside(event,'modal-nova-turma')">
   <div class="modal">
@@ -2659,7 +2836,7 @@ function exportarRelatorioPDF() {
       <div class="field"><label>Nome da turma *</label><input id="nt-nome" placeholder="Ex: Turma A — 2025"/></div>
       <div class="field">
         <label>Série / Ano *</label>
-        <select id="nt-serie">
+        <select id="nt-ano">
           <option value="">Selecione...</option>
           <option value="1º ano - Fundamental">1º ano - Fundamental</option>
           <option value="2º ano - Fundamental">2º ano - Fundamental</option>
@@ -2728,13 +2905,8 @@ function exportarRelatorioPDF() {
   </div>
 </div>
 
-</body></html>`;
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 400);
-}
+
+<script>
 
 function voltarListaRelatorio() {
   _relAlunoAtivo = null;
@@ -5635,6 +5807,9 @@ async function piCarregarTurmas(profId) {
   }
 }
 
+let _excluirTurmaId = null;
+let _excluirTurmaNome = null;
+
 // ── Renderizar grid de turmas (professor individual) ──────────
 function piRenderTurmas(lista) {
   const grid = document.getElementById('turmas-grid');
@@ -5653,23 +5828,41 @@ function piRenderTurmas(lista) {
       </div>`;
     return;
   }
-  grid.innerHTML = lista.map((t, i) => `
-    <div class="turma-card" style="animation-delay:${i * 0.04}s;position:relative;" onclick="abrirTurma(${t.id})">
+  grid.innerHTML = lista.map((t, i) => {
+    const nome = (t.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return `
+    <div class="turma-card" style="animation-delay:${i * 0.04}s;position:relative;" onclick="abrirTurma('${t.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
-        <div class="turma-ano">${t.ano || t.serie || '—'}</div>
-        <div style="display:flex;gap:4px;">
-          <button onclick="event.stopPropagation();piAbrirAlunos(${t.id},'${(t.nome||'').replace(/'/g,"\'")}')"
-            title="Gerenciar alunos"
-            style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:4px 6px;color:var(--purple);display:flex;align-items:center;transition:all 0.15s;"
-            onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <div class="turma-ano">${t.ano || '—'}</div>
+        <div style="position:relative;">
+          <button onclick="event.stopPropagation();piToggleMenu(this,'menu-${t.id}')" title="Opções" data-pi-menu-btn="1"
+            style="background:none;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:3px 9px;color:#1E3A5F;display:flex;align-items:center;font-size:16px;font-weight:900;letter-spacing:2px;line-height:1;transition:all 0.15s;"
+            onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='#1E3A5F'">
+            ···
           </button>
-          <button onclick="event.stopPropagation();piExcluirTurma(${t.id},'${(t.nome||'').replace(/'/g,"\'")}')"
-            title="Excluir turma"
-            style="background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:4px 6px;color:var(--text-muted);display:flex;align-items:center;transition:all 0.15s;"
-            onmouseover="this.style.borderColor='#EF4444';this.style.color='#EF4444'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          </button>
+          <div id="menu-${t.id}" class="pi-turma-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.14);z-index:999;min-width:200px;overflow:hidden;">
+            <div style="padding:6px 0;">
+              <div style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;padding:6px 14px 4px;">Alunos</div>
+              <button onclick="event.stopPropagation();piFecharMenus();piAbrirGerenciarAlunos('${t.id}',this.dataset.nome)" data-nome="${nome}" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                Gerenciar alunos
+              </button>
+              <div style="height:1px;background:#EEF2FF;margin:4px 14px;"></div>
+              <div style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;padding:6px 14px 4px;">Turma</div>
+              <button onclick="event.stopPropagation();piFecharMenus();piEditarTurma('${t.id}')" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar turma
+              </button>
+              <button onclick="event.stopPropagation();piFecharMenus();piGerenciarMenuLateral('${t.id}',this.dataset.nome)" data-nome="${nome}" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                Menu lateral
+              </button>
+              <button onclick="event.stopPropagation();piFecharMenus();piExcluirTurma('${t.id}',this.dataset.nome)" data-nome="${nome}" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                Excluir turma
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="turma-codigo">${t.nome}</div>
@@ -5679,7 +5872,8 @@ function piRenderTurmas(lista) {
       <div style="margin-top:10px;font-size:11px;color:var(--text-muted);">
         <span id="pi-count-${t.id}">...</span> alunos
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   lista.forEach(t => {
     api(`alunos?turma_id=eq.${t.id}&select=id`)
@@ -5694,7 +5888,7 @@ function piRenderTurmas(lista) {
 function abrirModalNovaTurma() {
   const el = id => document.getElementById(id);
   if (el('nt-nome')) el('nt-nome').value = '';
-  if (el('nt-serie')) el('nt-serie').value = '';
+  if (el('nt-ano')) el('nt-ano').value = '';
   if (el('nt-ano-letivo')) el('nt-ano-letivo').value = new Date().getFullYear();
   if (el('nt-descricao')) el('nt-descricao').value = '';
   if (el('err-nova-turma')) el('err-nova-turma').style.display = 'none';
@@ -5705,7 +5899,7 @@ function abrirModalNovaTurma() {
 async function piSalvarNovaTurma() {
   const el = id => document.getElementById(id);
   const nome = el('nt-nome')?.value.trim();
-  const serie = el('nt-serie')?.value;
+  const ano = el('nt-ano')?.value;
   const anoLetivo = el('nt-ano-letivo')?.value.trim();
   const descricao = el('nt-descricao')?.value.trim();
   const errEl = el('err-nova-turma');
@@ -5714,7 +5908,7 @@ async function piSalvarNovaTurma() {
 
   errEl.style.display = 'none';
   if (!nome) { errEl.textContent = 'Informe o nome da turma.'; errEl.style.display = 'block'; return; }
-  if (!serie) { errEl.textContent = 'Selecione a série/ano.'; errEl.style.display = 'block'; return; }
+  if (!ano) { errEl.textContent = 'Selecione a série/ano.'; errEl.style.display = 'block'; return; }
   if (!anoLetivo) { errEl.textContent = 'Informe o ano letivo.'; errEl.style.display = 'block'; return; }
 
   btn.disabled = true; if (spin) spin.style.display = 'inline';
@@ -5722,12 +5916,12 @@ async function piSalvarNovaTurma() {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const profId = profData.id || session.id;
 
-  const nivel = serie.includes('Ensino Médio') ? 'Médio'
-    : (parseInt(serie) <= 5 ? 'Fundamental I' : 'Fundamental II');
+  const nivel = ano.includes('Ensino Médio') ? 'Médio'
+    : (parseInt(ano) <= 5 ? 'Fundamental I' : 'Fundamental II');
 
   const payload = {
     nome,
-    ano: serie,
+    ano: ano,
     nivel,
     professor_id: profId,
     ...(descricao ? { descricao } : {})
@@ -5747,17 +5941,43 @@ async function piSalvarNovaTurma() {
 }
 
 async function piExcluirTurma(id, nome) {
-  if (!confirm(`Excluir a turma "${nome}"?\n\nIsso também excluirá os alunos vinculados. Esta ação não pode ser desfeita.`)) return;
+  // Usar modal de confirmação visual em vez de confirm()
+  _excluirTurmaId = id;
+  _excluirTurmaNome = nome;
+  const modal = document.getElementById('modal-confirmar-excluir-turma');
+  document.getElementById('excluir-turma-nome-confirm').textContent = nome;
+  if (modal) { modal.style.display = 'flex'; }
+}
+
+async function _confirmarExcluirTurma() {
+  const id = _excluirTurmaId;
+  const nome = _excluirTurmaNome;
+  const modal = document.getElementById('modal-confirmar-excluir-turma');
+  if (modal) modal.style.display = 'none';
+  if (!id) return;
+  const btn = document.getElementById('btn-confirmar-excluir-turma');
+  if (btn) { btn.disabled = true; btn.textContent = 'Excluindo...'; }
   try {
     // Excluir alunos da turma primeiro
     await api(`alunos?turma_id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } });
     await api(`turmas?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } });
     todasTurmas = todasTurmas.filter(t => String(t.id) !== String(id));
     piRenderTurmas(todasTurmas);
-    mostrarToast('Turma excluída.');
+    mostrarToast('✅ Turma excluída com sucesso.');
   } catch(e) {
-    alert('Erro ao excluir turma: ' + (e.message || ''));
+    mostrarToast('❌ Erro ao excluir turma: ' + (e.message || ''));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Excluir turma'; }
+    _excluirTurmaId = null;
+    _excluirTurmaNome = null;
   }
+}
+
+function _cancelarExcluirTurma() {
+  const modal = document.getElementById('modal-confirmar-excluir-turma');
+  if (modal) modal.style.display = 'none';
+  _excluirTurmaId = null;
+  _excluirTurmaNome = null;
 }
 
 // ── Modal Alunos ──────────────────────────────────────────────
@@ -7498,6 +7718,340 @@ function iniciarOcorrencias() {
   ocrAtualizarResumo();
   ocrRenderHistorico();
 }
+
+// ═══════════════════════════════════════════════════
+// TRÊS PONTINHOS — menus dropdown
+// ═══════════════════════════════════════════════════
+function piToggleMenu(btn, id) {
+  // Fechar todos os abertos
+  document.querySelectorAll('.pi-turma-dropdown').forEach(m => {
+    if (m.id !== id) m.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display === 'block';
+  if (isOpen) {
+    el.style.display = 'none';
+    return;
+  }
+  // Posicionar com fixed para não ser cortado
+  const rect = btn.getBoundingClientRect();
+  el.style.cssText = `display:block;position:fixed;top:${rect.bottom + 4}px;right:${window.innerWidth - rect.right}px;left:auto;z-index:99999;background:#fff;border:1.5px solid #DBE4FF;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:210px;overflow:hidden;`;
+  _piMenuAberto = true;
+  setTimeout(() => { _piMenuAberto = false; }, 50);
+}
+function piFecharMenus() {
+  document.querySelectorAll('.pi-turma-dropdown').forEach(m => { m.style.display = 'none'; });
+}
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.pi-turma-dropdown')) return;
+  if (e.target.closest('[data-pi-menu-btn]')) return;
+  piFecharMenus();
+});
+function piFecharModalOutside(e, id) {
+  if (e.target === document.getElementById(id)) fecharModal(id);
+}
+
+// ═══════════════════════════════════════════════════
+// GERENCIAR ALUNOS
+// ═══════════════════════════════════════════════════
+let _gaTurmaId = null;
+let _gaTabAtiva = 'lista';
+let _gaAlunosCache = [];
+
+const _gaMenuItems = [
+  { key: 'aulas',              label: 'Aulas',             cor: '#0F766E' },
+  { key: 'avaliacoes',         label: 'Avaliações',        cor: '#FF8C38' },
+  { key: 'chamada',            label: 'Chamada',           cor: '#6C4FD4' },
+  { key: 'relatorio-individual', label: 'Rel. individual', cor: '#F97316' },
+  { key: 'mapeamento-sala',    label: 'Mapeamento de sala',cor: '#8B5CF6' },
+  { key: 'sortear',            label: 'Sortear aluno',     cor: '#65A30D' },
+  { key: 'calendario-escolar', label: 'Calendário escolar',cor: '#0891B2' },
+  { key: 'ocorrencias',        label: 'Ocorrência',        cor: '#DC2626' },
+  { key: 'plano-curso',        label: 'Plano de curso',    cor: '#BE185D' },
+];
+
+// Preferências por turma (persiste em localStorage)
+function _mlGetPrefs(turmaId) {
+  try { return JSON.parse(localStorage.getItem('ml_prefs_' + turmaId) || 'null'); } catch { return null; }
+}
+function _mlSetPrefs(turmaId, prefs) {
+  try { localStorage.setItem('ml_prefs_' + turmaId, JSON.stringify(prefs)); } catch {}
+}
+
+async function piAbrirGerenciarAlunos(turmaId, nome) {
+  _gaTurmaId = turmaId;
+  document.getElementById('ga-turma-sub').textContent = nome || '';
+  document.getElementById('modal-gerenciar-alunos').classList.add('open');
+  gaTab('lista');
+}
+
+function gaTab(aba) {
+  _gaTabAtiva = aba;
+  ['lista','adicionar','multiplos'].forEach(a => {
+    const btn = document.getElementById('ga-tab-' + a);
+    const pan = document.getElementById('ga-painel-' + a);
+    const ativo = a === aba;
+    if (btn) { btn.style.color = ativo ? 'var(--purple)' : 'var(--text-muted)'; btn.style.borderBottomColor = ativo ? 'var(--purple)' : 'transparent'; }
+    if (pan) pan.style.display = ativo ? 'block' : 'none';
+  });
+  document.getElementById('ga-btn-salvar').style.display = aba === 'adicionar' ? 'inline-flex' : 'none';
+  document.getElementById('ga-btn-multi').style.display = aba === 'multiplos' ? 'inline-flex' : 'none';
+  if (aba === 'lista') gaCarregarLista();
+  if (aba === 'adicionar') { ['ga-nome','ga-email','ga-resp'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); ['ga-numero'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); }
+  if (aba === 'multiplos') { const ta = document.getElementById('ga-multi-nomes'); if(ta) ta.value = ''; document.getElementById('ga-multi-preview').textContent = ''; }
+}
+
+async function gaCarregarLista() {
+  const el = document.getElementById('ga-lista-alunos');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Carregando...</div>';
+  _gaAlunosCache = await api(`alunos?turma_id=eq.${_gaTurmaId}&select=*&order=nome_completo`) || [];
+  // Atualizar contador no card da turma
+  const cardCount = document.getElementById(`pi-count-${_gaTurmaId}`);
+  if (cardCount) cardCount.textContent = _gaAlunosCache.length;
+  if (!_gaAlunosCache.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Nenhum aluno cadastrado.</div>';
+    return;
+  }
+  el.innerHTML = _gaAlunosCache.map(a => `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#F8FAFF;border:1.5px solid var(--border);border-radius:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='#BFDBFE'" onmouseout="this.style.borderColor='var(--border)'">
+      <div style="width:34px;height:34px;border-radius:50%;background:#3B4FE4;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:#fff;">${a.numero_lista || '—'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.nome_completo}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">
+          ${a.data_nascimento ? `<span>🗓 ${a.data_nascimento.split('-').reverse().join('/')}</span> ` : ''}
+          ${a.email ? `<span>✉ ${a.email}</span> ` : ''}
+          ${a.responsavel ? `<span>👤 ${a.responsavel}</span>` : ''}
+        </div>
+      </div>
+      <button onclick="gaEditarAluno('${a.id}')" title="Editar aluno" style="padding:6px 9px;border-radius:7px;border:1.5px solid #FDE68A;background:#FFFBEB;cursor:pointer;color:#B45309;display:flex;align-items:center;transition:all 0.15s;" onmouseover="this.style.borderColor='#F59E0B';this.style.background='#FEF3C7'" onmouseout="this.style.borderColor='#FDE68A';this.style.background='#FFFBEB'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button onclick="gaExcluirAluno('${a.id}','${(a.nome_completo||'').replace(/'/g,"\'")}')" title="Excluir aluno" style="padding:6px 9px;border-radius:7px;border:1.5px solid #FECACA;background:#FFF1F2;cursor:pointer;color:#DC2626;display:flex;align-items:center;transition:all 0.15s;" onmouseover="this.style.borderColor='#EF4444';this.style.background='#FEE2E2'" onmouseout="this.style.borderColor='#FECACA';this.style.background='#FFF1F2'">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+async function gaSalvar() {
+  const nome = document.getElementById('ga-nome')?.value.trim();
+  const errEl = document.getElementById('ga-err-add');
+  errEl.style.display = 'none';
+  if (!nome) { errEl.textContent = 'Informe o nome do aluno.'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('ga-btn-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    await api('alunos', { method: 'POST', body: JSON.stringify({
+      nome_completo: nome,
+      turma_id: _gaTurmaId,
+      numero_lista: document.getElementById('ga-numero')?.value || null,
+      data_nascimento: document.getElementById('ga-nasc')?.value || null,
+      email: document.getElementById('ga-email')?.value.trim() || null,
+      responsavel: document.getElementById('ga-resp')?.value.trim() || null,
+    }) });
+    mostrarToast('Aluno adicionado!');
+    gaTab('lista');
+  } catch(e) { errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Salvar aluno'; }
+}
+
+async function gaMultiSalvar() {
+  const texto = document.getElementById('ga-multi-nomes')?.value || '';
+  const errEl = document.getElementById('ga-err-multi');
+  errEl.style.display = 'none';
+  const nomes = texto.split('\n').map(n => n.trim()).filter(Boolean);
+  if (!nomes.length) { errEl.textContent = 'Digite ao menos um nome.'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('ga-btn-multi');
+  btn.disabled = true; btn.textContent = `Criando ${nomes.length} alunos...`;
+  try {
+    await api('alunos', { method: 'POST', body: JSON.stringify(nomes.map(n => ({ nome_completo: n, turma_id: _gaTurmaId }))) });
+    mostrarToast(`${nomes.length} alunos criados!`);
+    gaTab('lista');
+  } catch(e) { errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Criar alunos'; }
+}
+
+document.getElementById('ga-multi-nomes')?.addEventListener('input', function() {
+  const n = this.value.split('\n').map(s => s.trim()).filter(Boolean).length;
+  document.getElementById('ga-multi-preview').textContent = n ? `${n} aluno${n>1?'s':''} serão criados` : '';
+});
+
+let _gaExcluirAlunoId = null, _gaExcluirAlunoNome = null;
+
+function gaExcluirAlunoConfirmar(id, nome) {
+  _gaExcluirAlunoId = id;
+  _gaExcluirAlunoNome = nome;
+  const modal = document.getElementById('modal-confirmar-excluir-aluno');
+  document.getElementById('excluir-aluno-nome-confirm').textContent = nome;
+  if (modal) modal.style.display = 'flex';
+}
+
+async function gaExcluirAluno(id, nome) {
+  gaExcluirAlunoConfirmar(id, nome);
+}
+
+async function _confirmarExcluirAluno() {
+  const id = _gaExcluirAlunoId;
+  const modal = document.getElementById('modal-confirmar-excluir-aluno');
+  if (modal) modal.style.display = 'none';
+  if (!id) return;
+  try {
+    await api(`alunos?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } });
+    mostrarToast('Aluno excluído.');
+    gaCarregarLista();
+    if (_gaTurmaId) {
+      api(`alunos?turma_id=eq.${_gaTurmaId}&select=id`).then(r => {
+        const el = document.getElementById(`pi-count-${_gaTurmaId}`);
+        if (el) el.textContent = (r||[]).length;
+      }).catch(()=>{});
+    }
+  } catch(e) {
+    mostrarToast('❌ Erro ao excluir: ' + (e.message || ''));
+  } finally {
+    _gaExcluirAlunoId = null;
+    _gaExcluirAlunoNome = null;
+  }
+}
+
+function _cancelarExcluirAluno() {
+  const modal = document.getElementById('modal-confirmar-excluir-aluno');
+  if (modal) modal.style.display = 'none';
+  _gaExcluirAlunoId = null;
+  _gaExcluirAlunoNome = null;
+}
+
+async function gaEditarAluno(id) {
+  const aluno = _gaAlunosCache.find(a => a.id === id);
+  if (!aluno) return;
+  document.getElementById('ea-nome').value = aluno.nome_completo || '';
+  document.getElementById('ea-numero').value = aluno.numero_lista || '';
+  document.getElementById('ea-nasc').value = aluno.data_nascimento || '';
+  document.getElementById('ea-email').value = aluno.email || '';
+  document.getElementById('ea-resp').value = aluno.responsavel || '';
+  document.getElementById('ea-err').style.display = 'none';
+  // Popular select de turmas
+  const sel = document.getElementById('ea-turma');
+  sel.innerHTML = '<option value="">— Manter na turma atual —</option>';
+  const outrasTurmas = todasTurmas.filter(t => String(t.id) !== String(_gaTurmaId));
+  if (outrasTurmas.length) {
+    outrasTurmas.forEach(t => { sel.innerHTML += `<option value="${t.id}">${t.nome}</option>`; });
+    document.getElementById('ea-turma-wrap').style.display = 'block';
+  } else {
+    document.getElementById('ea-turma-wrap').style.display = 'none';
+  }
+  sel.dataset.alunoId = id;
+  document.getElementById('modal-editar-aluno').classList.add('open');
+}
+
+async function eaSalvar() {
+  const nome = document.getElementById('ea-nome')?.value.trim();
+  const errEl = document.getElementById('ea-err');
+  errEl.style.display = 'none';
+  if (!nome) { errEl.textContent = 'Informe o nome.'; errEl.style.display = 'block'; return; }
+  const sel = document.getElementById('ea-turma');
+  const alunoId = sel.dataset.alunoId;
+  const novaTurmaId = sel.value || null;
+  const body = {
+    nome_completo: nome,
+    numero_lista: document.getElementById('ea-numero')?.value || null,
+    data_nascimento: document.getElementById('ea-nasc')?.value || null,
+    email: document.getElementById('ea-email')?.value.trim() || null,
+    responsavel: document.getElementById('ea-resp')?.value.trim() || null,
+  };
+  if (novaTurmaId) body.turma_id = novaTurmaId;
+  try {
+    await api(`alunos?id=eq.${alunoId}`, { method: 'PATCH', body: JSON.stringify(body) });
+    mostrarToast('Aluno atualizado!');
+    fecharModal('modal-editar-aluno');
+    gaCarregarLista();
+  } catch(e) { errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block'; }
+}
+
+// ═══════════════════════════════════════════════════
+// EDITAR TURMA
+// ═══════════════════════════════════════════════════
+let _etTurmaId = null;
+
+async function piEditarTurma(turmaId) {
+  _etTurmaId = turmaId;
+  const t = todasTurmas.find(x => String(x.id) === String(turmaId));
+  if (!t) return;
+  document.getElementById('et-nome').value = t.nome || '';
+  document.getElementById('et-ano').value = t.ano || '';
+  document.getElementById('et-desc').value = t.descricao || '';
+  document.getElementById('et-err').style.display = 'none';
+  document.getElementById('modal-editar-turma').classList.add('open');
+}
+
+async function piSalvarEdicaoTurma() {
+  const nome = document.getElementById('et-nome')?.value.trim();
+  const errEl = document.getElementById('et-err');
+  errEl.style.display = 'none';
+  if (!nome) { errEl.textContent = 'Informe o nome da turma.'; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('et-btn-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  const ano = document.getElementById('et-ano').value;
+  const nivel = ano.includes('Ensino Médio') ? 'Médio' : (parseInt(ano) <= 5 ? 'Fundamental I' : 'Fundamental II');
+  try {
+    await api(`turmas?id=eq.${_etTurmaId}`, { method: 'PATCH', body: JSON.stringify({
+      nome, ano: ano || undefined, nivel: ano ? nivel : undefined,
+      descricao: document.getElementById('et-desc')?.value.trim() || null,
+    }) });
+    mostrarToast('Turma atualizada!');
+    fecharModal('modal-editar-turma');
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    await piCarregarTurmas(profData.id || session.id);
+  } catch(e) { errEl.textContent = 'Erro: ' + e.message; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Salvar alterações'; }
+}
+
+// ═══════════════════════════════════════════════════
+// MENU LATERAL — configurar por turma
+// ═══════════════════════════════════════════════════
+let _mlTurmaId = null;
+
+function piGerenciarMenuLateral(turmaId, nome) {
+  _mlTurmaId = turmaId;
+  document.getElementById('ml-sub').textContent = nome || '';
+  const prefs = _mlGetPrefs(turmaId) || _gaMenuItems.map(i => i.key);
+  document.getElementById('ml-opcoes').innerHTML = _gaMenuItems.map(item => `
+    <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;background:#F8FAFF;transition:background 0.1s;" onmouseover="this.style.background='#EEF5FF'" onmouseout="this.style.background='#F8FAFF'">
+      <input type="checkbox" id="ml-chk-${item.key}" ${prefs.includes(item.key) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--purple);cursor:pointer;"/>
+      <span style="font-size:13px;font-weight:600;color:var(--text);">${item.label}</span>
+    </label>`).join('');
+  document.getElementById('modal-menu-lateral').classList.add('open');
+}
+
+function mlSalvar() {
+  const ativas = _gaMenuItems.filter(item => document.getElementById('ml-chk-' + item.key)?.checked).map(i => i.key);
+  _mlSetPrefs(_mlTurmaId, ativas);
+  // Aplicar imediatamente se a turma ativa for essa
+  if (turmaAtiva && String(turmaAtiva.id) === String(_mlTurmaId)) _mlAplicarMenu(ativas);
+  mostrarToast('Menu lateral atualizado!');
+  fecharModal('modal-menu-lateral');
+}
+
+function _mlAplicarMenu(ativas) {
+  // Botões no sidebar-turma-menu desktop
+  const menuDesktop = document.getElementById('sidebar-turma-menu');
+  const menuMobile = document.getElementById('mob-turma-menu');
+  [menuDesktop, menuMobile].forEach(menu => {
+    if (!menu) return;
+    menu.querySelectorAll('.stb').forEach(btn => {
+      const key = btn.dataset.menuKey;
+      if (!key) return;
+      btn.style.display = (!ativas || ativas.includes(key)) ? '' : 'none';
+    });
+  });
+}
+
+// Chamar _mlAplicarMenu ao abrir turma
+const _origAbrirTurma = abrirTurma;
+abrirTurma = async function(id) {
+  await _origAbrirTurma(id);
+  const prefs = _mlGetPrefs(id);
+  if (prefs) _mlAplicarMenu(prefs);
+};
 </script>
 <!-- ═══════════════════════════════════════════════════════════
      MODAL CONFIGURAÇÕES DO SISTEMA
@@ -8040,6 +8594,42 @@ function iniciarOcorrencias() {
 
   </div><!-- fim cfg-wrap -->
 </div><!-- fim modal-configuracoes -->
+
+<!-- ═══════════ MODAL CONFIRMAR EXCLUIR ALUNO ═══════════ -->
+<div id="modal-confirmar-excluir-aluno" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)_cancelarExcluirAluno()">
+  <div style="background:#fff;border-radius:18px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);text-align:center;animation:fadeUp 0.2s ease;">
+    <div style="width:48px;height:48px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+    </div>
+    <div style="font-size:16px;font-weight:700;color:#1B2550;margin-bottom:8px;">Excluir aluno?</div>
+    <div style="font-size:13px;color:#6E7BA8;margin-bottom:6px;">Você está prestes a excluir:</div>
+    <div style="font-size:13px;font-weight:700;color:#DC2626;background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:8px;padding:7px 14px;margin-bottom:16px;display:inline-block;" id="excluir-aluno-nome-confirm"></div>
+    <div style="font-size:12px;color:#6E7BA8;margin-bottom:20px;">Esta ação não pode ser desfeita.</div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="_cancelarExcluirAluno()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">Cancelar</button>
+      <button onclick="_confirmarExcluirAluno()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL CONFIRMAR EXCLUIR TURMA ═══════════ -->
+<div id="modal-confirmar-excluir-turma" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)_cancelarExcluirTurma()">
+  <div style="background:#fff;border-radius:18px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.2);text-align:center;animation:fadeUp 0.2s ease;">
+    <div style="width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    </div>
+    <div style="font-size:17px;font-weight:700;color:#1B2550;margin-bottom:10px;">Excluir turma?</div>
+    <div style="font-size:13px;color:#6E7BA8;margin-bottom:6px;">Você está prestes a excluir a turma:</div>
+    <div style="font-size:14px;font-weight:700;color:#DC2626;background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:9px;padding:8px 16px;margin-bottom:16px;display:inline-block;" id="excluir-turma-nome-confirm"></div>
+    <div style="font-size:12px;color:#DC2626;background:#FFF1F2;border-radius:8px;padding:10px 14px;margin-bottom:24px;line-height:1.5;">
+      ⚠️ Isso também excluirá <strong>todos os alunos</strong> vinculados a esta turma.<br>Esta ação <strong>não pode ser desfeita</strong>.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="_cancelarExcluirTurma()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">Cancelar</button>
+      <button id="btn-confirmar-excluir-turma" onclick="_confirmarExcluirTurma()" style="flex:1;padding:12px;border-radius:10px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Excluir turma</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
