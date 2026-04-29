@@ -7806,6 +7806,7 @@ function gaTab(aba) {
 
 async function gaCarregarLista() {
   const el = document.getElementById('ga-lista-alunos');
+  if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Carregando...</div>';
   _gaAlunosCache = await api(`alunos?turma_id=eq.${_gaTurmaId}&select=*&order=nome_completo`) || [];
   // Atualizar contador no card da turma
@@ -7978,11 +7979,11 @@ async function piEditarTurma(turmaId) {
   _etTurmaId = turmaId;
   const t = todasTurmas.find(x => String(x.id) === String(turmaId));
   if (!t) return;
-  document.getElementById('et-nome').value = t.nome || '';
-  document.getElementById('et-ano').value = t.ano || '';
-  document.getElementById('et-desc').value = t.descricao || '';
-  document.getElementById('et-err').style.display = 'none';
-  document.getElementById('modal-editar-turma').classList.add('open');
+  const _etNome = document.getElementById('et-nome'); if(_etNome) _etNome.value = t.nome || '';
+  const _etAno = document.getElementById('et-ano'); if(_etAno) _etAno.value = t.ano || '';
+  const _etDesc = document.getElementById('et-desc'); if(_etDesc) _etDesc.value = t.descricao || '';
+  const _etErr = document.getElementById('et-err'); if(_etErr) _etErr.style.display = 'none';
+  const _etModal = document.getElementById('modal-editar-turma'); if(_etModal) _etModal.classList.add('open');
 }
 
 async function piSalvarEdicaoTurma() {
@@ -8014,14 +8015,14 @@ let _mlTurmaId = null;
 
 function piGerenciarMenuLateral(turmaId, nome) {
   _mlTurmaId = turmaId;
-  document.getElementById('ml-sub').textContent = nome || '';
+  const _mlSub = document.getElementById('ml-sub'); if(_mlSub) _mlSub.textContent = nome || '';
   const prefs = _mlGetPrefs(turmaId) || _gaMenuItems.map(i => i.key);
-  document.getElementById('ml-opcoes').innerHTML = _gaMenuItems.map(item => `
+  const _mlOpcoes = document.getElementById('ml-opcoes'); if(_mlOpcoes) _mlOpcoes.innerHTML = _gaMenuItems.map(item => `
     <label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;background:#F8FAFF;transition:background 0.1s;" onmouseover="this.style.background='#EEF5FF'" onmouseout="this.style.background='#F8FAFF'">
       <input type="checkbox" id="ml-chk-${item.key}" ${prefs.includes(item.key) ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--purple);cursor:pointer;"/>
       <span style="font-size:13px;font-weight:600;color:var(--text);">${item.label}</span>
     </label>`).join('');
-  document.getElementById('modal-menu-lateral').classList.add('open');
+  const _mlModal = document.getElementById('modal-menu-lateral'); if(_mlModal) _mlModal.classList.add('open');
 }
 
 function mlSalvar() {
