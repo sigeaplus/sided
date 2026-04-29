@@ -7781,8 +7781,10 @@ function _mlSetPrefs(turmaId, prefs) {
 
 async function piAbrirGerenciarAlunos(turmaId, nome) {
   _gaTurmaId = turmaId;
-  document.getElementById('ga-turma-sub').textContent = nome || '';
-  document.getElementById('modal-gerenciar-alunos').classList.add('open');
+  const sub = document.getElementById('ga-turma-sub');
+  if (sub) sub.textContent = nome || '';
+  const modal = document.getElementById('modal-gerenciar-alunos');
+  if (modal) modal.classList.add('open');
   gaTab('lista');
 }
 
