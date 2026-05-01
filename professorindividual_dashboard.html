@@ -1953,7 +1953,7 @@ function selecionarDiscAval(disc) {
 }
 let turmaAtiva = null, avaliacaoAtiva = null, chamadaTemp = {};
 let filtrosAtivos = { disciplina: null, ano: null, turno: null };
-let _piMenuAberto = false; // controle do dropdown dos três pontos
+// _piMenuAberto removido — substituído por _piMenuAbertoEl (veja seção TRÊS PONTINHOS)
 const FUNDAMENTAL_I_DISCIPLINAS = ['PORTUGUES','MATEMATICA','CIENCIAS','GEOGRAFIA','HISTORIA','INGLES','ED FISICA','ENS RELIGIOSO','OUTRO'];
 let calState = { 'cal-aula': { ano: new Date().getFullYear(), mes: new Date().getMonth() }, 'cal-chamada': { ano: new Date().getFullYear(), mes: new Date().getMonth() } };
 let feriadosCache = [];
@@ -2136,7 +2136,7 @@ async function carregarTurmas(profId) {
     );
   }
 
-  renderTurmas(todasTurmas);
+  renderTurmas(todasTurmas); // alias para piRenderTurmas — veja abaixo
 
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
@@ -2239,46 +2239,10 @@ function aplicarFiltros() {
   if (filtrosAtivos.ano) lista = lista.filter(t => t.ano === filtrosAtivos.ano);
   if (filtrosAtivos.turno) lista = lista.filter(t => t.turno === filtrosAtivos.turno);
   if (q) lista = lista.filter(t => JSON.stringify(t).toLowerCase().includes(q));
-  renderTurmas(lista);
+  piRenderTurmas(lista);
 }
 
-function renderTurmas(lista) {
-  const grid = document.getElementById('turmas-grid');
-
-  document.getElementById('turmas-header').textContent = `Minhas turmas (${lista.length})`;
-  grid.innerHTML = lista.length
-    ? lista.map((t, i) => {
-        const discLabel = t.disciplina || '—';
-        const nome = (t.nome||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-        return `
-          <div class="turma-card" style="animation-delay:${i * 0.04}s;position:relative;" onclick="abrirTurma('${t.id}')">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px;">
-              <div class="turma-ano">${t.ano || '—'}</div>
-              <div style="position:relative;">
-                <button onclick="event.stopPropagation();piToggleMenu(this,'menu-${t.id}')" title="Opções" data-pi-menu-btn="1"
-                  style="background:none;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:3px 9px;color:#1E3A5F;display:flex;align-items:center;font-size:16px;font-weight:900;letter-spacing:2px;line-height:1;transition:all 0.15s;"
-                  onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='#1E3A5F'">
-                  ···
-                </button>
-                <div id="menu-${t.id}" class="pi-turma-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.14);z-index:9999;min-width:200px;overflow:hidden;">
-                  <div style="padding:6px 0;">
-                    <div style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;padding:6px 14px 4px;">Turma</div>
-                    <button onclick="event.stopPropagation();piFecharMenus();piGerenciarMenuLateral('${t.id}','${nome}')" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                      Menu lateral
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
-            <div class="turma-endereco">${t.escolas?.nome || ''}</div>
-            <div class="turma-disciplina">${discLabel}</div>
-            <div class="turma-turno">${t.turno || '—'}</div>
-          </div>`;
-      }).join('')
-    : '<div class="turma-empty">Nenhuma turma encontrada com esses filtros.</div>';
-}
+// renderTurmas está definida mais abaixo (versão completa com todas as opções do menu)
 
 // ABRIR TURMA
 function _setSidebarEstadoTurma(dentroTurma) {
@@ -5835,12 +5799,12 @@ function piRenderTurmas(lista) {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
         <div class="turma-ano">${t.ano || '—'}</div>
         <div style="position:relative;">
-          <button onclick="event.stopPropagation();piToggleMenu(this,'menu-${t.id}')" title="Opções" data-pi-menu-btn="1"
+          <button onclick="event.stopPropagation();piToggleMenu(this,'menu-card-${t.id}')" title="Opções" data-pi-menu-btn="1"
             style="background:none;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;padding:3px 9px;color:#1E3A5F;display:flex;align-items:center;font-size:16px;font-weight:900;letter-spacing:2px;line-height:1;transition:all 0.15s;"
             onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='#1E3A5F'">
             ···
           </button>
-          <div id="menu-${t.id}" class="pi-turma-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.14);z-index:999;min-width:200px;overflow:hidden;">
+          <div id="menu-card-${t.id}" class="pi-turma-dropdown" style="display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.14);z-index:999;min-width:200px;overflow:hidden;">
             <div style="padding:6px 0;">
               <div style="font-size:10px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;padding:6px 14px 4px;">Alunos</div>
               <button onclick="event.stopPropagation();piFecharMenus();piAbrirGerenciarAlunos('${t.id}','${nome}')" data-nome="${nome}" style="width:100%;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#1E3A5F;cursor:pointer;text-align:left;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#F0F7FF'" onmouseout="this.style.background='none'">
@@ -5883,6 +5847,8 @@ function piRenderTurmas(lista) {
       }).catch(() => {});
   });
 }
+// Alias para compatibilidade com chamadas legadas (carregarTurmas, aplicarFiltros)
+var renderTurmas = piRenderTurmas;
 
 // ── Modal Nova Turma ──────────────────────────────────────────
 function abrirModalNovaTurma() {
@@ -7720,34 +7686,71 @@ function iniciarOcorrencias() {
 }
 
 // ═══════════════════════════════════════════════════
-// TRÊS PONTINHOS — menus dropdown
+// TRÊS PONTINHOS — menus dropdown (reescrito do zero)
 // ═══════════════════════════════════════════════════
+
+// Referência ao menu atualmente aberto
+let _piMenuAbertoEl = null;
+
 function piToggleMenu(btn, id) {
-  // Fechar todos os abertos
-  document.querySelectorAll('.pi-turma-dropdown').forEach(m => {
-    if (m.id !== id) m.style.display = 'none';
-  });
+  // Fechar qualquer menu já aberto
+  if (_piMenuAbertoEl && _piMenuAbertoEl.id !== id) {
+    _piMenuAbertoEl.style.display = 'none';
+    _piMenuAbertoEl = null;
+  }
+
   const el = document.getElementById(id);
-  if (!el) return;
-  const isOpen = el.style.display === 'block';
-  if (isOpen) {
+  if (!el) { console.warn('[piToggleMenu] elemento não encontrado:', id); return; }
+
+  // Toggle
+  const estaAberto = el.style.display === 'block';
+  if (estaAberto) {
     el.style.display = 'none';
+    _piMenuAbertoEl = null;
     return;
   }
-  // Posicionar com fixed para não ser cortado
+
+  // Posicionar usando fixed para não ser cortado por overflow:hidden do card
   const rect = btn.getBoundingClientRect();
-  el.style.cssText = `display:block;position:fixed;top:${rect.bottom + 4}px;right:${window.innerWidth - rect.right}px;left:auto;z-index:99999;background:#fff;border:1.5px solid #DBE4FF;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.16);min-width:210px;overflow:hidden;`;
-  _piMenuAberto = true;
-  setTimeout(() => { _piMenuAberto = false; }, 50);
+  const menuW = 220;
+  let left = rect.right - menuW;
+  if (left < 8) left = 8;
+
+  el.style.cssText = [
+    'display:block',
+    'position:fixed',
+    `top:${rect.bottom + 6}px`,
+    `left:${left}px`,
+    'right:auto',
+    'z-index:999999',
+    'background:#fff',
+    'border:1.5px solid #DBE4FF',
+    'border-radius:12px',
+    'box-shadow:0 10px 36px rgba(0,0,0,0.18)',
+    `min-width:${menuW}px`,
+    'overflow:hidden',
+    'animation:fadeUp 0.15s ease'
+  ].join(';');
+
+  _piMenuAbertoEl = el;
 }
+
 function piFecharMenus() {
   document.querySelectorAll('.pi-turma-dropdown').forEach(m => { m.style.display = 'none'; });
+  _piMenuAbertoEl = null;
 }
+
+// Fechar ao clicar fora do menu
 document.addEventListener('click', function(e) {
+  if (!_piMenuAbertoEl) return;
   if (e.target.closest('.pi-turma-dropdown')) return;
   if (e.target.closest('[data-pi-menu-btn]')) return;
   piFecharMenus();
-});
+}, true);
+
+// Fechar ao rolar a página
+document.addEventListener('scroll', function() { piFecharMenus(); }, true);
+
 function piFecharModalOutside(e, id) {
   if (e.target === document.getElementById(id)) fecharModal(id);
 }
