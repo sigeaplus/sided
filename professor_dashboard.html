@@ -680,8 +680,24 @@
       .aluno-row { padding: 10px 12px; }
       .aluno-nome { font-size: 13px; }
 
-      /* Cards de avaliação */
-      .aval-card { padding: 12px 14px; }
+      /* Grupo de avaliações no mobile — igual ao desktop */
+      .aval-card .grupo-sublista { display: flex !important; }
+      .grupo-subitem { flex-wrap: wrap; gap: 6px; }
+      .grupo-subitem > span:first-child { flex: 1; min-width: 0; }
+      .grupo-subitem > span:last-child { display: flex; gap: 6px; flex-shrink: 0; }
+      .btn-entrar-grupo, .btn-editar-grupo { padding: 6px 10px; font-size: 12px; }
+      /* Remove padding-right que esconde conteúdo do grupo no mobile */
+      .aval-card-header { padding-right: 0 !important; flex-wrap: wrap; }
+
+      /* Garante que o badge de status não sobreponha no mobile — move para flow normal */
+      .aval-status-badge-inline { position: static !important; display: inline-block; margin-bottom: 6px; }
+
+      /* Botões Entrar/Editar grupo — full legibility */
+      .aval-card .btn-entrar-grupo,
+      .aval-card .btn-editar-grupo {
+        font-family: 'Sora', sans-serif;
+        display: inline-flex; align-items: center;
+      }
 
       /* Counter bar */
       .counter-bar { flex-wrap: wrap; gap: 4px; }
@@ -4066,8 +4082,8 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
         const statusClr = status === 'lancada' ? '#166534' : '#92400E';
         return `
         <div class="aval-card ${tipoExibicao === 'soma' ? 'grupo-card-soma' : ''} ${tipoExibicao === 'media' ? 'grupo-card-media' : ''}" style="cursor:${isGrupo ? 'default' : 'pointer'};" ${isGrupo ? '' : `onclick="abrirNotas('${a.id}')"`}>
-          ${!isGrupo && status !== 'vazia' ? `<span style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:130px;">
+          ${!isGrupo && status !== 'vazia' ? `<span class="aval-status-badge-inline" style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
+          <div class="aval-card-header" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:${isGrupo ? '0' : '130px'}">
             <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${a.nome}</span>
             ${a.disciplina ? `<span style="font-size:10px;font-weight:700;background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;">${a.disciplina}</span>` : ''}
             <button onclick="event.stopPropagation();editarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="${isGrupo ? 'Editar grupo' : 'Editar'}">
