@@ -2105,38 +2105,23 @@ async function carregarTurmas(profId) {
     todasTurmas = todasTurmas.map(t => ({ ...t, disciplina: t.disciplina || ptMap[t.id] || null }));
   }
 
-  // Filtro por disciplina se professor tiver disciplina fixa cadastrada
-  if (profData.disciplina) {
-    const discProf = profData.disciplina.trim().toUpperCase();
-    todasTurmas = todasTurmas.filter(t =>
-      t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf)
-    );
-  }
-
   renderTurmas(todasTurmas);
 
+  // Popular select de disciplina com opções únicas das turmas do professor
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
-    if (profData.disciplina) {
-      const discProf = profData.disciplina.trim().toUpperCase();
-      let exists = false;
-      for (let i = 0; i < selDisciplina.options.length; i++) {
-        if (selDisciplina.options[i].value.toUpperCase() === discProf) {
-          selDisciplina.selectedIndex = i; exists = true; break;
-        }
+    const discSet = new Set();
+    todasTurmas.forEach(t => {
+      if (t.disciplinas && t.disciplinas.length) {
+        t.disciplinas.forEach(d => { if (d) discSet.add(d); });
+      } else if (t.disciplina) {
+        t.disciplina.split(',').forEach(d => { if (d.trim()) discSet.add(d.trim()); });
       }
-      if (!exists) {
-        const opt = document.createElement('option');
-        opt.value = profData.disciplina;
-        opt.textContent = profData.disciplina;
-        opt.selected = true;
-        selDisciplina.appendChild(opt);
-      }
-      selDisciplina.disabled = true;
-      filtrosAtivos.disciplina = profData.disciplina;
-    } else {
-      selDisciplina.disabled = false;
-    }
+    });
+    const discs = Array.from(discSet).sort();
+    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>' +
+      discs.map(d => '<option value="' + d + '">' + d + '</option>').join('');
+    selDisciplina.disabled = false;
   }
 }
 
@@ -3086,11 +3071,6 @@ async function garantirTodasTurmas() {
     }
   }
 
-  // Filtro por disciplina fixa do professor
-  if (profData.disciplina && todasTurmas.length) {
-    const discProf = profData.disciplina.trim().toUpperCase();
-    todasTurmas = todasTurmas.filter(t => t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf));
-  }
 }
 
 async function duplicarAulasSelecionadas() {
