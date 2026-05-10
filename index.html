@@ -1799,8 +1799,8 @@
 
 <script>
   // ═══ CONSTANTS ═══
-  const SB_URL = 'https://szjfmhzlrdwzjrgxrrxj.supabase.co';
-  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6amZtaHpscmR3empyZ3hycnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDk2MDMsImV4cCI6MjA2Mjk4NTYwM30.mOhrQ1T71Bfn-eSAy6OOGp8SFCYVY_JwFBBgqTl3H0o';
+  const SB_URL = 'https://biocjxggjjfeqmpuysik.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb2NqeGdnampmZXFtcHV5c2lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODUwOTQsImV4cCI6MjA4OTc2MTA5NH0.3bL3dKqiWGoHROE6vSzf-7Orp0GLcLpn4mHtUSwC0dU';
   const GOOGLE_CLIENT_ID = '783001683895-cmo1t6a9fnrg7sml5rn4l1bqt7aqno3f.apps.googleusercontent.com';
   const DASH = 'dashboard.html';
 
@@ -1911,13 +1911,15 @@
     btn.disabled = true; spinner.style.display = 'block'; txt.textContent = 'Entrando...';
     try {
       // 1. Busca usuário na public.users pelo login+senha
-      const res = await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(login)}&senha=eq.${encodeURIComponent(senha)}&select=id,login,role,nome,escola_id,escolas_ids,email`, {
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      const res = await fetch(`${SB_URL}/rest/v1/rpc/buscar_usuario_login`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_login: login, p_senha: senha })
       });
       const text = await res.text();
       console.log('[login] status:', res.status, 'body:', text);
-      if (!res.ok || !text || text === '') {
-        mostrarErro(`Erro do servidor (${res.status}). Tente novamente.`);
+      if (!res.ok || !text || text === '[]' || text === '') {
+        mostrarErro('Login ou senha incorretos.');
         return;
       }
       const data = JSON.parse(text);
