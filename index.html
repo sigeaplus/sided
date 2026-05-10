@@ -1914,7 +1914,13 @@
       const res = await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(login)}&senha=eq.${encodeURIComponent(senha)}&select=id,login,role,nome,escola_id,escolas_ids,email`, {
         headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
       });
-      const data = await res.json();
+      const text = await res.text();
+      console.log('[login] status:', res.status, 'body:', text);
+      if (!res.ok || !text || text === '') {
+        mostrarErro(`Erro do servidor (${res.status}). Tente novamente.`);
+        return;
+      }
+      const data = JSON.parse(text);
       if (!Array.isArray(data) || data.length === 0) {
         mostrarErro('Login ou senha incorretos.');
         return;
