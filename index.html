@@ -1513,7 +1513,7 @@
 
 
 <!-- ════════════════ MODAL EMAIL (migração auth) ════════════════ -->
-<div class="overlay" id="overlay-email" style="display:none;align-items:center;justify-content:center;">
+<div id="overlay-email" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(15,23,42,0.85);backdrop-filter:blur(24px);align-items:center;justify-content:center;padding:20px;">
   <div class="modal-card" style="max-width:420px;width:100%;">
     <div class="modal-logo">
       <img src="sided_logo.png" alt="SIDED+"/>
@@ -1794,7 +1794,20 @@
   const DASH = 'dashboard.html';
 
   // ═══ SUPABASE CLIENT ═══
-  const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+  let _supabase = null;
+  function getSupabase() {
+    if (!_supabase) _supabase = window.supabase.createClient(SB_URL, SB_KEY);
+    return _supabase;
+  }
+  // alias
+  const supabase = { 
+    auth: { 
+      signInWithPassword: (...a) => getSupabase().auth.signInWithPassword(...a),
+      signUp: (...a) => getSupabase().auth.signUp(...a),
+      getSession: (...a) => getSupabase().auth.getSession(...a),
+    },
+    from: (...a) => getSupabase().from(...a)
+  };
 
   // ═══ ROTAS POR ROLE ═══
   const ROTAS = {
@@ -1919,7 +1932,8 @@
       // 3. Sem email — pede email pro usuário
       fecharLogin();
       _userPendente = { ...user, senha };
-      document.getElementById('overlay-email').style.display = 'flex';
+      const overlayEmail = document.getElementById('overlay-email');
+      overlayEmail.style.display = 'flex';
       setTimeout(() => document.getElementById('inp-email-migracao').focus(), 200);
 
     } catch(e) {
@@ -1999,7 +2013,10 @@
             <strong>${email}</strong><br/><br/>
             Acesse seu e-mail, clique no link e volte aqui para entrar.
           </div>
-          <button class="btn-login" onclick="document.getElementById('overlay-email').style.display='none';abrirLogin()">
+          <button class="btn-login" onclick="
+            document.getElementById('overlay-email').style.display='none';
+            abrirLogin();
+          ">
             Já confirmei → Entrar
           </button>
         </div>
