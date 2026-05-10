@@ -832,7 +832,7 @@
   <div class="sidebar-nav">
     <button class="btn-fechar-tri" onclick="fecharSidebar(); abrirFecharTrimestre();">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Fechar Trimestre
+      Fechar divisão
     </button>
 
     <!-- Menu de ferramentas da turma — só aparece quando dentro de uma turma -->
@@ -1706,12 +1706,12 @@
           <div style="font-size:10px;font-weight:700;color:#64748B;text-align:center;letter-spacing:0.4px;margin-bottom:14px;text-transform:uppercase;line-height:1.4;" id="sidebar-escola-display">—</div>
         </div>
 
-        <!-- ── BOTÃO FECHAR TRIMESTRE (sempre visível) ── -->
+        <!-- ── BOTÃO FECHAR DIVISÃO (sempre visível) ── -->
         <button onclick="abrirFecharTrimestre()"
           style="width:100%;background:#2563EB;border:none;border-radius:12px;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;padding:11px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:12px;transition:opacity 0.2s;"
           onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Fechar Trimestre
+          Fechar divisão
         </button>
 
         <!-- ── MENU FERRAMENTAS DA TURMA (só ao entrar na turma) ── -->
@@ -2105,23 +2105,38 @@ async function carregarTurmas(profId) {
     todasTurmas = todasTurmas.map(t => ({ ...t, disciplina: t.disciplina || ptMap[t.id] || null }));
   }
 
+  // Filtro por disciplina se professor tiver disciplina fixa cadastrada
+  if (profData.disciplina) {
+    const discProf = profData.disciplina.trim().toUpperCase();
+    todasTurmas = todasTurmas.filter(t =>
+      t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf)
+    );
+  }
+
   renderTurmas(todasTurmas);
 
-  // Popular select de disciplina com opções únicas das turmas do professor
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
-    const discSet = new Set();
-    todasTurmas.forEach(t => {
-      if (t.disciplinas && t.disciplinas.length) {
-        t.disciplinas.forEach(d => { if (d) discSet.add(d); });
-      } else if (t.disciplina) {
-        t.disciplina.split(',').forEach(d => { if (d.trim()) discSet.add(d.trim()); });
+    if (profData.disciplina) {
+      const discProf = profData.disciplina.trim().toUpperCase();
+      let exists = false;
+      for (let i = 0; i < selDisciplina.options.length; i++) {
+        if (selDisciplina.options[i].value.toUpperCase() === discProf) {
+          selDisciplina.selectedIndex = i; exists = true; break;
+        }
       }
-    });
-    const discs = Array.from(discSet).sort();
-    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>' +
-      discs.map(d => '<option value="' + d + '">' + d + '</option>').join('');
-    selDisciplina.disabled = false;
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = profData.disciplina;
+        opt.textContent = profData.disciplina;
+        opt.selected = true;
+        selDisciplina.appendChild(opt);
+      }
+      selDisciplina.disabled = true;
+      filtrosAtivos.disciplina = profData.disciplina;
+    } else {
+      selDisciplina.disabled = false;
+    }
   }
 }
 
@@ -3071,6 +3086,11 @@ async function garantirTodasTurmas() {
     }
   }
 
+  // Filtro por disciplina fixa do professor
+  if (profData.disciplina && todasTurmas.length) {
+    const discProf = profData.disciplina.trim().toUpperCase();
+    todasTurmas = todasTurmas.filter(t => t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf));
+  }
 }
 
 async function duplicarAulasSelecionadas() {
@@ -5394,7 +5414,7 @@ function voltarMobile() {
 
 function sair() { sessionStorage.clear(); window.location.href = 'index.html'; }
 // ============================================================
-// FECHAR TRIMESTRE
+// FECHAR DIVISÃO
 // ============================================================
 
 function detectarTrimestreAtual() {
@@ -5673,7 +5693,7 @@ function renderFechamentoCategoria(categoria) {
         <button onclick="confirmarFecharTrimestre('${r.turma.id}', '${r.disciplina||''}', this)"
           style="padding:9px 20px;border-radius:10px;border:none;background:#22C55E;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;"
           onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-          Fechar Trimestre
+          Fechar divisão
         </button>
       </div>`)).join('')
     : '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Nenhuma turma apta no momento</div>';
@@ -5717,7 +5737,7 @@ async function confirmarFecharTrimestre(turmaId, disciplina, btn) {
     await carregarDadosFechamento(profData, ftTriAtivo);
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Fechar Trimestre';
+    btn.textContent = 'Fechar divisão';
     mostrarToast('Erro ao fechar. Tente novamente.');
   }
 }
@@ -6093,7 +6113,7 @@ init();
   </div>
 </div>
 
-<!-- TELA FECHAR TRIMESTRE — página própria sobreposta -->
+<!-- TELA FECHAR DIVISÃO — página própria sobreposta -->
 <div id="modal-fechar-tri" style="display:none;position:fixed;inset:0;z-index:9000;background:#F4F2FF;overflow-y:auto;">
 
   <!-- CABEÇALHO -->
