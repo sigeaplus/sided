@@ -262,7 +262,8 @@
     .turma-ano { font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
     .turma-codigo { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .turma-endereco { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
-    .turma-disciplina { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .turma-disciplina { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+    .turma-disc-chip { font-size: 11px; font-weight: 600; color: var(--purple); background: rgba(108,79,212,0.1); border: 1px solid rgba(108,79,212,0.2); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
     .turma-turno { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
     .turma-empty { grid-column: 1/-1; text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
@@ -2225,13 +2226,16 @@ function renderTurmas(lista) {
   document.getElementById('turmas-header').textContent = `Minhas turmas (${lista.length})`;
   grid.innerHTML = lista.length
     ? lista.map((t, i) => {
-        const discLabel = t.disciplina || '—';
+        const discs = t.disciplinas && t.disciplinas.length
+          ? t.disciplinas
+          : (t.disciplina ? t.disciplina.split(',').map(d => d.trim()).filter(Boolean) : ['—']);
+        const discChips = discs.map(d => `<span class="turma-disc-chip">${d}</span>`).join('');
         return `
           <div class="turma-card" style="animation-delay:${i * 0.04}s" onclick="abrirTurma('${t.id}')">
             <div class="turma-ano">${t.ano}</div>
             <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
             <div class="turma-endereco">${t.escolas?.nome || ''}</div>
-            <div class="turma-disciplina">${discLabel}</div>
+            <div class="turma-disciplina">${discChips}</div>
             <div class="turma-turno">${t.turno || '—'}</div>
           </div>`;
       }).join('')
