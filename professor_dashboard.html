@@ -2107,37 +2107,31 @@ async function carregarTurmas(profId) {
   }
 
   // Filtro por disciplina se professor tiver disciplina fixa cadastrada
-  if (profData.disciplina) {
-    const discProf = profData.disciplina.trim().toUpperCase();
-    todasTurmas = todasTurmas.filter(t =>
-      t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf)
-    );
-  }
+  // Não filtra automaticamente — deixa o professor escolher
 
   renderTurmas(todasTurmas);
 
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
-    if (profData.disciplina) {
-      const discProf = profData.disciplina.trim().toUpperCase();
-      let exists = false;
-      for (let i = 0; i < selDisciplina.options.length; i++) {
-        if (selDisciplina.options[i].value.toUpperCase() === discProf) {
-          selDisciplina.selectedIndex = i; exists = true; break;
-        }
+    // Coleta todas as disciplinas únicas das turmas
+    const todasDiscs = new Set();
+    todasTurmas.forEach(t => {
+      if (t.disciplinas && t.disciplinas.length) {
+        t.disciplinas.forEach(d => todasDiscs.add(d));
+      } else if (t.disciplina) {
+        t.disciplina.split(',').map(d => d.trim()).filter(Boolean).forEach(d => todasDiscs.add(d));
       }
-      if (!exists) {
-        const opt = document.createElement('option');
-        opt.value = profData.disciplina;
-        opt.textContent = profData.disciplina;
-        opt.selected = true;
-        selDisciplina.appendChild(opt);
-      }
-      selDisciplina.disabled = true;
-      filtrosAtivos.disciplina = profData.disciplina;
-    } else {
-      selDisciplina.disabled = false;
-    }
+    });
+    // Popula o select com disciplinas únicas
+    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>';
+    todasDiscs.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d;
+      selDisciplina.appendChild(opt);
+    });
+    selDisciplina.disabled = false;
+    filtrosAtivos.disciplina = null;
   }
 }
 
@@ -2211,9 +2205,12 @@ function atualizarFiltroDisciplina() {
 function aplicarFiltros() {
   const q = document.getElementById('search-turma').value.toLowerCase();
   let lista = todasTurmas;
-  if (filtrosAtivos.disciplina) lista = lista.filter(t =>
-    t.disciplina && t.disciplina.toLowerCase().includes(filtrosAtivos.disciplina.toLowerCase())
-  );
+  if (filtrosAtivos.disciplina) lista = lista.filter(t => {
+    const discs = t.disciplinas && t.disciplinas.length
+      ? t.disciplinas
+      : (t.disciplina ? t.disciplina.split(',').map(d => d.trim()).filter(Boolean) : []);
+    return discs.some(d => d.toLowerCase() === filtrosAtivos.disciplina.toLowerCase());
+  });
   if (filtrosAtivos.ano) lista = lista.filter(t => t.ano === filtrosAtivos.ano);
   if (filtrosAtivos.turno) lista = lista.filter(t => t.turno === filtrosAtivos.turno);
   if (q) lista = lista.filter(t => JSON.stringify(t).toLowerCase().includes(q));
