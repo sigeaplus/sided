@@ -1,913 +1,2293 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#FBBF24" />
-  <title>Solar On</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0A0F1E"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-title" content="SIDED+"/>
+  <meta name="description" content="SIDED+ — Diário Escolar Digital para professores. Gerencie chamadas, notas e planejamentos de forma simples e eficiente. Grátis para começar."/>
+  <meta name="keywords" content="diário escolar digital, app professor, controle de notas, chamada online, gestão escolar, planejamento professor"/>
+  <meta property="og:title" content="SIDED+ — Diário Escolar Digital"/>
+  <meta property="og:description" content="Chamadas, notas e planejamentos em um só lugar. Para professores que querem mais tempo para ensinar."/>
+  <meta property="og:type" content="website"/>
+  <link rel="icon" type="image/png" href="sided_logo.png"/>
+  <link rel="apple-touch-icon" href="sided_logo.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>SIDED+ — Diário Escolar Digital para Professores</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --sun: #FBBF24;
-      --sun-dark: #92400E;
-      --sun-light: #FEF3C7;
-      --green-light: #DCFCE7;
-      --bg: #F8F7F2;
-      --surface: #FFFFFF;
-      --text: #1C1917;
-      --muted: #78716C;
-      --border: #E7E5E4;
-      --r: 14px;
-      --rs: 8px;
-      --nav: 64px;
+      --ink: #FFFFFF;
+      --ink2: #F0F6FF;
+      --paper: #1E293B;
+      --cream: #DBEAFE;
+      --gold: #2563EB;
+      --gold-light: #3B82F6;
+      --violet: #2563EB;
+      --violet-dark: #1E40AF;
+      --text: #1E293B;
+      --muted: #64748B;
+      --border: rgba(37,99,235,0.25);
+      --card: #FFFFFF;
+      --success: #22C55E;
+      --error: #EF4444;
+      --primary: #2563EB;
+      --primary-dark: #1E40AF;
+      --primary-light: #60A5FA;
+      --bg: #EEF4FF;
     }
 
-    html,
+    html { scroll-behavior: smooth; }
+
     body {
-      height: 100%;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      background: var(--ink);
       color: var(--text);
-      overflow: hidden
+      min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    #splash {
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
       position: fixed;
       inset: 0;
-      background: var(--sun);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.4;
+    }
+
+    /* ══ NAV ══ */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 72px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+    }
+
+    .nav-brand img {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+    }
+
+    .nav-brand-name {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    .nav-brand-name span {
+      color: var(--gold);
+    }
+
+    .nav-buttons { display: flex; gap: 12px; }
+
+    .nav-btn {
+      padding: 9px 22px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .nav-btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(37,99,235,0.4);
+      color: var(--gold);
+    }
+
+    .nav-btn-ghost:hover {
+      background: rgba(37,99,235,0.1);
+      border-color: var(--gold);
+    }
+
+    .nav-btn-solid {
+      background: var(--gold);
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    .nav-btn-solid:hover {
+      background: var(--gold-light);
+      transform: translateY(-1px);
+    }
+
+    /* ══ HERO ══ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 140px 24px 100px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative lines */
+    .hero-lines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .hero-lines::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 900px; height: 900px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px solid rgba(37,99,235,0.15);
+      animation: expandRing 4s ease-out forwards;
+    }
+
+    .hero-lines::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 600px; height: 600px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px solid rgba(37,99,235,0.15);
+      animation: expandRing 4s 0.3s ease-out forwards;
+    }
+
+    @keyframes expandRing {
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Glow blob */
+    .hero-glow {
+      position: absolute;
+      top: 30%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(37,99,235,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-glow2 {
+      position: absolute;
+      top: 60%; left: 70%;
+      width: 400px; height: 400px;
+      background: radial-gradient(ellipse, rgba(96,165,250,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Floating dots grid */
+    .hero-dots {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(37,99,235,0.18) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      mask-image: radial-gradient(ellipse 70% 70% at center, black 30%, transparent 100%);
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 36px;
+      position: relative;
+      z-index: 2;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .eyebrow-line {
+      width: 40px; height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50% { opacity:0.5; transform:scale(1.3); }
+    }
+
+    .hero-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(52px, 10vw, 108px);
+      font-weight: 900;
+      line-height: 1.0;
+      color: var(--text);
+      position: relative;
+      z-index: 2;
+      margin-bottom: 12px;
+      animation: fadeUp 0.8s 0.1s ease both;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-title-sub {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 6vw, 68px);
+      font-weight: 400;
+      font-style: italic;
+      color: rgba(30,41,59,0.45);
+      display: block;
+      animation: fadeUp 0.8s 0.2s ease both;
+      margin-bottom: 40px;
+    }
+
+    .hero-desc {
+      font-size: clamp(14px, 2vw, 17px);
+      color: rgba(30,41,59,0.65);
+      max-width: 520px;
+      line-height: 1.8;
+      position: relative;
+      z-index: 2;
+      margin-bottom: 52px;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .btn-primary {
+      padding: 16px 44px;
+      background: var(--gold);
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-primary:hover {
+      background: var(--gold-light);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(37,99,235,0.35);
+    }
+
+    .btn-outline {
+      padding: 16px 44px;
+      background: transparent;
+      border: 1px solid rgba(30,41,59,0.2);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(30,41,59,0.8);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .btn-outline:hover {
+      border-color: rgba(30,41,59,0.5);
+      color: var(--text);
+      transform: translateY(-3px);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Hero scroll indicator ── */
+    .scroll-hint {
+      position: absolute;
+      bottom: 40px; left: 50%;
+      transform: translateX(-50%);
       display: flex;
       flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(30,41,59,0.3);
+      z-index: 2;
+      animation: fadeUp 1s 0.8s ease both;
+    }
+
+    .scroll-arrow {
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, rgba(30,41,59,0.3), transparent);
+      animation: scrollBob 2s infinite;
+    }
+
+    @keyframes scrollBob {
+      0%,100% { transform: scaleY(1); opacity: 0.5; }
+      50% { transform: scaleY(1.3); opacity: 1; }
+    }
+
+    /* ══ STATS BAR ══ */
+    .stats-bar {
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 48px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 0 24px;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat-item:last-child { border-right: none; }
+
+    .stat-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ══ FEATURES SECTION ══ */
+    .section {
+      padding: 120px 48px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 5vw, 60px);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    .section-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .section-desc {
+      font-size: 17px;
+      color: rgba(30,41,59,0.55);
+      max-width: 500px;
+      line-height: 1.8;
+      margin-bottom: 72px;
+    }
+
+    /* Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .feat-card {
+      background: #FFFFFF;
+      padding: 48px 44px;
+      transition: background 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .feat-card:hover { background: #E8F0FE; }
+    .feat-card:hover::before { opacity: 1; }
+
+    .feat-number {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--gold);
+      opacity: 0.6;
+      letter-spacing: 2px;
+      margin-bottom: 24px;
+    }
+
+    .feat-icon-wrap {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      background: rgba(37,99,235,0.1);
+      border: 1px solid rgba(37,99,235,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .feat-card:hover .feat-icon-wrap {
+      background: rgba(37,99,235,0.15);
+      transform: scale(1.08);
+    }
+
+    .feat-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .feat-desc {
+      font-size: 15px;
+      color: rgba(30,41,59,0.45);
+      line-height: 1.7;
+    }
+
+    /* ══ HOW IT WORKS ══ */
+    .how-section {
+      padding: 120px 48px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #F0F6FF 50%, #FFFFFF 100%);
+    }
+
+    .how-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 48px;
+      margin-top: 72px;
+    }
+
+    .step-item {
+      position: relative;
+    }
+
+    .step-item:not(:last-child)::after {
+      content: '→';
+      position: absolute;
+      right: -24px;
+      top: 28px;
+      font-size: 24px;
+      color: rgba(37,99,235,0.3);
+    }
+
+    .step-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 80px;
+      font-weight: 900;
+      color: rgba(37,99,235,0.12);
+      line-height: 1;
+      margin-bottom: -12px;
+    }
+
+    .step-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .step-desc {
+      font-size: 15px;
+      color: rgba(30,41,59,0.45);
+      line-height: 1.7;
+    }
+
+    .step-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(37,99,235,0.25);
+      border-radius: 100px;
+      font-size: 11px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
+      margin-bottom: 16px;
+    }
+
+    /* ══ TESTIMONIAL / QUOTE ══ */
+    .quote-section {
+      padding: 100px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quote-glow {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(37,99,235,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .quote-mark {
+      font-family: 'Playfair Display', serif;
+      font-size: 140px;
+      line-height: 0.8;
+      color: rgba(37,99,235,0.12);
+      position: relative;
+      z-index: 2;
+    }
+
+    .quote-text {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(22px, 4vw, 38px);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--text);
+      max-width: 800px;
+      margin: 0 auto 32px;
+      line-height: 1.5;
+      position: relative;
+      z-index: 2;
+    }
+
+    .quote-text em {
+      color: var(--gold);
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    .quote-author {
+      font-size: 14px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(30,41,59,0.4);
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ══ CTA SECTION ══ */
+    .cta-section {
+      padding: 120px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .cta-box {
+      border: 1px solid var(--border);
+      border-radius: 32px;
+      padding: 80px 64px;
+      background: rgba(37,99,235,0.03);
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 20%; right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .cta-box::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 20%; right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .cta-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 20px;
+    }
+
+    .cta-title em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .cta-sub {
+      font-size: 16px;
+      color: rgba(30,41,59,0.55);
+      line-height: 1.7;
+      margin-bottom: 48px;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-free-note {
+      margin-top: 24px;
+      font-size: 12px;
+      color: rgba(30,41,59,0.3);
+      letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ══ FOOTER ══ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-brand {
+      font-family: 'Space Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .footer-brand span { color: var(--gold); }
+
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(30,41,59,0.3);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: rgba(30,41,59,0.4);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--gold); }
+
+    /* ══ MODAL / OVERLAY ══ */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(15,23,42,0.85);
+      backdrop-filter: blur(24px);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .overlay.active { display: flex; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 44px 40px;
+      position: relative;
+      animation: popIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+      box-shadow: 0 20px 60px rgba(37,99,235,0.15);
+    }
+
+    .modal-card-wide {
+      max-width: 480px;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 18px; right: 18px;
+      background: #F0F6FF;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 18px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s;
+      width: 34px; height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+      background: #EBF2FF;
+    }
+
+    .modal-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .modal-logo img {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .modal-logo-name {
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--text);
+    }
+
+    .modal-logo-name span { color: var(--gold); }
+
+    .modal-logo-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .modal-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+
+    /* Form elements */
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: #F8FAFF;
+      border: 1px solid rgba(30,41,59,0.15);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+
+    .form-input::placeholder { color: rgba(30,41,59,0.35); }
+
+    .form-group { margin-bottom: 18px; }
+
+    .input-wrap { position: relative; }
+
+    .eye-btn {
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      padding: 4px;
+      transition: color 0.2s;
+    }
+
+    .eye-btn:hover { color: var(--gold); }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      margin-top: 8px;
+      background: var(--gold);
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #FFFFFF;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      z-index: 999;
-      transition: opacity .5s
+      transition: all 0.2s;
     }
 
-    #splash.fade {
-      opacity: 0;
-      pointer-events: none
+    .btn-login:hover {
+      background: var(--gold-light);
+      transform: translateY(-1px);
     }
 
-    .sp-icon {
-      font-size: 64px
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-secondary-action {
+      background: #EBF2FF;
+      color: var(--text);
     }
 
-    .sp-title {
-      font-size: 30px;
-      font-weight: 700;
-      color: #1C1917;
-      letter-spacing: -.5px
+    .btn-secondary-action:hover {
+      background: #E0ECFF;
     }
 
-    .sp-sub {
-      font-size: 15px;
-      color: #78350F
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
     }
 
-    #app {
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #EBF2FF;
+    }
+
+    .divider span { font-size: 12px; color: var(--muted); }
+
+    .btn-google {
+      width: 100%;
+      padding: 12px;
+      background: #F0F6FF;
+      border: 1px solid rgba(30,41,59,0.15);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .btn-google:hover {
+      background: #EBF2FF;
+      border-color: rgba(30,41,59,0.2);
+    }
+
+    .btn-google svg { width: 20px; height: 20px; }
+
+    .error-msg {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #FC8181;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(10,15,30,0.3);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .signup-link {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 20px;
+    }
+
+    .signup-link a {
+      color: var(--gold);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .signup-link a:hover { text-decoration: underline; }
+
+    /* ── Cadastro Steps ── */
+    .cad-progress {
+      height: 3px;
+      background: #EBF2FF;
+      border-radius: 100px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .cad-prog-bar {
       height: 100%;
-      display: flex;
-      flex-direction: column
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      border-radius: 100px;
+      transition: width 0.4s ease;
     }
 
-    .hidden {
-      display: none !important
+    .cad-step-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'Space Mono', monospace;
     }
 
-    .main {
-      flex: 1;
+    .cad-back {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 16px;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .cad-back:hover { color: var(--gold); }
+
+    .escola-drop {
+      position: relative;
+      z-index: 10;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-top: 6px;
+      max-height: 160px;
       overflow-y: auto;
-      padding: 16px 16px calc(var(--nav) + 16px);
-      -webkit-overflow-scrolling: touch
+      display: none;
     }
 
-    .nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: var(--nav);
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+    .escola-drop.active { display: block; }
+
+    .escola-drop-item {
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .escola-drop-item:hover { background: #F0F6FF; }
+
+    .escola-tags {
       display: flex;
-      z-index: 100;
-      padding-bottom: env(safe-area-inset-bottom, 0)
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
-    .nb {
-      flex: 1;
+    .escola-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(37,99,235,0.12);
+      border: 1px solid rgba(37,99,235,0.25);
+      border-radius: 100px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    .escola-tag button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--gold);
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .escola-tag button:hover { opacity: 1; }
+
+    .resumo-box {
+      background: #F8FAFF;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .resumo-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .resumo-label {
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    .resumo-value { color: var(--text); font-weight: 500; }
+
+    .periodo-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .periodo-card {
+      position: relative;
+    }
+
+    .periodo-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .periodo-label {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 3px;
-      border: none;
-      background: transparent;
-      font-size: 11px;
-      color: var(--muted);
+      gap: 6px;
+      padding: 16px 12px;
+      background: #F8FAFF;
+      border: 1px solid rgba(30,41,59,0.12);
+      border-radius: 12px;
       cursor: pointer;
-      padding: 0;
-      font-family: inherit
+      transition: all 0.2s;
+      text-align: center;
     }
 
-    .nb.on {
-      color: var(--sun-dark);
-      font-weight: 600
+    .periodo-card input:checked + .periodo-label {
+      background: rgba(37,99,235,0.12);
+      border-color: var(--gold);
     }
 
-    .ni {
-      font-size: 20px;
-      line-height: 1
+    .periodo-label:hover {
+      border-color: rgba(37,99,235,0.4);
     }
 
-    .tab {
-      display: none
-    }
+    .periodo-emoji { font-size: 22px; }
 
-    .tab.on {
-      display: block
-    }
-
-    .card {
-      background: var(--surface);
-      border-radius: var(--r);
-      padding: 16px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border)
-    }
-
-    .ctitle {
-      font-size: 14px;
+    .periodo-name {
+      font-size: 13px;
       font-weight: 600;
-      margin-bottom: 14px
-    }
-
-    .fld {
-      margin-bottom: 12px
-    }
-
-    .fld:last-child {
-      margin-bottom: 0
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 5px
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      padding: 11px 12px;
-      font-size: 15px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: var(--rs);
       color: var(--text);
-      outline: none;
-      font-family: inherit;
-      -webkit-appearance: none;
-      appearance: none
     }
 
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: var(--sun);
-      background: #FFFBEB
-    }
-
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2378716C' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 36px
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 90px
-    }
-
-    .tg {
-      display: flex;
-      gap: 6px
-    }
-
-    .tb {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: var(--rs);
-      background: var(--bg);
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all .15s;
-      font-family: inherit
-    }
-
-    .tb.on {
-      background: var(--sun-light);
-      border-color: var(--sun);
-      color: var(--sun-dark)
-    }
-
-    .rcard {
-      background: linear-gradient(135deg, #FBBF24, #F59E0B);
-      border-radius: var(--r);
-      padding: 20px 16px 16px;
-      margin-bottom: 12px
-    }
-
-    .rhdr {
-      font-size: 12px;
-      font-weight: 600;
-      color: #78350F;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      margin-bottom: 12px
-    }
-
-    .rkwp {
-      font-size: 36px;
-      font-weight: 700;
-      color: #1C1917;
-      letter-spacing: -1px
-    }
-
-    .rdesc {
-      font-size: 13px;
-      color: #78350F;
-      margin-top: 2px;
-      margin-bottom: 16px
-    }
-
-    .rgrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px
-    }
-
-    .ri {
-      background: rgba(255, 255, 255, .55);
-      border-radius: var(--rs);
-      padding: 10px 12px
-    }
-
-    .rv {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1C1917
-    }
-
-    .rl {
+    .periodo-sub {
       font-size: 11px;
-      color: #78350F;
-      margin-top: 2px
-    }
-
-    .icard {
-      background: #EFF6FF;
-      border-radius: var(--r);
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      border: 1px solid #BFDBFE
-    }
-
-    .ititle {
-      font-size: 13px;
-      font-weight: 600;
-      color: #1E40AF;
-      margin-bottom: 6px
-    }
-
-    .itext {
-      font-size: 13px;
-      color: #3730A3;
-      line-height: 1.5
-    }
-
-    .etabs {
-      display: flex;
-      background: var(--surface);
-      border-radius: var(--r);
-      padding: 4px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-      gap: 4px
-    }
-
-    .et {
-      flex: 1;
-      padding: 8px 4px;
-      font-size: 13px;
-      font-weight: 500;
-      border: none;
-      border-radius: var(--rs);
-      background: transparent;
       color: var(--muted);
-      cursor: pointer;
-      transition: all .15s;
-      font-family: inherit
     }
 
-    .et.on {
-      background: var(--sun-light);
-      color: var(--sun-dark);
-      font-weight: 600
-    }
-
-    .elist {
+    .role-cards {
       display: flex;
       flex-direction: column;
-      gap: 8px
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
-    .ecard {
-      background: var(--surface);
-      border-radius: var(--r);
-      padding: 14px 16px;
-      border: 1px solid var(--border);
+    .role-card {
+      position: relative;
+    }
+
+    .role-card input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .role-label {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start
-    }
-
-    .ename {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 3px
-    }
-
-    .edet {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.5
-    }
-
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 9px;
-      border-radius: 999px;
-      flex-shrink: 0;
-      margin-left: 10px
-    }
-
-    .bp {
-      background: var(--sun-light);
-      color: var(--sun-dark)
-    }
-
-    .bi {
-      background: var(--green-light);
-      color: #14532D
-    }
-
-    .bm {
-      background: #EDE9FE;
-      color: #4C1D95
-    }
-
-    .ldg,
-    .emp {
-      text-align: center;
-      padding: 40px 20px;
-      font-size: 14px;
-      color: var(--muted)
-    }
-
-    .btnp {
-      width: 100%;
-      padding: 14px;
-      font-size: 16px;
-      font-weight: 600;
-      background: var(--sun);
-      color: #1C1917;
-      border: none;
-      border-radius: var(--r);
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      background: #F8FAFF;
+      border: 1px solid rgba(30,41,59,0.12);
+      border-radius: 12px;
       cursor: pointer;
-      margin-top: 8px;
-      transition: background .15s, transform .1s;
-      font-family: inherit
+      transition: all 0.2s;
     }
 
-    .btnp:active {
-      background: #F59E0B;
-      transform: scale(.98)
+    .role-card input:checked + .role-label {
+      background: rgba(37,99,235,0.1);
+      border-color: var(--gold);
     }
 
-    .smsg {
-      background: var(--green-light);
-      color: #14532D;
-      padding: 12px 14px;
-      border-radius: var(--rs);
+    .role-emoji { font-size: 22px; flex-shrink: 0; }
+    .role-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .role-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .datas-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .turma-box {
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 14px;
+      padding: 24px;
+      margin-top: 20px;
+    }
+
+    .turma-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .turma-sub {
       font-size: 13px;
-      margin-top: 12px;
-      border: 1px solid #86EFAC
+      color: var(--muted);
+      margin-bottom: 16px;
     }
 
-    .emsg {
-      background: #FEE2E2;
-      color: #991B1B;
-      padding: 12px 14px;
-      border-radius: var(--rs);
-      font-size: 13px;
-      margin-top: 12px;
-      border: 1px solid #FECACA
+    .turma-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .turma-input-row .form-input { flex: 1; }
+
+    .btn-success {
+      background: #22C55E;
+      color: #fff;
+    }
+
+    .btn-success:hover { background: #16A34A; }
+
+    .success-check {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: rgba(34,197,94,0.15);
+      border: 2px solid rgba(34,197,94,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; height: 64px; }
+      .section { padding: 80px 24px; }
+      .how-section { padding: 80px 24px; }
+      .quote-section { padding: 60px 24px; }
+      .cta-section { padding: 80px 24px; }
+      .cta-box { padding: 48px 32px; }
+      footer { flex-direction: column; gap: 24px; text-align: center; }
+      .footer-links { justify-content: center; }
+      .steps-grid { grid-template-columns: 1fr; gap: 40px; }
+      .step-item::after { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-bar { padding: 40px 24px; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 24px; }
+      .stat-item:last-child { border-bottom: none; }
+      .datas-grid { grid-template-columns: 1fr; }
+      .modal-card { padding: 36px 28px; }
+    }
+
+    @media (max-width: 480px) {
+      .nav-brand-name { display: none; }
+      .periodo-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #F8FAFF; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(37,99,235,0.3); }
+
+    /* ── Entrance animations for sections ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
     }
   </style>
 </head>
-
 <body>
 
-  <div id="splash">
-    <div class="sp-icon">☀️</div>
-    <div class="sp-title">Solar On</div>
-    <div class="sp-sub">Calculadora Solar</div>
+<!-- ════ NAV ════ -->
+<nav>
+  <a class="nav-brand" href="#">
+    <img src="sided_logo.png" alt="SIDED+"/>
+    <span class="nav-brand-name">SIDED<span>+</span></span>
+  </a>
+  <div class="nav-buttons">
+    <button class="nav-btn nav-btn-ghost" onclick="abrirCad()">Criar conta</button>
+    <button class="nav-btn nav-btn-solid" onclick="abrirLogin()">Acessar →</button>
+  </div>
+</nav>
+
+<!-- ════ HERO ════ -->
+<section class="hero">
+  <div class="hero-lines"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-dots"></div>
+
+  <div class="hero-eyebrow">
+    <span class="eyebrow-line"></span>
+    <span class="live-dot"></span>
+    Diário Escolar Digital
+    <span class="eyebrow-line"></span>
   </div>
 
-  <div id="app" class="hidden">
+  <h1 class="hero-title">
+    Seu diário,<br/><em>sua turma.</em>
+    <span class="hero-title-sub">Sua liberdade.</span>
+  </h1>
 
+  <p class="hero-desc">
+    Chamadas, notas e planejamentos em um só lugar — rápido, simples e de qualquer dispositivo. Para professores que querem mais tempo para o que importa.
+  </p>
 
-
-    <nav class="nav">
-      <button class="nb on" onclick="showTab('calc',this)">
-        <span class="ni">⚡</span><span>Calcular</span>
-      </button>
-      <button class="nb" onclick="showTab('equip',this)">
-        <span class="ni">📦</span><span>Equipamentos</span>
-      </button>
-      <button class="nb" onclick="showTab('sugerir',this)">
-        <span class="ni">💡</span><span>Sugerir</span>
-      </button>
-    </nav>
-
-    <main class="main">
-
-      <!-- CALCULAR -->
-      <section id="tab-calc" class="tab on">
-        <div class="card">
-          <div class="ctitle">📍 Dados da instalação</div>
-          <div class="fld">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <label style="margin:0">Estado</label>
-              <button onclick="usarLocalizacao()" style="background:var(--sun);border:none;border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer">📍 Usar localização</button>
-            </div>
-            <select id="estado" onchange="onEstadoChange()">
-              <option value="AC">Acre (AC)</option>
-              <option value="AL">Alagoas (AL)</option>
-              <option value="AM">Amazonas (AM)</option>
-              <option value="AP">Amapá (AP)</option>
-              <option value="BA">Bahia (BA)</option>
-              <option value="CE">Ceará (CE)</option>
-              <option value="DF">Distrito Federal (DF)</option>
-              <option value="ES">Espírito Santo (ES)</option>
-              <option value="GO">Goiás (GO)</option>
-              <option value="MA">Maranhão (MA)</option>
-              <option value="MG">Minas Gerais (MG)</option>
-              <option value="MS">Mato Grosso do Sul (MS)</option>
-              <option value="MT">Mato Grosso (MT)</option>
-              <option value="PA">Pará (PA)</option>
-              <option value="PB">Paraíba (PB)</option>
-              <option value="PE">Pernambuco (PE)</option>
-              <option value="PI">Piauí (PI)</option>
-              <option value="PR">Paraná (PR)</option>
-              <option value="RJ">Rio de Janeiro (RJ)</option>
-              <option value="RN">Rio Grande do Norte (RN)</option>
-              <option value="RO">Rondônia (RO)</option>
-              <option value="RR">Roraima (RR)</option>
-              <option value="RS">Rio Grande do Sul (RS)</option>
-              <option value="SC">Santa Catarina (SC)</option>
-              <option value="SE">Sergipe (SE)</option>
-              <option value="SP" selected>São Paulo (SP)</option>
-              <option value="TO">Tocantins (TO)</option>
-            </select>
-            <div id="loc-status" style="font-size:12px;color:#888;margin-top:4px"></div>
-          </div>
-          <div class="fld">
-            <label>Cidade</label>
-            <div style="position:relative">
-              <input type="text" id="cidade-busca" placeholder="Digite para buscar..." autocomplete="off" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box" oninput="filtrarCidades(this.value)" onblur="setTimeout(()=>fecharDropdown(),150)" />
-              <div id="cidade-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:999;max-height:200px;overflow-y:auto;margin-top:2px"></div>
-            </div>
-          </div>
-          <div class="fld">
-            <label>Tipo de sistema</label>
-            <select id="tipo">
-              <option>On-Grid (conectado à rede)</option>
-              <option>Off-Grid (autônomo)</option>
-              <option>Híbrido</option>
-            </select>
-          </div>
-          <div class="fld">
-            <label>Informar consumo em</label>
-            <div class="tg">
-              <button class="tb on" id="bkwh" onclick="setmodo('kwh')">kWh/mês</button>
-              <button class="tb" id="breal" onclick="setmodo('reais')">R$/mês</button>
-            </div>
-          </div>
-          <div class="fld">
-            <label id="clbl">Consumo mensal (kWh)</label>
-            <input type="number" id="consumo" placeholder="Ex: 350" inputmode="numeric" oninput="calcular()" />
-          </div>
-        </div>
-
-        <div class="rcard hidden" id="resultado">
-          <div class="rhdr">⚡ Sistema recomendado</div>
-          <div class="rkwp" id="rkwp">— kWp</div>
-          <div class="rdesc" id="rdesc">Potência do sistema</div>
-          <div class="rgrid">
-            <div class="ri">
-              <div class="rv" id="rpaineis">—</div>
-              <div class="rl">Painéis (400W)</div>
-            </div>
-            <div class="ri">
-              <div class="rv" id="rarea">—</div>
-              <div class="rl">Área (m²)</div>
-            </div>
-            <div class="ri">
-              <div class="rv" id="reco">—</div>
-              <div class="rl">Economia/mês</div>
-            </div>
-            <div class="ri">
-              <div class="rv" id="rco2">—</div>
-              <div class="rl">CO₂ evitado/ano</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="icard">
-          <div class="ititle">ℹ️ Como funciona o cálculo?</div>
-          <div class="itext">Usamos a irradiância solar média do seu estado, a eficiência típica de painéis atuais e o
-            fator de desempenho do sistema para estimar a potência ideal.</div>
-        </div>
-      </section>
-
-      <!-- EQUIPAMENTOS -->
-      <section id="tab-equip" class="tab">
-        <div class="etabs">
-          <button class="et on" onclick="showEtab(this,'paineis')">Painéis</button>
-          <button class="et" onclick="showEtab(this,'inversores')">Inversores</button>
-          <button class="et" onclick="showEtab(this,'microinversores')">Microinv.</button>
-        </div>
-        <div id="eldg" class="ldg">⏳ Carregando equipamentos...</div>
-        <div id="elist-paineis" class="elist hidden"></div>
-        <div id="elist-inversores" class="elist hidden"></div>
-        <div id="elist-microinversores" class="elist hidden"></div>
-        <div id="eemp" class="emp hidden">Nenhum equipamento cadastrado ainda.</div>
-      </section>
-
-      <!-- SUGERIR -->
-      <section id="tab-sugerir" class="tab">
-        <div class="card">
-          <div class="ctitle">💡 Sugira um equipamento</div>
-            revisar e adicionar ao catálogo.</div>
-          <div class="fld">
-            <label>Tipo</label>
-            <select id="stipo" onchange="atualizarCampos()">
-              <option value="paineis">Painel Solar</option>
-              <option value="inversores">Inversor</option>
-              <option value="microinversores">Microinversor</option>
-            </select>
-          </div>
-          <div class="fld">
-            <label>Marca</label>
-            <input type="text" id="smarca" placeholder="Ex: Trina Solar" />
-          </div>
-          <div class="fld">
-            <label>Modelo / Referência</label>
-            <input type="text" id="smodelo" placeholder="Ex: TSM-450DE19" />
-          </div>
-          <button class="btnp" onclick="cadastrarEquipamento()" id="btn-cadastrar">Cadastrar Equipamento ›</button>
-          <div id="ia-loading" class="hidden" style="text-align:center;color:#888;margin-bottom:10px;font-size:13px">⏳ Consultando IA e cadastrando...</div>
-          <div id="sok" class="smsg hidden">✅ Equipamento cadastrado com sucesso!</div>
-          <div id="sdatasheet-aviso" class="smsg hidden" style="background:#fff3cd;color:#856404;border-color:#ffc107">⚠️ Datasheet não encontrado, mas equipamento foi cadastrado.</div>
-          <div id="serr" class="emsg hidden">❌ Erro ao cadastrar. Verifique sua conexão.</div>
-        </div>
-      </section>
-
-    </main>
+  <div class="hero-actions">
+    <button class="btn-primary" onclick="abrirCad()">Começar gratuitamente →</button>
+    <button class="btn-outline" onclick="abrirLogin()">Já tenho conta</button>
   </div>
 
-  <!-- Supabase SDK via CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <div class="scroll-hint">
+    <span>Explorar</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
 
-  <script>
-    // =============================================
-    // 🟢 SUPABASE CONFIG — cole suas credenciais
-    // Supabase → Settings → API
-    // =============================================
-    const SUPABASE_URL = 'https://hagawwkwyilsjlwtxepm.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_e2BLdS6vl6fzuppW8eKfWg_Cl2CbXoK';
-
-    const { createClient } = supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    // =============================================
-    // DADOS REGIONAIS
-    // =============================================
-    const IRR = { SP: 4.8, MG: 5.2, RJ: 4.7, RS: 4.5, BA: 5.6, PR: 4.6, SC: 4.5, GO: 5.4, DF: 5.3, CE: 5.7, PE: 5.5, MT: 5.3, MS: 5.2, PA: 4.9, AM: 4.6 };
-    const TAR = { SP: 0.78, MG: 0.72, RJ: 0.85, RS: 0.68, BA: 0.80, PR: 0.65, SC: 0.67, GO: 0.74, DF: 0.70, CE: 0.82, PE: 0.83, MT: 0.71, MS: 0.73, PA: 0.76, AM: 0.79 };
-    let modo = 'kwh';
-
-    // =============================================
-    // SPLASH
-    // =============================================
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        document.getElementById('splash').classList.add('fade');
-        setTimeout(() => {
-          document.getElementById('splash').style.display = 'none';
-          document.getElementById('app').classList.remove('hidden');
-          carregarEquipamentos();
-        }, 500);
-      }, 1600);
-    });
-
-    // =============================================
-    // NAVEGAÇÃO
-    // =============================================
-    function showTab(id, btn) {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-      document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
-      document.getElementById('tab-' + id).classList.add('on');
-      btn.classList.add('on');
-    }
-
-    // =============================================
-    // MODO DE ENTRADA
-    // =============================================
-    function setmodo(m) {
-      modo = m;
-      document.getElementById('bkwh').classList.toggle('on', m === 'kwh');
-      document.getElementById('breal').classList.toggle('on', m === 'reais');
-      document.getElementById('clbl').textContent = m === 'kwh' ? 'Consumo mensal (kWh)' : 'Conta de energia (R$/mês)';
-      document.getElementById('consumo').placeholder = m === 'kwh' ? 'Ex: 350' : 'Ex: 280';
-      document.getElementById('consumo').value = '';
-      document.getElementById('resultado').classList.add('hidden');
-    }
-
-    // =============================================
-    // CÁLCULO
-    // =============================================
-    function calcular() {
-      const raw = parseFloat(document.getElementById('consumo').value);
-      if (!raw || raw <= 0) { document.getElementById('resultado').classList.add('hidden'); return; }
-      const est = document.getElementById('estado').value;
-      const irr = IRR[est] || 5.0;
-      const tar = TAR[est] || 0.75;
-      const kwh = modo === 'reais' ? raw / tar : raw;
-      const pot = kwh / (irr * 30 * 0.80);
-      const paineis = Math.ceil(pot * 1000 / 400);
-      document.getElementById('rkwp').textContent = pot.toFixed(2) + ' kWp';
-      document.getElementById('rdesc').textContent = document.getElementById('tipo').value;
-      document.getElementById('rpaineis').textContent = paineis;
-      document.getElementById('rarea').textContent = Math.round(paineis * 2) + ' m²';
-      document.getElementById('reco').textContent = 'R$ ' + Math.round(kwh * tar).toLocaleString('pt-BR');
-      document.getElementById('rco2').textContent = Math.round(kwh * 0.092 * 12) + ' kg';
-      document.getElementById('resultado').classList.remove('hidden');
-    }
-
-    // =============================================
-    // EQUIPAMENTOS TABS
-    // =============================================
-    function showEtab(btn, tipo) {
-      document.querySelectorAll('.et').forEach(t => t.classList.remove('on'));
-      btn.classList.add('on');
-      ['paineis', 'inversores', 'microinversores'].forEach(t =>
-        document.getElementById('elist-' + t).classList.add('hidden'));
-      document.getElementById('elist-' + tipo).classList.remove('hidden');
-    }
-
-    // =============================================
-    // CARREGAR SUPABASE
-    // =============================================
-    async function carregarEquipamentos() {
-      const tipos = ['paineis', 'inversores', 'microinversores'];
-      let total = 0;
-
-      for (const tipo of tipos) {
-        const { data, error } = await sb
-          .from(tipo)
-          .select('*')
-          .eq('aprovado', true)
-          .order('marca');
-
-        if (error) { console.error(tipo, error); continue; }
-
-        const lista = document.getElementById('elist-' + tipo);
-        lista.innerHTML = '';
-        (data || []).forEach(row => { total++; lista.appendChild(montarCard(row, tipo)); });
-      }
-
-      document.getElementById('eldg').classList.add('hidden');
-      if (total === 0) document.getElementById('eemp').classList.remove('hidden');
-      document.getElementById('elist-paineis').classList.remove('hidden');
-    }
-
-    function montarCard(d, tipo) {
-      const div = document.createElement('div');
-      div.className = 'ecard';
-      const cls = { paineis: 'bp', inversores: 'bi', microinversores: 'bm' }[tipo];
-      const txt = { paineis: 'Painel', inversores: 'Inversor', microinversores: 'Micro' }[tipo];
-      const det = [];
-      if (d.potencia) det.push(d.potencia + (tipo === 'inversores' ? 'kW' : 'W'));
-      if (d.eficiencia) det.push(d.eficiencia + '% ef.');
-      if (d.tecnologia) det.push(d.tecnologia);
-      if (d.mppt) det.push(d.mppt + ' MPPT');
-      if (!det.length && d.descricao) det.push(d.descricao.substring(0, 60));
-      div.innerHTML = `
-    <div>
-      <div class="ename">${d.marca || ''} ${d.modelo || ''}</div>
-      <div class="edet">${det.join(' · ')}</div>
+<!-- ════ STATS ════ -->
+<div style="background: #FFFFFF; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="stats-bar reveal">
+    <div class="stat-item">
+      <div class="stat-number">100%</div>
+      <div class="stat-label">Gratuito para começar</div>
     </div>
-    <span class="badge ${cls}">${txt}</span>`;
-      return div;
-    }
+    <div class="stat-item">
+      <div class="stat-number">4</div>
+      <div class="stat-label">Ferramentas integradas</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">∞</div>
+      <div class="stat-label">Turmas e alunos</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">0</div>
+      <div class="stat-label">Papel necessário</div>
+    </div>
+  </div>
+</div>
 
-    // =============================================
-    // =============================================
-    // LOCALIZAÇÃO E BUSCA DE CIDADE (IBGE)
-    // =============================================
-    let cidadesCache = {};
+<!-- ════ FEATURES ════ -->
+<div class="section reveal">
+  <div class="section-label">Funcionalidades</div>
+  <h2 class="section-title">Tudo que você precisa,<br/><em>nada que te atrapalha.</em></h2>
+  <p class="section-desc">Desenhado para professores reais, com o que realmente importa no dia a dia da sala de aula.</p>
 
-    async function onEstadoChange() {
-      document.getElementById('cidade-busca').value = '';
-      document.getElementById('cidade-dropdown').style.display = 'none';
-      cidadesCache = {};
-    }
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-number">01</div>
+      <div class="feat-icon-wrap">📋</div>
+      <div class="feat-title">Chamada Rápida</div>
+      <p class="feat-desc">Registro de frequência em segundos com interface intuitiva. Nunca mais perder tempo com papelada no início da aula.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-number">02</div>
+      <div class="feat-icon-wrap">📊</div>
+      <div class="feat-title">Gestão de Notas</div>
+      <p class="feat-desc">Lançamento e cálculo automático de médias. Suporte a bimestre, trimestre, semestre e avaliação anual.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-number">03</div>
+      <div class="feat-icon-wrap">📈</div>
+      <div class="feat-title">Relatórios Individuais</div>
+      <p class="feat-desc">Acompanhe o desempenho de cada aluno com relatórios detalhados de frequência e notas por período.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-number">04</div>
+      <div class="feat-icon-wrap">🗂️</div>
+      <div class="feat-title">Organização de Aulas</div>
+      <p class="feat-desc">Estruture seu conteúdo por turma e disciplina. Tenha todo o material do ano letivo sempre à mão.</p>
+    </div>
+  </div>
+</div>
 
-    async function carregarCidades(uf) {
-      if (cidadesCache[uf]) return cidadesCache[uf];
-      try {
-        const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`);
-        const data = await res.json();
-        cidadesCache[uf] = data.map(m => m.nome);
-        return cidadesCache[uf];
-      } catch(e) { return []; }
-    }
+<!-- ════ HOW IT WORKS ════ -->
+<div class="how-section">
+  <div class="how-inner reveal">
+    <div class="section-label">Como funciona</div>
+    <h2 class="section-title">Três passos para<br/><em>começar hoje.</em></h2>
 
-    async function filtrarCidades(q) {
-      const dd = document.getElementById('cidade-dropdown');
-      if (!q || q.length < 2) { dd.style.display = 'none'; return; }
-      const uf = document.getElementById('estado').value;
-      const cidades = await carregarCidades(uf);
-      const lower = q.toLowerCase();
-      const matches = cidades.filter(c => c.toLowerCase().includes(lower)).slice(0, 8);
-      if (!matches.length) { dd.style.display = 'none'; return; }
-      dd.innerHTML = matches.map(c =>
-        `<div onclick="selecionarCidade('${c.replace(/'/g, "\'")}")" style="padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">${c}</div>`
-      ).join('');
-      dd.style.display = 'block';
-    }
+    <div class="steps-grid">
+      <div class="step-item">
+        <div class="step-num">01</div>
+        <span class="step-badge">GRÁTIS</span>
+        <div class="step-title">Crie sua conta</div>
+        <p class="step-desc">Cadastro simples com e-mail ou Google. Em menos de 2 minutos você já está dentro do sistema.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">02</div>
+        <span class="step-badge">SIMPLES</span>
+        <div class="step-title">Configure sua turma</div>
+        <p class="step-desc">Adicione sua escola, escolha o período letivo e crie suas turmas. O sistema se adapta ao seu jeito de trabalhar.</p>
+      </div>
+      <div class="step-item">
+        <div class="step-num">03</div>
+        <span class="step-badge">PRONTO</span>
+        <div class="step-title">Comece a usar</div>
+        <p class="step-desc">Faça chamadas, lance notas, planeje suas aulas. Tudo sincronizado, de qualquer dispositivo.</p>
+      </div>
+    </div>
+  </div>
+</div>
 
-    function selecionarCidade(cidade) {
-      document.getElementById('cidade-busca').value = cidade;
-      document.getElementById('cidade-dropdown').style.display = 'none';
-    }
+<!-- ════ QUOTE ════ -->
+<div class="quote-section reveal">
+  <div class="quote-glow"></div>
+  <div class="quote-mark">"</div>
+  <p class="quote-text">
+    O professor não deveria gastar seu tempo com <em>burocracia</em>. Deveria gastar com o que sabe fazer de melhor: <em>ensinar.</em>
+  </p>
+  <div class="quote-author">— A missão do SIDED+</div>
+</div>
 
-    function fecharDropdown() {
-      document.getElementById('cidade-dropdown').style.display = 'none';
-    }
+<!-- ════ CTA ════ -->
+<div class="cta-section reveal">
+  <div class="cta-inner">
+    <div class="cta-box">
+      <h2 class="cta-title">Pronto para<br/><em>simplificar</em> sua rotina?</h2>
+      <p class="cta-sub">Junte-se a professores que já usam o SIDED+ para transformar a gestão da sala de aula.</p>
+      <div class="cta-actions">
+        <button class="btn-primary" onclick="abrirCad()">Criar conta grátis →</button>
+        <button class="btn-outline" onclick="abrirLogin()">Já tenho conta</button>
+      </div>
+      <p class="cta-free-note">// GRATUITO · SEM CARTÃO · COMEÇA HOJE</p>
+    </div>
+  </div>
+</div>
 
-    async function usarLocalizacao() {
-      const status = document.getElementById('loc-status');
-      if (!navigator.geolocation) {
-        status.textContent = '❌ Geolocalização não disponível.'; return;
+<!-- ════ FOOTER ════ -->
+<footer>
+  <div class="footer-brand">SIDED<span>+</span></div>
+  <div class="footer-copy">© 2025 SIDED+ — Diário Escolar Digital</div>
+  <div class="footer-links">
+    <a href="#">Sobre</a>
+    <a href="#">Contato</a>
+    <a href="#">Privacidade</a>
+  </div>
+</footer>
+
+
+<!-- ════════════════ MODAL EMAIL (migração auth) ════════════════ -->
+<div class="overlay" id="overlay-email" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal-card" style="max-width:420px;width:100%;">
+    <div class="modal-logo">
+      <img src="sided_logo.png" alt="SIDED+"/>
+      <div>
+        <div class="modal-logo-name">SIDED<span>+</span></div>
+        <div class="modal-logo-sub">Diário Escolar Digital</div>
+      </div>
+    </div>
+    <div class="modal-title" style="margin-bottom:6px">Um último passo 🎉</div>
+    <div class="modal-sub" style="margin-bottom:24px">Cadastre seu e-mail para ativar o acesso seguro</div>
+    <div id="error-msg-email" class="error-msg"></div>
+    <div class="form-group">
+      <label class="form-label">Seu e-mail</label>
+      <input class="form-input" id="inp-email-migracao" type="email" placeholder="professor@escola.com.br" autocomplete="email"/>
+    </div>
+    <button class="btn-login" id="btn-email-migracao" onclick="confirmarEmailMigracao()">
+      <span class="spinner" id="spin-email"></span>
+      <span id="txt-email">Confirmar e entrar</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ MODAL LOGIN ════════════════ -->
+<div class="overlay" id="overlay">
+  <div class="modal-card">
+    <button class="close-btn" onclick="fecharLogin()">✕</button>
+    <div class="modal-logo">
+      <img src="sided_logo.png" alt="SIDED+"/>
+      <div>
+        <div class="modal-logo-name">SIDED<span>+</span></div>
+        <div class="modal-logo-sub">Diário Escolar Digital</div>
+      </div>
+    </div>
+    <div class="modal-title">Bem-vindo de volta</div>
+    <div class="modal-sub">Acesse com seu login institucional</div>
+    <div id="error-msg" class="error-msg"></div>
+    <div class="form-group">
+      <label class="form-label">Login</label>
+      <input class="form-input" id="inp-login" type="text" placeholder="Seu login institucional" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <div class="input-wrap">
+        <input class="form-input" id="inp-senha" type="password" placeholder="••••••••" autocomplete="current-password" style="padding-right:46px"/>
+        <button class="eye-btn" onclick="toggleSenha()" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn-login" id="btn-login" onclick="fazerLogin()">
+      <span class="spinner" id="spinner"></span>
+      <span id="btn-txt">Entrar</span>
+    </button>
+    <div class="divider"><span>ou</span></div>
+    <button class="btn-google" onclick="loginGoogle()">
+      <svg viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Entrar com Google
+    </button>
+    <p class="signup-link">Não tem conta? <a href="#" onclick="fecharLogin();abrirCad()">Criar conta grátis →</a></p>
+  </div>
+</div>
+
+
+<!-- ════════════════ MODAL CADASTRO ════════════════ -->
+<div class="overlay" id="overlay-cad">
+  <div class="modal-card modal-card-wide" id="cad-card">
+    <button class="close-btn" onclick="fecharCad()">✕</button>
+
+    <!-- STEP 0 -->
+    <div id="cad-step-0">
+      <div class="modal-logo">
+        <img src="sided_logo.png" alt="SIDED+"/>
+        <div>
+          <div class="modal-logo-name">SIDED<span>+</span></div>
+          <div class="modal-logo-sub">Diário Escolar Digital</div>
+        </div>
+      </div>
+      <div class="modal-title" style="margin-bottom:4px">Criar conta</div>
+      <div class="modal-sub" style="margin-bottom:28px">Comece sua jornada educacional</div>
+      <button class="btn-google" onclick="cadGoogle()" style="margin-bottom:12px">
+        <svg viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Cadastrar com Google
+      </button>
+      <div class="divider"><span>ou</span></div>
+      <button class="btn-login btn-secondary-action" onclick="irStepManual()">✏️ Cadastro manual</button>
+      <p class="signup-link">Já tem conta? <a href="#" onclick="fecharCad();abrirLogin()">Entrar →</a></p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="cad-step-1" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:25%"></div></div>
+      <div class="cad-step-label">Passo 1 de 4 · Dados pessoais</div>
+      <div class="modal-title" style="margin:16px 0 4px">Quem é você?</div>
+      <div class="modal-sub" style="margin-bottom:24px">Preencha suas informações básicas</div>
+      <div id="cad-err-1" class="error-msg"></div>
+      <div class="form-group">
+        <label class="form-label">Nome completo</label>
+        <input class="form-input" id="cad-nome" type="text" placeholder="Ex: Maria da Silva" autocomplete="name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">E-mail</label>
+        <input class="form-input" id="cad-email" type="email" placeholder="professor@escola.com.br" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <div class="input-wrap">
+          <input class="form-input" id="cad-senha" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:46px"/>
+          <button class="eye-btn" onclick="toggleCadSenha()" type="button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Login institucional</label>
+        <input class="form-input" id="cad-login" type="text" placeholder="Ex: maria.silva" autocomplete="username"/>
+      </div>
+      <button class="btn-login" onclick="irStep2()">Continuar →</button>
+      <p class="cad-back" onclick="irStep(0)">← Voltar</p>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="cad-step-2" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:50%"></div></div>
+      <div class="cad-step-label">Passo 2 de 4 · Escola</div>
+      <div class="modal-title" style="margin:16px 0 4px">Onde você leciona?</div>
+      <div class="modal-sub" style="margin-bottom:24px">Selecione ou adicione sua(s) escola(s)</div>
+      <div id="cad-err-2" class="error-msg"></div>
+      <div class="escola-tags" id="escolas-selecionadas"></div>
+      <div class="form-group" style="position:relative">
+        <label class="form-label">Buscar escola cadastrada</label>
+        <input class="form-input" id="cad-busca-escola" type="text" placeholder="Digite o nome da escola..." autocomplete="off" oninput="buscarEscola(this.value)" onfocus="this.dispatchEvent(new Event('input'))"/>
+        <div class="escola-drop" id="escola-drop"></div>
+      </div>
+      <div class="divider"><span>ou</span></div>
+      <div class="form-group">
+        <label class="form-label">Criar nova escola</label>
+        <input class="form-input" id="cad-nova-escola" type="text" placeholder="Nome da nova escola"/>
+      </div>
+      <button class="btn-login btn-secondary-action" onclick="adicionarNovaEscola()" style="margin-bottom:12px">+ Adicionar escola</button>
+      <button class="btn-login" onclick="irStep3()">Continuar →</button>
+      <p class="cad-back" onclick="irStep(1)">← Voltar</p>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="cad-step-3" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:75%"></div></div>
+      <div class="cad-step-label">Passo 3 de 4 · Ano letivo</div>
+      <div class="modal-title" style="margin:16px 0 4px">Como funciona seu ano?</div>
+      <div class="modal-sub" style="margin-bottom:24px">Configure a divisão de períodos e calendário</div>
+      <div id="cad-err-3" class="error-msg"></div>
+      <div class="periodo-cards">
+        <div class="periodo-card">
+          <input type="radio" name="periodo" id="p-bim" value="bimestre"/>
+          <label class="periodo-label" for="p-bim">
+            <span class="periodo-emoji">📅</span>
+            <span class="periodo-name">Bimestre</span>
+            <span class="periodo-sub">4 períodos</span>
+          </label>
+        </div>
+        <div class="periodo-card">
+          <input type="radio" name="periodo" id="p-tri" value="trimestre" checked/>
+          <label class="periodo-label" for="p-tri">
+            <span class="periodo-emoji">🗓️</span>
+            <span class="periodo-name">Trimestre</span>
+            <span class="periodo-sub">3 períodos</span>
+          </label>
+        </div>
+        <div class="periodo-card">
+          <input type="radio" name="periodo" id="p-sem" value="semestre"/>
+          <label class="periodo-label" for="p-sem">
+            <span class="periodo-emoji">📆</span>
+            <span class="periodo-name">Semestre</span>
+            <span class="periodo-sub">2 períodos</span>
+          </label>
+        </div>
+        <div class="periodo-card">
+          <input type="radio" name="periodo" id="p-anu" value="anual"/>
+          <label class="periodo-label" for="p-anu">
+            <span class="periodo-emoji">🏫</span>
+            <span class="periodo-name">Anual</span>
+            <span class="periodo-sub">Sem divisão</span>
+          </label>
+        </div>
+      </div>
+      <div class="datas-grid" style="margin-bottom:20px">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Início (opcional)</label>
+          <input class="form-input" id="cad-data-inicio" type="date"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Fim (opcional)</label>
+          <input class="form-input" id="cad-data-fim" type="date"/>
+        </div>
+      </div>
+      <button class="btn-login" onclick="irStep4()">Continuar →</button>
+      <p class="cad-back" onclick="irStep(2)">← Voltar</p>
+    </div>
+
+    <!-- STEP 4 - Confirm -->
+    <div id="cad-step-4-confirm" style="display:none">
+      <div class="cad-progress"><div class="cad-prog-bar" style="width:100%"></div></div>
+      <div class="cad-step-label">Passo 4 de 4 · Finalizar</div>
+      <div class="modal-title" style="margin:16px 0 4px">Quase lá! 🎉</div>
+      <div class="modal-sub" style="margin-bottom:24px">Revise seus dados e escolha seu perfil</div>
+      <div id="cad-err-4" class="error-msg"></div>
+      <div class="resumo-box" id="cad-resumo"></div>
+      <div style="margin-bottom:16px">
+        <div class="form-label" style="margin-bottom:12px">Perfil de acesso</div>
+        <div class="role-cards">
+          <div class="role-card">
+            <input type="radio" name="role" id="r-ind" value="professor_individual" checked/>
+            <label class="role-label" for="r-ind">
+              <span class="role-emoji">🧑‍🏫</span>
+              <div>
+                <div class="role-name">Professor independente</div>
+                <div class="role-desc">Cria e gerencia suas próprias turmas, chamadas e notas</div>
+              </div>
+            </label>
+          </div>
+          <div class="role-card">
+            <input type="radio" name="role" id="r-esc" value="professor_escola"/>
+            <label class="role-label" for="r-esc">
+              <span class="role-emoji">🏫</span>
+              <div>
+                <div class="role-name">Professor de escola</div>
+                <div class="role-desc">Aguarda vínculo com escola e turmas pela direção</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      <button class="btn-login" id="btn-cadastrar" onclick="finalizarCadastro()">
+        <span class="spinner" id="spin-cad"></span>
+        <span id="txt-cad">Criar minha conta</span>
+      </button>
+      <p class="cad-back" onclick="irStep(3)">← Voltar</p>
+    </div>
+
+    <!-- STEP SUCESSO -->
+    <div id="cad-step-sucesso" style="display:none; text-align:center">
+      <div class="success-check">🎊</div>
+      <div class="modal-title" style="margin-bottom:8px">Conta criada com sucesso!</div>
+      <div class="modal-sub" style="margin-bottom:28px">Bem-vindo(a) ao SIDED+</div>
+      <div id="cad-turma-box" style="display:none" class="turma-box">
+        <div class="turma-title">🚀 Crie sua primeira turma</div>
+        <div class="turma-sub">Como professor independente, você pode começar agora mesmo!</div>
+        <div class="turma-input-row">
+          <input class="form-input" id="nome-turma" type="text" placeholder="Ex: 3º Ano A"/>
+          <button class="btn-login btn-success" style="width:auto;padding:0 18px;margin:0" onclick="criarTurma()">✓</button>
+        </div>
+      </div>
+      <button class="btn-login" style="margin-top:20px" onclick="irParaDashboard()">Entrar no sistema →</button>
+    </div>
+
+  </div>
+</div>
+
+
+<script>
+  // ═══ CONSTANTS ═══
+  const SB_URL = 'https://szjfmhzlrdwzjrgxrrxj.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6amZtaHpscmR3empyZ3hycnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0MDk2MDMsImV4cCI6MjA2Mjk4NTYwM30.mOhrQ1T71Bfn-eSAy6OOGp8SFCYVY_JwFBBgqTl3H0o';
+  const GOOGLE_CLIENT_ID = '783001683895-cmo1t6a9fnrg7sml5rn4l1bqt7aqno3f.apps.googleusercontent.com';
+  const DASH = 'dashboard.html';
+
+  // ═══ SUPABASE CLIENT ═══
+  const supabase = window.supabase.createClient(SB_URL, SB_KEY);
+
+  // ═══ ROTAS POR ROLE ═══
+  const ROTAS = {
+    professor: 'dashboard.html',
+    professor_individual: 'professorindividual_dashboard.html',
+    admin: 'dashboard.html',
+    secretaria: 'dashboard.html',
+    aluno: 'dashboard.html',
+    representante: 'dashboard.html'
+  };
+
+  // Usuário temporário durante migração de email
+  let _userPendente = null;
+
+  // ═══ REVEAL ANIMATION ═══
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
       }
-      status.textContent = '⏳ Detectando localização...';
-      navigator.geolocation.getCurrentPosition(async pos => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`);
-          const data = await res.json();
-          const estadoRaw = data.address?.state_code || '';
-          const uf = estadoRaw.replace('BR-', '').toUpperCase().substring(0, 2);
-          const sel = document.getElementById('estado');
-          if (sel.querySelector(`option[value="${uf}"]`)) {
-            sel.value = uf;
-            cidadesCache = {};
-            const cidade = data.address?.city || data.address?.town || data.address?.village || '';
-            if (cidade) {
-              const cidades = await carregarCidades(uf);
-              const match = cidades.find(c => c.toLowerCase() === cidade.toLowerCase()) || cidade;
-              document.getElementById('cidade-busca').value = match;
-            }
-            status.textContent = `📍 ${cidade ? cidade + ' — ' : ''}${uf}`;
-          } else {
-            status.textContent = '❌ Estado não identificado.';
-          }
-        } catch(e) {
-          status.textContent = '❌ Não foi possível detectar.';
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ═══ MODAL ═══
+  function abrirLogin() {
+    document.getElementById('overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('inp-login').focus(), 300);
+  }
+
+  function fecharLogin() {
+    document.getElementById('overlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function abrirCad() {
+    document.getElementById('overlay-cad').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    irStep(0);
+  }
+
+  function fecharCad() {
+    document.getElementById('overlay-cad').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('overlay').addEventListener('click', function(e) {
+    if (e.target === this) fecharLogin();
+  });
+
+  document.getElementById('overlay-cad').addEventListener('click', function(e) {
+    if (e.target === this) fecharCad();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { fecharLogin(); fecharCad(); }
+  });
+
+  // ═══ LOGIN ═══
+  function toggleSenha() {
+    const inp = document.getElementById('inp-senha');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  function toggleCadSenha() {
+    const inp = document.getElementById('cad-senha');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  function mostrarErro(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function esconderErro() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  async function fazerLogin() {
+    esconderErro();
+    const login = document.getElementById('inp-login').value.trim();
+    const senha = document.getElementById('inp-senha').value;
+    if (!login || !senha) { mostrarErro('Preencha login e senha.'); return; }
+    const btn = document.getElementById('btn-login');
+    const spinner = document.getElementById('spinner');
+    const txt = document.getElementById('btn-txt');
+    btn.disabled = true; spinner.style.display = 'block'; txt.textContent = 'Entrando...';
+    try {
+      // 1. Busca usuário na public.users pelo login+senha
+      const res = await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(login)}&senha=eq.${encodeURIComponent(senha)}&select=id,login,role,nome,escola_id,escolas_ids,email`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        mostrarErro('Login ou senha incorretos.');
+        return;
+      }
+      const user = data[0];
+
+      // 2. Tem email? Tenta logar via Supabase Auth
+      if (user.email) {
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: senha
+        });
+        if (!authError && authData?.session) {
+          // Auth OK — segue normalmente
+          sessionStorage.setItem('ded_user', JSON.stringify(user));
+          window.location.href = ROTAS[user.role] || DASH;
+          return;
         }
-      }, () => { status.textContent = '❌ Permissão de localização negada.'; });
-    }
-
-    // CADASTRAR EQUIPAMENTO COM IA
-    // =============================================
-    const GEMINI_KEY = 'AIzaSyAUqmr9qvnoE7jokrDAOpzNKSv-yat9Y0U';
-
-    async function cadastrarEquipamento() {
-      const marca = document.getElementById('smarca').value.trim();
-      const modelo = document.getElementById('smodelo').value.trim();
-      const tipo = document.getElementById('stipo').value;
-      const ok = document.getElementById('sok');
-      const err = document.getElementById('serr');
-      const loading = document.getElementById('ia-loading');
-      const dsAviso = document.getElementById('sdatasheet-aviso');
-
-      ok.classList.add('hidden');
-      err.classList.add('hidden');
-      dsAviso.classList.add('hidden');
-
-      if (!marca || !modelo) {
-        err.textContent = '❌ Preencha marca e modelo.';
-        err.classList.remove('hidden'); return;
+        // Auth falhou mas usuário existe na public.users — provavelmente não migrado ainda
+        // Tenta criar no auth agora
+        await _migrarParaAuth(user, senha);
+        return;
       }
 
-      const tipoNome = tipo === 'paineis' ? 'painel solar' : tipo === 'inversores' ? 'inversor solar' : 'microinversor solar';
+      // 3. Sem email — pede email pro usuário
+      fecharLogin();
+      _userPendente = { ...user, senha };
+      document.getElementById('overlay-email').style.display = 'flex';
+      setTimeout(() => document.getElementById('inp-email-migracao').focus(), 200);
 
-      const camposEspecificos = tipo === 'inversores'
-        ? '"mppt": numero inteiro de entradas MPPT ou null'
-        : tipo === 'microinversores'
-        ? '"tecnologia": string (ex: Monocristalino) ou null'
-        : '';
+    } catch(e) {
+      mostrarErro('Erro de conexão. Verifique sua internet.');
+      console.error(e);
+    } finally {
+      btn.disabled = false; spinner.style.display = 'none'; txt.textContent = 'Entrar';
+    }
+  }
 
-      const prompt = `Você é um especialista em equipamentos fotovoltaicos. Retorne APENAS um JSON válido (sem markdown, sem explicação) com as especificações do seguinte ${tipoNome}: Marca: ${marca}, Modelo: ${modelo}.
-Campos obrigatórios no JSON:
-- "potencia": numero em W (paineis/microinversores) ou kW (inversores), ou null
-- "eficiencia": numero em %, ou null
-- "descricao": string resumida com principais specs, ou null
-${camposEspecificos ? '- ' + camposEspecificos : ''}
-- "datasheet": URL direta para o PDF do datasheet oficial do fabricante, ou null se não tiver certeza absoluta da URL
+  async function _migrarParaAuth(user, senha) {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: user.email,
+        password: senha,
+        options: { data: { role: user.role, nome: user.nome } }
+      });
+      if (!error || error.message === 'User already registered') {
+        // Tenta logar — se email já confirmado entra, senão pede confirmação
+        const { data: authData, error: loginError } = await supabase.auth.signInWithPassword({ email: user.email, password: senha });
+        if (authData?.session) {
+          sessionStorage.setItem('ded_user', JSON.stringify(user));
+          window.location.href = ROTAS[user.role] || DASH;
+          return;
+        }
+        // Email não confirmado ainda — mostra aviso
+        if (loginError?.message?.includes('Email not confirmed')) {
+          mostrarErro('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.');
+          return;
+        }
+      }
+    } catch(e) { console.error('[Auth migrar]', e); }
+    // Fallback: entra sem auth (temporário)
+    sessionStorage.setItem('ded_user', JSON.stringify(user));
+    window.location.href = ROTAS[user.role] || DASH;
+  }
 
-Não invente URLs. Só coloque datasheet se tiver certeza que a URL existe.`;
+  async function confirmarEmailMigracao() {
+    const email = document.getElementById('inp-email-migracao').value.trim();
+    const errEl = document.getElementById('error-msg-email');
+    errEl.style.display = 'none';
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Informe um e-mail válido.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('btn-email-migracao');
+    const spin = document.getElementById('spin-email');
+    const txt = document.getElementById('txt-email');
+    btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Salvando...';
+    try {
+      // Salva email na public.users
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${_userPendente.id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      // Cria no Supabase Auth
+      const { error } = await supabase.auth.signUp({
+        email,
+        password: _userPendente.senha,
+        options: { data: { role: _userPendente.role, nome: _userPendente.nome } }
+      });
+      if (error && error.message !== 'User already registered') {
+        errEl.textContent = 'Erro ao registrar e-mail. Tente outro.';
+        errEl.style.display = 'block';
+        return;
+      }
+      // Mostra mensagem de confirmação — usuário precisa confirmar o email antes de entrar
+      const modalCard = document.querySelector('#overlay-email .modal-card');
+      modalCard.innerHTML = `
+        <div style="text-align:center;padding:16px 0">
+          <div style="font-size:48px;margin-bottom:16px">📬</div>
+          <div class="modal-title" style="margin-bottom:8px">Confirme seu e-mail</div>
+          <div class="modal-sub" style="margin-bottom:24px">
+            Enviamos um link de confirmação para<br/>
+            <strong>${email}</strong><br/><br/>
+            Acesse seu e-mail, clique no link e volte aqui para entrar.
+          </div>
+          <button class="btn-login" onclick="document.getElementById('overlay-email').style.display='none';abrirLogin()">
+            Já confirmei → Entrar
+          </button>
+        </div>
+      `;
+    } catch(e) {
+      errEl.textContent = 'Erro de conexão. Tente novamente.';
+      errEl.style.display = 'block';
+      console.error(e);
+    } finally {
+      btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Confirmar e entrar';
+    }
+  }
 
-      loading.classList.remove('hidden');
-      document.getElementById('btn-cadastrar').disabled = true;
+  document.getElementById('inp-senha').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fazerLogin();
+  });
 
-      let specs = {};
+  async function loginGoogle() {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: async (response) => {
+        if (response.error) { alert('Erro ao autenticar com o Google.'); return; }
+        try {
+          const profile = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${response.access_token}` }
+          })).json();
+          if (!profile.email) { alert('Não foi possível obter o e-mail.'); return; }
+          const res = await fetch(`${SB_URL}/rest/v1/users?email=ilike.${encodeURIComponent(profile.email)}&select=id,login,role,nome,escola_id,escolas_ids`, {
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+          });
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            sessionStorage.setItem('ded_user', JSON.stringify(data[0]));
+            window.location.href = data[0].role === 'professor_individual' ? 'professorindividual_dashboard.html' : DASH;
+          } else {
+            mostrarErro('Conta não encontrada. Crie uma conta primeiro.');
+          }
+        } catch { alert('Erro ao obter dados do Google.'); }
+      }
+    });
+    client.requestAccessToken();
+  }
+
+  // ═══ CADASTRO ═══
+  let cadData = {};
+  let escolasSelecionadas = [];
+
+  function irStep(n) {
+    document.querySelectorAll('[id^="cad-step-"]').forEach(el => el.style.display = 'none');
+    const target = document.getElementById(`cad-step-${n}`);
+    if (target) target.style.display = 'block';
+    document.getElementById('cad-card').scrollTop = 0;
+  }
+
+  function irStepManual() { irStep(1); }
+
+  function mostrarErroCad(step, msg) {
+    const el = document.getElementById(`cad-err-${step}`);
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  }
+
+  function esconderErroCad(step) {
+    const el = document.getElementById(`cad-err-${step}`);
+    if (el) el.style.display = 'none';
+  }
+
+  function irStep2() {
+    esconderErroCad(1);
+    const nome = document.getElementById('cad-nome').value.trim();
+    const email = document.getElementById('cad-email').value.trim();
+    const senha = document.getElementById('cad-senha').value;
+    const login = document.getElementById('cad-login').value.trim();
+    if (!nome) { mostrarErroCad(1, 'Informe seu nome.'); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { mostrarErroCad(1, 'Informe um e-mail válido.'); return; }
+    if (!senha || senha.length < 6) { mostrarErroCad(1, 'A senha deve ter pelo menos 6 caracteres.'); return; }
+    if (!login) { mostrarErroCad(1, 'Informe um login institucional.'); return; }
+    cadData.nome = nome; cadData.email = email; cadData.senha = senha; cadData.login = login;
+    irStep(2);
+  }
+
+  let escolaTimeout;
+  async function buscarEscola(q) {
+    clearTimeout(escolaTimeout);
+    const drop = document.getElementById('escola-drop');
+    if (!q || q.length < 2) { drop.classList.remove('active'); return; }
+    escolaTimeout = setTimeout(async () => {
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        const res = await fetch(`${SB_URL}/rest/v1/escolas?nome=ilike.*${encodeURIComponent(q)}*&select=id,nome&limit=5`, {
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const clean = text.replace(/```json|```/g, '').trim();
-        specs = JSON.parse(clean);
-      } catch (e) {
-        console.error('IA error:', e);
-        // Continua sem specs da IA
-      }
+        if (Array.isArray(data) && data.length > 0) {
+          drop.innerHTML = data.map(e => `<div class="escola-drop-item" onclick="selecionarEscola('${e.id}','${escapeHtml(e.nome)}')">${escapeHtml(e.nome)}</div>`).join('');
+          drop.classList.add('active');
+        } else {
+          drop.classList.remove('active');
+        }
+      } catch { drop.classList.remove('active'); }
+    }, 300);
+  }
 
-      const dados = {
-        marca, modelo,
-        aprovado: true,
-        potencia: specs.potencia != null ? parseFloat(specs.potencia) : null,
-        eficiencia: specs.eficiencia != null ? parseFloat(specs.eficiencia) : null,
-        descricao: specs.descricao || null,
-        datasheet: specs.datasheet || null
-      };
+  function selecionarEscola(id, nome) {
+    if (escolasSelecionadas.find(e => e.id === id)) return;
+    escolasSelecionadas.push({ id, nome });
+    document.getElementById('cad-busca-escola').value = '';
+    document.getElementById('escola-drop').classList.remove('active');
+    renderEscolaTags();
+  }
 
-      if (tipo === 'inversores' && specs.mppt != null) dados.mppt = parseInt(specs.mppt);
-      if (tipo === 'microinversores' && specs.tecnologia) dados.tecnologia = specs.tecnologia;
+  function removerEscola(id) {
+    escolasSelecionadas = escolasSelecionadas.filter(e => e.id !== id);
+    renderEscolaTags();
+  }
 
-      const { error } = await sb.from(tipo).insert(dados);
+  function renderEscolaTags() {
+    const container = document.getElementById('escolas-selecionadas');
+    container.innerHTML = escolasSelecionadas.map(e => `
+      <span class="escola-tag">${e.nome}<button onclick="removerEscola('${e.id}')">✕</button></span>
+    `).join('');
+  }
 
-      loading.classList.add('hidden');
-      document.getElementById('btn-cadastrar').disabled = false;
-
-      if (error) {
-        console.error(error);
-        err.textContent = '❌ Erro ao cadastrar. Verifique sua conexão.';
-        err.classList.remove('hidden');
+  async function adicionarNovaEscola() {
+    const nome = document.getElementById('cad-nova-escola').value.trim();
+    if (!nome) { mostrarErroCad(2, 'Informe o nome da nova escola.'); return; }
+    esconderErroCad(2);
+    try {
+      const check = await fetch(`${SB_URL}/rest/v1/escolas?nome=ilike.${encodeURIComponent(nome)}&select=id,nome&limit=1`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+      const exists = await check.json();
+      if (Array.isArray(exists) && exists.length > 0) {
+        selecionarEscola(exists[0].id, exists[0].nome);
       } else {
-        ok.classList.remove('hidden');
-        if (!specs.datasheet) dsAviso.classList.remove('hidden');
-        document.getElementById('smarca').value = '';
-        document.getElementById('smodelo').value = '';
+        const res = await fetch(`${SB_URL}/rest/v1/escolas`, {
+          method: 'POST',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ nome })
+        });
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) selecionarEscola(data[0].id, data[0].nome);
+        else mostrarErroCad(2, 'Erro ao criar escola. Tente novamente.');
       }
-    }
-  </script>
-</body>
+      document.getElementById('cad-nova-escola').value = '';
+    } catch { mostrarErroCad(2, 'Erro de conexão ao criar escola.'); }
+  }
 
+  function irStep3() {
+    esconderErroCad(2);
+    cadData.escolaIds = escolasSelecionadas.map(e => e.id);
+    cadData.escolaNomes = escolasSelecionadas.map(e => e.nome);
+    irStep(3);
+  }
+
+  function irStep4() {
+    esconderErroCad(3);
+    const periodo = document.querySelector('input[name="periodo"]:checked')?.value || 'trimestre';
+    const dataInicio = document.getElementById('cad-data-inicio')?.value || '';
+    const dataFim = document.getElementById('cad-data-fim')?.value || '';
+    cadData.periodo = periodo; cadData.dataInicio = dataInicio; cadData.dataFim = dataFim;
+    const periodoLabel = { bimestre: 'Bimestre (4 períodos)', trimestre: 'Trimestre (3 períodos)', semestre: 'Semestre (2 períodos)', anual: 'Anual (sem divisão)' }[periodo] || 'Trimestre';
+    document.getElementById('cad-resumo').innerHTML = `
+      <div class="resumo-row"><span class="resumo-label">Nome</span><span class="resumo-value">${escapeHtml(cadData.nome)}</span></div>
+      <div class="resumo-row"><span class="resumo-label">E-mail</span><span class="resumo-value">${escapeHtml(cadData.email)}</span></div>
+      <div class="resumo-row"><span class="resumo-label">Login</span><span class="resumo-value">${escapeHtml(cadData.login)}</span></div>
+      <div class="resumo-row"><span class="resumo-label">Escola(s)</span><span class="resumo-value">${cadData.escolaNomes.length > 0 ? escapeHtml(cadData.escolaNomes.join(', ')) : '<em style="color:var(--muted)">Nenhuma</em>'}</span></div>
+      <div class="resumo-row"><span class="resumo-label">Período</span><span class="resumo-value">${periodoLabel}</span></div>
+      ${dataInicio ? `<div class="resumo-row"><span class="resumo-label">Início</span><span class="resumo-value">${formatDate(dataInicio)}</span></div>` : ''}
+      ${dataFim ? `<div class="resumo-row"><span class="resumo-label">Fim</span><span class="resumo-value">${formatDate(dataFim)}</span></div>` : ''}
+    `;
+    irStep('4-confirm');
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const [y,m,d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  }
+
+  async function finalizarCadastro() {
+    esconderErroCad(4);
+    const role = document.querySelector('input[name="role"]:checked').value;
+    cadData.role = role;
+    const btn = document.getElementById('btn-cadastrar');
+    const spinner = document.getElementById('spin-cad');
+    const txt = document.getElementById('txt-cad');
+    btn.disabled = true; spinner.style.display = 'block'; txt.textContent = 'Criando conta...';
+    try {
+      const chkLogin = await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(cadData.login)}&select=id`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+      const dupLogin = await chkLogin.json();
+      if (Array.isArray(dupLogin) && dupLogin.length > 0) { mostrarErroCad(4, 'Este login já está em uso. Escolha outro.'); return; }
+      const chkEmail = await fetch(`${SB_URL}/rest/v1/users?email=ilike.${encodeURIComponent(cadData.email)}&select=id`, {
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+      const dupEmail = await chkEmail.json();
+      if (Array.isArray(dupEmail) && dupEmail.length > 0) { mostrarErroCad(4, 'Este e-mail já está cadastrado.'); return; }
+      const payload = {
+        login: cadData.login, senha: cadData.senha, nome: cadData.nome, email: cadData.email,
+        role: cadData.role, periodo: cadData.periodo || 'trimestre',
+        ...(cadData.dataInicio ? { data_inicio_letivo: cadData.dataInicio } : {}),
+        ...(cadData.dataFim ? { data_fim_letivo: cadData.dataFim } : {})
+      };
+      if (cadData.escolaIds.length === 1) payload.escola_id = cadData.escolaIds[0];
+      if (cadData.escolaIds.length > 0) payload.escolas_ids = cadData.escolaIds;
+      const res = await fetch(`${SB_URL}/rest/v1/users`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        let user = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        if (!user) {
+          try {
+            const chk = await fetch(`${SB_URL}/rest/v1/users?login=eq.${encodeURIComponent(cadData.login)}&select=id,login,role,nome,escola_id,escolas_ids`, {
+              headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+            });
+            const ud = await chk.json();
+            if (Array.isArray(ud) && ud.length > 0) user = ud[0];
+          } catch {}
+        }
+        if (user) sessionStorage.setItem('ded_user', JSON.stringify(user));
+        irStep('sucesso');
+        if (role === 'professor_individual') document.getElementById('cad-turma-box').style.display = 'block';
+      } else {
+        mostrarErroCad(4, (data && data.message) || 'Erro ao criar conta. Tente novamente.');
+      }
+    } catch {
+      mostrarErroCad(4, 'Erro de conexão. Verifique sua internet.');
+    } finally {
+      btn.disabled = false; spinner.style.display = 'none'; txt.textContent = 'Criar minha conta';
+    }
+  }
+
+  async function criarTurma() {
+    const nome = document.getElementById('nome-turma').value.trim();
+    if (!nome) return;
+    const user = JSON.parse(sessionStorage.getItem('ded_user') || '{}');
+    try {
+      await fetch(`${SB_URL}/rest/v1/turmas`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, professor_id: user.id, escola_id: user.escola_id || null })
+      });
+      document.getElementById('cad-turma-box').innerHTML = '<p style="color:#22C55E;font-weight:700;text-align:center;padding:10px">✅ Turma criada com sucesso!</p>';
+    } catch { alert('Erro ao criar turma.'); }
+  }
+
+  function irParaDashboard() {
+    const user = JSON.parse(sessionStorage.getItem('ded_user') || '{}');
+    window.location.href = user.role === 'professor_individual' ? 'professorindividual_dashboard.html' : DASH;
+  }
+
+  async function cadGoogle() {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: 'openid email profile',
+      callback: async (response) => {
+        if (response.error) { alert('Erro ao autenticar com o Google.'); return; }
+        try {
+          const profile = await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${response.access_token}` }
+          })).json();
+          if (!profile.email) { alert('Não foi possível obter o e-mail.'); return; }
+          document.getElementById('cad-nome').value = profile.name || '';
+          document.getElementById('cad-email').value = profile.email;
+          document.getElementById('cad-login').value = profile.email.split('@')[0].replace(/[^a-z0-9]/gi,'').toLowerCase();
+          cadData._googleToken = response.access_token;
+          irStep(1);
+        } catch { alert('Erro ao obter dados do Google.'); }
+      }
+    });
+    client.requestAccessToken();
+  }
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
 </html>
