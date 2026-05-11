@@ -1819,6 +1819,9 @@
       signInWithPassword: (...a) => getSupabase().auth.signInWithPassword(...a),
       signUp: (...a) => getSupabase().auth.signUp(...a),
       getSession: (...a) => getSupabase().auth.getSession(...a),
+      signInWithOtp: (...a) => getSupabase().auth.signInWithOtp(...a),
+      verifyOtp: (...a) => getSupabase().auth.verifyOtp(...a),
+      updateUser: (...a) => getSupabase().auth.updateUser(...a),
     },
     from: (...a) => getSupabase().from(...a)
   };
