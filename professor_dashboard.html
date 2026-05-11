@@ -2089,14 +2089,6 @@ async function carregarTurmas(profId) {
     todasTurmas = todasTurmas.map(t => ({ ...t, disciplina: t.disciplina || ptMap[t.id] || null }));
   }
 
-  // Filtro por disciplina se professor tiver disciplina fixa cadastrada
-  if (profData.disciplina) {
-    const discProf = profData.disciplina.trim().toUpperCase();
-    todasTurmas = todasTurmas.filter(t =>
-      t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf)
-    );
-  }
-
   renderTurmas(todasTurmas);
 
 }
@@ -2998,11 +2990,6 @@ async function garantirTodasTurmas() {
     }
   }
 
-  // Filtro por disciplina fixa do professor
-  if (profData.disciplina && todasTurmas.length) {
-    const discProf = profData.disciplina.trim().toUpperCase();
-    todasTurmas = todasTurmas.filter(t => t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf));
-  }
 }
 
 async function duplicarAulasSelecionadas() {
