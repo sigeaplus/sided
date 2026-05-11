@@ -1946,6 +1946,7 @@
         if (!authError && authData?.session) {
           // Verifica se o e-mail foi confirmado
           const emailConfirmado = authData.user?.email_confirmed_at;
+          console.log('[login] email_confirmed_at:', emailConfirmado, '| user:', authData.user?.email);
           if (!emailConfirmado) {
             // E-mail salvo mas não verificado — desloga e envia OTP direto
             await getSupabase().auth.signOut();
