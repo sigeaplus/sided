@@ -1540,6 +1540,10 @@
       <label class="form-label">Seu e-mail</label>
       <input class="form-input" id="inp-email-migracao" type="email" placeholder="professor@escola.com.br" autocomplete="email"/>
     </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar e-mail</label>
+      <input class="form-input" id="inp-email-migracao-confirm" type="email" placeholder="professor@escola.com.br" autocomplete="email"/>
+    </div>
     <button class="btn-login" id="btn-email-migracao" onclick="confirmarEmailMigracao()">
       <span class="spinner" id="spin-email"></span>
       <span id="txt-email">Confirmar e entrar</span>
@@ -1991,10 +1995,16 @@
 
   async function confirmarEmailMigracao() {
     const email = document.getElementById('inp-email-migracao').value.trim();
+    const emailConfirm = document.getElementById('inp-email-migracao-confirm').value.trim();
     const errEl = document.getElementById('error-msg-email');
     errEl.style.display = 'none';
     if (!email || !email.includes('@')) {
       errEl.textContent = 'Informe um e-mail válido.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (email !== emailConfirm) {
+      errEl.textContent = 'Os e-mails não coincidem. Verifique e tente novamente.';
       errEl.style.display = 'block';
       return;
     }
@@ -2015,8 +2025,10 @@
         password: _userPendente.senha,
         options: { data: { role: _userPendente.role, nome: _userPendente.nome } }
       });
-      if (error && error.message !== 'User already registered') {
-        errEl.textContent = 'Erro ao registrar e-mail. Tente outro.';
+      const errosAceitos = ['User already registered', 'user already registered', 'Email rate limit exceeded'];
+      if (error && !errosAceitos.some(msg => error.message?.includes(msg))) {
+        console.error('[confirmarEmail] signUp error:', error.message);
+        errEl.textContent = 'Erro ao registrar e-mail. Verifique se o e-mail é válido e tente novamente.';
         errEl.style.display = 'block';
         return;
       }
