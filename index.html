@@ -2032,7 +2032,18 @@
         errEl.style.display = 'block';
         return;
       }
-      // Mostra mensagem de confirmação — usuário precisa confirmar o email antes de entrar
+      // Tenta logar diretamente após o signUp
+      const { data: authData, error: loginError } = await sbClient.auth.signInWithPassword({
+        email,
+        password: _userPendente.senha
+      });
+      if (authData?.session) {
+        sessionStorage.setItem('ded_user', JSON.stringify(_userPendente));
+        document.getElementById('overlay-email').style.display = 'none';
+        window.location.href = ROTAS[_userPendente.role] || DASH;
+        return;
+      }
+      // Login falhou — e-mail precisa ser confirmado primeiro
       const modalCard = document.querySelector('#overlay-email .modal-card');
       modalCard.innerHTML = `
         <div style="text-align:center;padding:16px 0">
