@@ -2025,7 +2025,7 @@
         password: _userPendente.senha,
         options: { data: { role: _userPendente.role, nome: _userPendente.nome } }
       });
-      const errosAceitos = ['User already registered', 'user already registered', 'Email rate limit exceeded'];
+      const errosAceitos = ['User already registered', 'user already registered', 'Email rate limit exceeded', 'Error sending confirmation email'];
       if (error && !errosAceitos.some(msg => error.message?.includes(msg))) {
         console.error('[confirmarEmail] signUp error:', error.message);
         errEl.textContent = 'Erro ao registrar e-mail. Verifique se o e-mail é válido e tente novamente.';
