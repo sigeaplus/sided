@@ -1938,18 +1938,67 @@
 
       // 2. Tem email? Tenta logar via Supabase Auth
       if (user.email) {
+        // Tenta logar no Supabase Auth
         const { data: authData, error: authError } = await sbClient.auth.signInWithPassword({
           email: user.email,
           password: senha
         });
         if (!authError && authData?.session) {
-          // Auth OK — segue normalmente
+          // Verifica se o e-mail foi confirmado
+          const emailConfirmado = authData.user?.email_confirmed_at;
+          if (!emailConfirmado) {
+            // E-mail salvo mas não verificado — desloga e envia OTP direto
+            await getSupabase().auth.signOut();
+            fecharLogin();
+            _userPendente = { ...user, senha };
+            _emailOtpPendente = user.email;
+            // Envia OTP direto sem mostrar tela de preenchimento
+            const { error: otpErr } = await sbClient.auth.signInWithOtp({ email: user.email, options: { shouldCreateUser: false } });
+            const overlayEmail = document.getElementById('overlay-email');
+            overlayEmail.style.display = 'flex';
+            const modalCard = document.querySelector('#overlay-email .modal-card');
+            if (otpErr) {
+              modalCard.innerHTML = `<div style="text-align:center;padding:16px 0">
+                <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+                <div class="modal-title" style="margin-bottom:8px">Erro ao enviar código</div>
+                <div class="modal-sub">${otpErr.message}</div>
+              </div>`;
+            } else {
+              modalCard.innerHTML = `
+                <div style="text-align:center;padding:8px 0">
+                  <div style="font-size:48px;margin-bottom:12px">📬</div>
+                  <div class="modal-title" style="margin-bottom:8px">Verifique seu e-mail</div>
+                  <div class="modal-sub" style="margin-bottom:20px">
+                    Enviamos um código de 6 dígitos para<br/><strong>${user.email}</strong>
+                  </div>
+                  <div id="error-msg-otp" class="error-msg"></div>
+                  <div class="form-group" style="text-align:left">
+                    <label class="form-label">Código de verificação</label>
+                    <input class="form-input" id="inp-otp" type="number" maxlength="6" placeholder="000000"
+                      style="font-size:24px;text-align:center;letter-spacing:8px"
+                      oninput="if(this.value.length>6)this.value=this.value.slice(0,6)"
+                    />
+                  </div>
+                  <button class="btn-login" id="btn-verificar-otp" onclick="verificarOtp()" style="margin-top:8px">
+                    <span id="spin-otp" class="spinner" style="display:none"></span>
+                    <span id="txt-otp">Verificar e entrar</span>
+                  </button>
+                  <div style="margin-top:16px;font-size:13px;color:var(--text-muted)">
+                    Não recebeu? 
+                    <a href="#" onclick="reenviarOtp(event)" style="color:var(--primary)">Reenviar código</a>
+                  </div>
+                </div>
+              `;
+              setTimeout(() => document.getElementById('inp-otp')?.focus(), 100);
+            }
+            return;
+          }
+          // Auth OK e e-mail confirmado — segue normalmente
           sessionStorage.setItem('ded_user', JSON.stringify(user));
           window.location.href = ROTAS[user.role] || DASH;
           return;
         }
-        // Auth falhou mas usuário existe na public.users — provavelmente não migrado ainda
-        // Tenta criar no auth agora
+        // Auth falhou — provavelmente não migrado ainda, tenta criar
         await _migrarParaAuth(user, senha);
         return;
       }
