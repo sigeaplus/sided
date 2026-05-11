@@ -953,14 +953,6 @@
           </div>
         </div>
         <div class="filtros-row">
-          <label for="sel-disciplina" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-right:8px;">Disciplina</label>
-          <select id="sel-disciplina" onchange="atualizarFiltroDisciplina()" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:200px;">
-            <option value="">Filtrar por disciplina...</option>
-
-          </select>
-        </div>
-        <div class="filtros-row" id="fundamental-disciplinas" style="display:none;flex-wrap:wrap;gap:8px;"></div>
-        <div class="filtros-row">
           <select id="sel-ano" onchange="atualizarFiltroAno()" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:160px;">
             <option value="">Filtrar por ano...</option>
             <option value="1º ano - Fundamental">1º ano - Fundamental</option>
@@ -1985,7 +1977,7 @@ function selecionarDiscAval(disc) {
   carregarAvaliacoes();
 }
 let turmaAtiva = null, avaliacaoAtiva = null, chamadaTemp = {};
-let filtrosAtivos = { disciplina: null, ano: null, turno: null };
+let filtrosAtivos = { ano: null, turno: null };
 const FUNDAMENTAL_I_DISCIPLINAS = ['PORTUGUES','MATEMATICA','CIENCIAS','GEOGRAFIA','HISTORIA','INGLES','ED FISICA','ENS RELIGIOSO','OUTRO'];
 let calState = { 'cal-aula': { ano: new Date().getFullYear(), mes: new Date().getMonth() }, 'cal-chamada': { ano: new Date().getFullYear(), mes: new Date().getMonth() } };
 let feriadosCache = [];
@@ -2107,48 +2099,6 @@ async function carregarTurmas(profId) {
 
   renderTurmas(todasTurmas);
 
-  const selDisciplina = document.getElementById('sel-disciplina');
-  if (selDisciplina) {
-    // Coleta todas as disciplinas únicas das turmas, separando por vírgula
-    const discSet = new Set();
-    todasTurmas.forEach(t => {
-      if (t.disciplina) {
-        t.disciplina.split(',').forEach(d => {
-          const nome = d.trim();
-          if (nome) discSet.add(nome);
-        });
-      }
-    });
-    const discList = Array.from(discSet).sort();
-
-    // Reconstrói as opções do select dinamicamente
-    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>' +
-      discList.map(d => `<option value="${d}">${d}</option>`).join('');
-
-    if (profData.disciplina) {
-      // Se o professor tem disciplina fixa, tenta selecioná-la
-      const discProf = profData.disciplina.trim();
-      // Pode ser múltipla — pega a primeira
-      const primeiraDisc = discProf.split(',')[0].trim();
-      let found = false;
-      for (let i = 0; i < selDisciplina.options.length; i++) {
-        if (selDisciplina.options[i].value.toLowerCase() === primeiraDisc.toLowerCase()) {
-          selDisciplina.selectedIndex = i; found = true; break;
-        }
-      }
-      if (!found) {
-        const opt = document.createElement('option');
-        opt.value = primeiraDisc;
-        opt.textContent = primeiraDisc;
-        opt.selected = true;
-        selDisciplina.appendChild(opt);
-      }
-      selDisciplina.disabled = true;
-      filtrosAtivos.disciplina = primeiraDisc;
-    } else {
-      selDisciplina.disabled = false;
-    }
-  }
 }
 
 function popularChips() {
@@ -2168,63 +2118,13 @@ function toggleChip(el) {
 function atualizarFiltroAno() {
   const selAno = document.getElementById('sel-ano');
   filtrosAtivos.ano = selAno.value || null;
-
-  const selDisciplina = document.getElementById('sel-disciplina');
-  const anoEscolhido = selAno.value || '';
-  const isFundamental = anoEscolhido.includes('Fundamental') && ['1º ano - Fundamental','2º ano - Fundamental','3º ano - Fundamental','4º ano - Fundamental','5º ano - Fundamental'].includes(anoEscolhido);
-
-  if (isFundamental) {
-    selDisciplina.value = '';
-    selDisciplina.disabled = true;
-    filtrosAtivos.disciplina = null;
-    mostrarFundamentalDisciplinas(true);
-  } else {
-    selDisciplina.disabled = false;
-    mostrarFundamentalDisciplinas(false);
-  }
-
   aplicarFiltros();
 }
 
-function mostrarFundamentalDisciplinas(show) {
-  const cont = document.getElementById('fundamental-disciplinas');
-  if (!cont) return;
-  if (!show) {
-    cont.style.display = 'none';
-    cont.innerHTML = '';
-    return;
-  }
-
-  cont.style.display = 'flex';
-  cont.innerHTML = FUNDAMENTAL_I_DISCIPLINAS.map(d => {
-    const ativo = filtrosAtivos.disciplina === d ? ' active' : '';
-    return `<span class="chip orange${ativo}" data-grupo="disciplina" data-val="${d}" onclick="toggleDisciplina('${d}')">${d}</span>`;
-  }).join('');
-}
-
-function toggleDisciplina(disciplina) {
-  if (filtrosAtivos.disciplina === disciplina) {
-    filtrosAtivos.disciplina = null;
-  } else {
-    filtrosAtivos.disciplina = disciplina;
-  }
-  mostrarFundamentalDisciplinas(true);
-  aplicarFiltros();
-}
-
-function atualizarFiltroDisciplina() {
-  const selDisciplina = document.getElementById('sel-disciplina');
-  filtrosAtivos.disciplina = selDisciplina.value || null;
-  aplicarFiltros();
-}
 
 function aplicarFiltros() {
   const q = document.getElementById('search-turma').value.toLowerCase();
   let lista = todasTurmas;
-  if (filtrosAtivos.disciplina) lista = lista.filter(t => {
-    if (!t.disciplina) return false;
-    return t.disciplina.split(",").some(d => d.trim().toLowerCase() === filtrosAtivos.disciplina.toLowerCase());
-  });
   if (filtrosAtivos.ano) lista = lista.filter(t => t.ano === filtrosAtivos.ano);
   if (filtrosAtivos.turno) lista = lista.filter(t => t.turno === filtrosAtivos.turno);
   if (q) lista = lista.filter(t => JSON.stringify(t).toLowerCase().includes(q));
