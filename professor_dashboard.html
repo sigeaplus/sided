@@ -956,15 +956,7 @@
           <label for="sel-disciplina" style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-right:8px;">Disciplina</label>
           <select id="sel-disciplina" onchange="atualizarFiltroDisciplina()" style="padding:7px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer;min-width:200px;">
             <option value="">Filtrar por disciplina...</option>
-            <option value="PORTUGUES">PORTUGUES</option>
-            <option value="MATEMATICA">MATEMATICA</option>
-            <option value="CIENCIAS">CIENCIAS</option>
-            <option value="GEOGRAFIA">GEOGRAFIA</option>
-            <option value="HISTORIA">HISTORIA</option>
-            <option value="INGLES">INGLES</option>
-            <option value="ED FISICA">ED FISICA</option>
-            <option value="ENS RELIGIOSO">ENS RELIGIOSO</option>
-            <option value="OUTRO">OUTRO</option>
+
           </select>
         </div>
         <div class="filtros-row" id="fundamental-disciplinas" style="display:none;flex-wrap:wrap;gap:8px;"></div>
@@ -2117,23 +2109,42 @@ async function carregarTurmas(profId) {
 
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
+    // Coleta todas as disciplinas únicas das turmas, separando por vírgula
+    const discSet = new Set();
+    todasTurmas.forEach(t => {
+      if (t.disciplina) {
+        t.disciplina.split(',').forEach(d => {
+          const nome = d.trim();
+          if (nome) discSet.add(nome);
+        });
+      }
+    });
+    const discList = Array.from(discSet).sort();
+
+    // Reconstrói as opções do select dinamicamente
+    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>' +
+      discList.map(d => `<option value="${d}">${d}</option>`).join('');
+
     if (profData.disciplina) {
-      const discProf = profData.disciplina.trim().toUpperCase();
-      let exists = false;
+      // Se o professor tem disciplina fixa, tenta selecioná-la
+      const discProf = profData.disciplina.trim();
+      // Pode ser múltipla — pega a primeira
+      const primeiraDisc = discProf.split(',')[0].trim();
+      let found = false;
       for (let i = 0; i < selDisciplina.options.length; i++) {
-        if (selDisciplina.options[i].value.toUpperCase() === discProf) {
-          selDisciplina.selectedIndex = i; exists = true; break;
+        if (selDisciplina.options[i].value.toLowerCase() === primeiraDisc.toLowerCase()) {
+          selDisciplina.selectedIndex = i; found = true; break;
         }
       }
-      if (!exists) {
+      if (!found) {
         const opt = document.createElement('option');
-        opt.value = profData.disciplina;
-        opt.textContent = profData.disciplina;
+        opt.value = primeiraDisc;
+        opt.textContent = primeiraDisc;
         opt.selected = true;
         selDisciplina.appendChild(opt);
       }
       selDisciplina.disabled = true;
-      filtrosAtivos.disciplina = profData.disciplina;
+      filtrosAtivos.disciplina = primeiraDisc;
     } else {
       selDisciplina.disabled = false;
     }
@@ -2210,9 +2221,10 @@ function atualizarFiltroDisciplina() {
 function aplicarFiltros() {
   const q = document.getElementById('search-turma').value.toLowerCase();
   let lista = todasTurmas;
-  if (filtrosAtivos.disciplina) lista = lista.filter(t =>
-    t.disciplina && t.disciplina.toLowerCase().includes(filtrosAtivos.disciplina.toLowerCase())
-  );
+  if (filtrosAtivos.disciplina) lista = lista.filter(t => {
+    if (!t.disciplina) return false;
+    return t.disciplina.split(",").some(d => d.trim().toLowerCase() === filtrosAtivos.disciplina.toLowerCase());
+  });
   if (filtrosAtivos.ano) lista = lista.filter(t => t.ano === filtrosAtivos.ano);
   if (filtrosAtivos.turno) lista = lista.filter(t => t.turno === filtrosAtivos.turno);
   if (q) lista = lista.filter(t => JSON.stringify(t).toLowerCase().includes(q));
