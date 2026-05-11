@@ -1993,6 +1993,9 @@
     window.location.href = ROTAS[user.role] || DASH;
   }
 
+  // Guarda email temporariamente para o OTP
+  let _emailOtpPendente = '';
+
   async function confirmarEmailMigracao() {
     const email = document.getElementById('inp-email-migracao').value.trim();
     const emailConfirm = document.getElementById('inp-email-migracao-confirm').value.trim();
@@ -2011,7 +2014,7 @@
     const btn = document.getElementById('btn-email-migracao');
     const spin = document.getElementById('spin-email');
     const txt = document.getElementById('txt-email');
-    btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Salvando...';
+    btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Enviando código...';
     try {
       // Salva email na public.users
       await fetch(`${SB_URL}/rest/v1/users?id=eq.${_userPendente.id}`, {
@@ -2019,55 +2022,106 @@
         headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-      // Cria no Supabase Auth
-      const { error } = await sbClient.auth.signUp({
-        email,
-        password: _userPendente.senha,
-        options: { data: { role: _userPendente.role, nome: _userPendente.nome } }
-      });
-      const errosAceitos = ['User already registered', 'user already registered', 'Email rate limit exceeded', 'Error sending confirmation email'];
-      if (error && !errosAceitos.some(msg => error.message?.includes(msg))) {
-        console.error('[confirmarEmail] signUp error:', error.message);
-        errEl.textContent = 'Erro ao registrar e-mail. Verifique se o e-mail é válido e tente novamente.';
+      // Envia OTP por e-mail via Supabase
+      const { error } = await sbClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error) {
+        console.error('[confirmarEmail] OTP error:', error.message);
+        errEl.textContent = 'Erro ao enviar código. Verifique o e-mail e tente novamente.';
         errEl.style.display = 'block';
         return;
       }
-      // Tenta logar diretamente após o signUp
-      const { data: authData, error: loginError } = await sbClient.auth.signInWithPassword({
-        email,
-        password: _userPendente.senha
-      });
-      if (authData?.session) {
-        sessionStorage.setItem('ded_user', JSON.stringify(_userPendente));
-        document.getElementById('overlay-email').style.display = 'none';
-        window.location.href = ROTAS[_userPendente.role] || DASH;
-        return;
-      }
-      // Login falhou — e-mail precisa ser confirmado primeiro
+      _emailOtpPendente = email;
+      // Muda overlay para tela de código
       const modalCard = document.querySelector('#overlay-email .modal-card');
       modalCard.innerHTML = `
-        <div style="text-align:center;padding:16px 0">
-          <div style="font-size:48px;margin-bottom:16px">📬</div>
-          <div class="modal-title" style="margin-bottom:8px">Confirme seu e-mail</div>
-          <div class="modal-sub" style="margin-bottom:24px">
-            Enviamos um link de confirmação para<br/>
-            <strong>${email}</strong><br/><br/>
-            Acesse seu e-mail, clique no link e volte aqui para entrar.
+        <div style="text-align:center;padding:8px 0">
+          <div style="font-size:48px;margin-bottom:12px">📬</div>
+          <div class="modal-title" style="margin-bottom:8px">Verifique seu e-mail</div>
+          <div class="modal-sub" style="margin-bottom:20px">
+            Enviamos um código de 6 dígitos para<br/><strong>${email}</strong>
           </div>
-          <button class="btn-login" onclick="
-            document.getElementById('overlay-email').style.display='none';
-            abrirLogin();
-          ">
-            Já confirmei → Entrar
+          <div id="error-msg-otp" class="error-msg"></div>
+          <div class="form-group" style="text-align:left">
+            <label class="form-label">Código de verificação</label>
+            <input class="form-input" id="inp-otp" type="number" maxlength="6" placeholder="000000"
+              style="font-size:24px;text-align:center;letter-spacing:8px"
+              oninput="if(this.value.length>6)this.value=this.value.slice(0,6)"
+            />
+          </div>
+          <button class="btn-login" id="btn-verificar-otp" onclick="verificarOtp()" style="margin-top:8px">
+            <span id="spin-otp" class="spinner" style="display:none"></span>
+            <span id="txt-otp">Verificar e entrar</span>
           </button>
+          <div style="margin-top:16px;font-size:13px;color:var(--text-muted)">
+            Não recebeu? 
+            <a href="#" onclick="reenviarOtp(event)" style="color:var(--primary)">Reenviar código</a>
+          </div>
         </div>
       `;
+      setTimeout(() => document.getElementById('inp-otp')?.focus(), 100);
     } catch(e) {
       errEl.textContent = 'Erro de conexão. Tente novamente.';
       errEl.style.display = 'block';
       console.error(e);
     } finally {
       btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Confirmar e entrar';
+    }
+  }
+
+  async function verificarOtp() {
+    const token = document.getElementById('inp-otp').value.trim();
+    const errEl = document.getElementById('error-msg-otp');
+    errEl.style.display = 'none';
+    if (!token || token.length !== 6) {
+      errEl.textContent = 'Digite o código de 6 dígitos.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('btn-verificar-otp');
+    const spin = document.getElementById('spin-otp');
+    const txt = document.getElementById('txt-otp');
+    btn.disabled = true; spin.style.display = 'block'; txt.textContent = 'Verificando...';
+    try {
+      const { data, error } = await sbClient.auth.verifyOtp({
+        email: _emailOtpPendente,
+        token,
+        type: 'email'
+      });
+      if (error) {
+        console.error('[verificarOtp] error:', error.message);
+        errEl.textContent = 'Código inválido ou expirado. Tente novamente.';
+        errEl.style.display = 'block';
+        btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Verificar e entrar';
+        return;
+      }
+      // OTP válido — atualiza senha no Supabase Auth e loga
+      if (_userPendente.senha) {
+        await sbClient.auth.updateUser({ password: _userPendente.senha });
+      }
+      sessionStorage.setItem('ded_user', JSON.stringify(_userPendente));
+      document.getElementById('overlay-email').style.display = 'none';
+      window.location.href = ROTAS[_userPendente.role] || DASH;
+    } catch(e) {
+      errEl.textContent = 'Erro de conexão. Tente novamente.';
+      errEl.style.display = 'block';
+      console.error(e);
+      btn.disabled = false; spin.style.display = 'none'; txt.textContent = 'Verificar e entrar';
+    }
+  }
+
+  async function reenviarOtp(e) {
+    e.preventDefault();
+    const errEl = document.getElementById('error-msg-otp');
+    errEl.style.display = 'none';
+    const { error } = await sbClient.auth.signInWithOtp({ email: _emailOtpPendente, options: { shouldCreateUser: false } });
+    if (error) {
+      errEl.textContent = 'Erro ao reenviar. Aguarde um momento e tente novamente.';
+      errEl.style.display = 'block';
+    } else {
+      errEl.style.color = 'green';
+      errEl.textContent = 'Código reenviado! Verifique seu e-mail.';
+      errEl.style.display = 'block';
+      setTimeout(() => { errEl.style.display = 'none'; errEl.style.color = ''; }, 4000);
     }
   }
 
