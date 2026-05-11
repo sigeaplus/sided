@@ -262,8 +262,7 @@
     .turma-ano { font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
     .turma-codigo { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .turma-endereco { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
-    .turma-disciplina { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-    .turma-disc-chip { font-size: 11px; font-weight: 600; color: var(--purple); background: rgba(108,79,212,0.1); border: 1px solid rgba(108,79,212,0.2); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+    .turma-disciplina { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
     .turma-turno { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
     .turma-empty { grid-column: 1/-1; text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }
@@ -2107,31 +2106,37 @@ async function carregarTurmas(profId) {
   }
 
   // Filtro por disciplina se professor tiver disciplina fixa cadastrada
-  // Não filtra automaticamente — deixa o professor escolher
+  if (profData.disciplina) {
+    const discProf = profData.disciplina.trim().toUpperCase();
+    todasTurmas = todasTurmas.filter(t =>
+      t.disciplina && t.disciplina.trim().toUpperCase().includes(discProf)
+    );
+  }
 
   renderTurmas(todasTurmas);
 
   const selDisciplina = document.getElementById('sel-disciplina');
   if (selDisciplina) {
-    // Coleta todas as disciplinas únicas das turmas
-    const todasDiscs = new Set();
-    todasTurmas.forEach(t => {
-      if (t.disciplinas && t.disciplinas.length) {
-        t.disciplinas.forEach(d => todasDiscs.add(d));
-      } else if (t.disciplina) {
-        t.disciplina.split(',').map(d => d.trim()).filter(Boolean).forEach(d => todasDiscs.add(d));
+    if (profData.disciplina) {
+      const discProf = profData.disciplina.trim().toUpperCase();
+      let exists = false;
+      for (let i = 0; i < selDisciplina.options.length; i++) {
+        if (selDisciplina.options[i].value.toUpperCase() === discProf) {
+          selDisciplina.selectedIndex = i; exists = true; break;
+        }
       }
-    });
-    // Popula o select com disciplinas únicas
-    selDisciplina.innerHTML = '<option value="">Filtrar por disciplina...</option>';
-    todasDiscs.forEach(d => {
-      const opt = document.createElement('option');
-      opt.value = d;
-      opt.textContent = d;
-      selDisciplina.appendChild(opt);
-    });
-    selDisciplina.disabled = false;
-    filtrosAtivos.disciplina = null;
+      if (!exists) {
+        const opt = document.createElement('option');
+        opt.value = profData.disciplina;
+        opt.textContent = profData.disciplina;
+        opt.selected = true;
+        selDisciplina.appendChild(opt);
+      }
+      selDisciplina.disabled = true;
+      filtrosAtivos.disciplina = profData.disciplina;
+    } else {
+      selDisciplina.disabled = false;
+    }
   }
 }
 
@@ -2205,12 +2210,9 @@ function atualizarFiltroDisciplina() {
 function aplicarFiltros() {
   const q = document.getElementById('search-turma').value.toLowerCase();
   let lista = todasTurmas;
-  if (filtrosAtivos.disciplina) lista = lista.filter(t => {
-    const discs = t.disciplinas && t.disciplinas.length
-      ? t.disciplinas
-      : (t.disciplina ? t.disciplina.split(',').map(d => d.trim()).filter(Boolean) : []);
-    return discs.some(d => d.toLowerCase() === filtrosAtivos.disciplina.toLowerCase());
-  });
+  if (filtrosAtivos.disciplina) lista = lista.filter(t =>
+    t.disciplina && t.disciplina.toLowerCase().includes(filtrosAtivos.disciplina.toLowerCase())
+  );
   if (filtrosAtivos.ano) lista = lista.filter(t => t.ano === filtrosAtivos.ano);
   if (filtrosAtivos.turno) lista = lista.filter(t => t.turno === filtrosAtivos.turno);
   if (q) lista = lista.filter(t => JSON.stringify(t).toLowerCase().includes(q));
@@ -2223,16 +2225,13 @@ function renderTurmas(lista) {
   document.getElementById('turmas-header').textContent = `Minhas turmas (${lista.length})`;
   grid.innerHTML = lista.length
     ? lista.map((t, i) => {
-        const discs = t.disciplinas && t.disciplinas.length
-          ? t.disciplinas
-          : (t.disciplina ? t.disciplina.split(',').map(d => d.trim()).filter(Boolean) : ['—']);
-        const discChips = discs.map(d => `<span class="turma-disc-chip">${d}</span>`).join('');
+        const discLabel = t.disciplina || '—';
         return `
           <div class="turma-card" style="animation-delay:${i * 0.04}s" onclick="abrirTurma('${t.id}')">
             <div class="turma-ano">${t.ano}</div>
             <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
             <div class="turma-endereco">${t.escolas?.nome || ''}</div>
-            <div class="turma-disciplina">${discChips}</div>
+            <div class="turma-disciplina">${discLabel}</div>
             <div class="turma-turno">${t.turno || '—'}</div>
           </div>`;
       }).join('')
@@ -5882,6 +5881,11 @@ window.abrirPerfil = async function() {
     const displayEscola = document.getElementById('perfil-escola-display');
     if(displayEscola) displayEscola.value = (profData.escolas && profData.escolas.nome) || profData.escola_nome || '';
 
+    const displayEmail = document.getElementById('perfil-email-display');
+    if(displayEmail) displayEmail.value = session.email || profData.email || '';
+    const msgEmail = document.getElementById('perfil-email-msg');
+    if(msgEmail) msgEmail.style.display = 'none';
+
     // Limpar mensagens e senhas
     const msgDados = document.getElementById('perfil-dados-msg');
     if(msgDados) msgDados.style.display = 'none';
@@ -5914,6 +5918,57 @@ window.abrirPerfil = async function() {
     }
   }
 }; // <--- PONTO E VÍRGULA AQUI
+
+window.salvarEmailPerfil = async function() {
+  const emailInput = document.getElementById('perfil-email-display');
+  const msgEl = document.getElementById('perfil-email-msg');
+  const email = emailInput?.value.trim();
+  msgEl.style.display = 'none';
+
+  if (!email || !email.includes('@')) {
+    msgEl.textContent = 'Informe um e-mail válido.';
+    msgEl.style.color = '#EF4444';
+    msgEl.style.background = '#FEF2F2';
+    msgEl.style.display = 'block';
+    return;
+  }
+
+  const session = JSON.parse(sessionStorage.getItem('ded_user') || '{}');
+  if (!session.id) {
+    msgEl.textContent = 'Sessão expirada. Faça login novamente.';
+    msgEl.style.color = '#EF4444';
+    msgEl.style.background = '#FEF2F2';
+    msgEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${session.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ email })
+    });
+    if (!res.ok) throw new Error('Erro ao salvar');
+    // Atualiza sessão
+    session.email = email;
+    sessionStorage.setItem('ded_user', JSON.stringify(session));
+    msgEl.textContent = 'E-mail salvo com sucesso!';
+    msgEl.style.color = '#16A34A';
+    msgEl.style.background = '#F0FDF4';
+    msgEl.style.display = 'block';
+    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+  } catch(e) {
+    msgEl.textContent = 'Erro ao salvar e-mail. Tente novamente.';
+    msgEl.style.color = '#EF4444';
+    msgEl.style.background = '#FEF2F2';
+    msgEl.style.display = 'block';
+  }
+};
 
 window.fecharPerfil = function() {
   const modal = document.getElementById('modal-perfil');
@@ -6241,6 +6296,14 @@ init();
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Login</label>
           <input id="perfil-login-display" type="text" disabled style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Space Mono',monospace;font-size:13px;outline:none;background:#F8F6FF;color:var(--text-muted);cursor:not-allowed;"/>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">E-mail</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="perfil-email-display" type="email" style="flex:1;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;outline:none;background:var(--white);color:var(--text);" placeholder="seu@email.com"/>
+            <button onclick="salvarEmailPerfil()" title="Salvar e-mail" style="padding:11px 14px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">Salvar</button>
+          </div>
+          <div id="perfil-email-msg" style="display:none;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px;margin-top:6px;"></div>
         </div>
         <div>
           <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Escola</label>
