@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#3B4FE4"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="SIDED+"/>
+  <link rel="icon" type="image/png" href="sided_logo.png"/>
+  <link rel="apple-touch-icon" href="sided_logo.png"/>
+  <title>SIDED+ — Diretor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #2563EB;
+      --purple-light: #E8F0FF;
+      --purple-dark: #3B4FE4;
+      --orange: #FF8C38;
+      --bg: #F5F8FF;
+      --white: #ffffff;
+      --text: #1B2550;
+      --text-muted: #6E7BA8;
+      --border: #DBE4FF;
+      --success: #22C55E;
+      --warning: #F59E0B;
+      --danger: #EF4444;
+      --header-h: 56px;
+    }
+
+    body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── SIDEBAR MOBILE ── */
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 199; }
+    .sidebar-overlay.open { display: block; }
+
+    .sidebar {
+      display: none;
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 220px;
+      background: #EAF1FF;
+      flex-direction: column;
+      z-index: 200;
+      transition: transform 0.35s ease;
+      transform: translateX(-100%);
+    }
+    .sidebar.open { transform: translateX(0); }
+
+    .sidebar-logo {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid rgba(37,99,235,0.16);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-icon { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+    .logo-name { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #1D4ED8; letter-spacing: 1px; }
+    .logo-sub { font-size: 10px; color: rgba(37,99,235,0.6); }
+
+    .sidebar-profile {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(37,99,235,0.16);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .prof-avatar { width: 64px; height: 64px; border-radius: 50%; background: #3B4FE4; display: flex; align-items: center; justify-content: center; }
+    .prof-label { font-size: 12px; font-weight: 700; color: #333; }
+    .prof-nome { font-size: 12px; font-weight: 600; color: #333; text-align: center; width: 100%; border: 1px solid #ccc; border-radius: 8px; padding: 5px 8px; background: #fff; min-height: 28px; display: flex; align-items: center; justify-content: center; }
+    .prof-escola { font-size: 10px; font-weight: 700; color: #555; text-align: center; text-transform: uppercase; letter-spacing: 0.4px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+    .btn-sair {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: none; background: none;
+      color: #1D4ED8; font-family: 'Sora', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      text-decoration: underline;
+    }
+    .btn-sair:hover { opacity: 0.7; }
+
+    /* ── MOBILE HEADER ── */
+    .mobile-header {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: var(--purple-dark);
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 150;
+      gap: 6px;
+    }
+    .mh-btn {
+      width: 38px; height: 38px;
+      border-radius: 10px; border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; flex-shrink: 0;
+    }
+    .mh-btn:active { background: rgba(255,255,255,0.22); }
+    .mh-btn svg { width: 18px; height: 18px; }
+    .mh-title { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mh-sub { font-size: 11px; color: rgba(255,255,255,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── TOPBAR / ESCOLA BAR ── */
+    .escola-bar {
+      background: var(--purple-dark);
+      padding: 18px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-radius: 0 0 20px 20px;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      transition: background 0.3s ease;
+    }
+    .escola-bar-info { font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 500; }
+    .escola-bar-name { font-size: 16px; color: #fff; font-weight: 700; }
+
+    /* ── MAIN ── */
+    .main { min-height: 100vh; }
+    .content { padding: 56px 0 0 0; flex: 1; min-height: 100vh; }
+
+    /* ── LAYOUT DUAS COLUNAS ── */
+    #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
+
+    /* COLUNA SIDEBAR INTERNA (desktop) */
+    #col-sidebar {
+      width: 200px; flex-shrink: 0;
+      background: #EAF1FF;
+      display: flex; flex-direction: column;
+      padding: 24px 12px 16px;
+      border-right: 1px solid rgba(37,99,235,0.12);
+      min-height: calc(100vh - 56px);
+      transition: transform 0.3s ease, opacity 0.25s ease, width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+    }
+    #layout-wrapper.sidebar-hidden #col-sidebar {
+      transform: translateX(-110%);
+      opacity: 0; width: 0 !important; min-width: 0 !important;
+      padding: 0 !important; margin: 0 !important;
+      overflow: hidden; pointer-events: none;
+    }
+
+    .dir-perfil {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding-bottom: 16px; border-bottom: 1px solid rgba(37,99,235,0.16); margin-bottom: 16px;
+    }
+    .dir-avatar { width: 56px; height: 56px; border-radius: 50%; background: #3B4FE4; display: flex; align-items: center; justify-content: center; }
+    .dir-nome { font-size: 12px; font-weight: 600; color: #333; text-align: center; }
+    .dir-cargo { font-size: 10px; font-weight: 700; color: #2563EB; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dir-escola { font-size: 10px; color: #555; text-align: center; }
+
+    /* Nav items desktop sidebar */
+    .nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 12px; border-radius: 10px;
+      cursor: pointer; color: #334155;
+      font-size: 12px; font-weight: 600;
+      transition: all 0.15s; margin-bottom: 3px;
+      border: none; background: rgba(255,255,255,0.7); width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: #fff; color: #2563EB; }
+    .nav-item.active { background: var(--purple); color: #fff; }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--danger); color: #fff;
+      font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+    }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,0.3); }
+
+    /* ── COLUNA PRINCIPAL ── */
+    #col-main { flex: 1; min-width: 0; padding: 24px 28px; }
+
+    /* TOGGLE BTN */
+    .desktop-sidebar-toggle {
+      background: rgba(255,255,255,0.12);
+      border: none; color: #fff;
+      width: 34px; height: 34px;
+      border-radius: 8px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease;
+    }
+    .desktop-sidebar-toggle:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── SCREENS / PAGES ── */
+    .page { display: none; }
+    .page.active { display: block; animation: fadeUp 0.3s ease both; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── STAT CARDS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      background: var(--white); border-radius: 14px;
+      padding: 18px 20px; border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    .stat-icon.blue { background: var(--purple-light); }
+    .stat-icon.orange { background: #FFF0E6; }
+    .stat-icon.teal { background: #E0F7F4; }
+    .stat-icon.red { background: #FEE2E2; }
+    .stat-icon svg { width: 18px; height: 18px; }
+    .stat-value { font-size: 26px; font-weight: 700; color: var(--text); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+    /* ── SECTION CARD ── */
+    .section { background: var(--white); border-radius: 14px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; }
+    .section-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .section-count { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+
+    /* ── TURMAS CARDS ── */
+    .turmas-nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .nav-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 22px; border-radius: 16px;
+      border: none; cursor: pointer;
+      font-family: 'Sora', sans-serif;
+      font-size: 15px; font-weight: 700; color: #fff;
+      text-align: left; transition: all 0.2s ease;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    .nav-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+    .nav-card .card-icon { font-size: 28px; flex-shrink: 0; }
+    .nav-card .card-label { font-size: 14px; font-weight: 700; }
+    .nav-card .card-sub { font-size: 11px; opacity: 0.75; margin-top: 2px; font-weight: 400; }
+    .nav-card.blue { background: linear-gradient(135deg, #2563EB, #3B4FE4); }
+    .nav-card.orange { background: linear-gradient(135deg, #FF8C38, #F97316); }
+    .nav-card.teal { background: linear-gradient(135deg, #0F766E, #14B8A6); }
+    .nav-card.red { background: linear-gradient(135deg, #DC2626, #EF4444); }
+    .nav-card.violet { background: linear-gradient(135deg, #7C3AED, #8B5CF6); }
+    .nav-card.green { background: linear-gradient(135deg, #16A34A, #22C55E); }
+
+    /* ── GRID TURMAS ── */
+    .turma-card {
+      background: var(--white); border-radius: 14px;
+      border: 1.5px solid var(--border); padding: 18px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .turma-card:hover { border-color: #C8A8E8; box-shadow: 0 4px 16px rgba(37,99,235,0.1); transform: translateY(-2px); }
+    .turma-ano { font-size: 13px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+    .turma-codigo { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .turma-info { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+    .turma-turno { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .turmas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+
+    /* ── SEARCH BAR ── */
+    .search-bar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 20px; border-bottom: 1px solid var(--border); background: #FAFAFA;
+    }
+    .search-bar svg { width: 15px; height: 15px; color: var(--text-muted); flex-shrink: 0; }
+    .search-input { flex: 1; border: none; background: none; font-family: 'Sora', sans-serif; font-size: 13px; color: var(--text); outline: none; }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #FAFAFA; }
+    th { padding: 10px 18px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; white-space: nowrap; }
+    td { padding: 12px 18px; font-size: 13px; color: var(--text); border-top: 1px solid var(--border); }
+    tbody tr { transition: background 0.1s; cursor: pointer; }
+    tbody tr:hover { background: #F8FAFF; }
+
+    /* ── BADGE ── */
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.blue { background: var(--purple-light); color: var(--purple); }
+    .badge.orange { background: #FFF0E6; color: #E06B1A; }
+    .badge.green { background: #DCFCE7; color: #16A34A; }
+    .badge.red { background: #FEE2E2; color: #DC2626; }
+    .badge.teal { background: #E0F7F4; color: #0F766E; }
+    .badge.gray { background: #F1F5F9; color: #64748B; }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 18px; border-radius: 9px;
+      background: var(--purple); border: none;
+      color: #fff; font-family: 'Sora', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+    .btn-primary.orange { background: var(--orange); }
+
+    .btn-secondary {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 16px; border-radius: 9px;
+      background: var(--white); border: 1.5px solid var(--border);
+      color: var(--text-muted); font-family: 'Sora', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--white);
+      color: var(--text-muted); font-family: 'Sora', sans-serif;
+      font-size: 13px; cursor: pointer; margin-bottom: 20px;
+      transition: all 0.15s;
+    }
+    .back-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+    .action-btns { display: flex; gap: 6px; }
+    .btn-action { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); cursor: pointer; color: var(--text-muted); transition: all 0.15s; display: flex; align-items: center; gap: 4px; font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600; }
+    .btn-action:hover { border-color: var(--purple); color: var(--purple); }
+    .btn-action.danger:hover { border-color: var(--danger); color: var(--danger); }
+    .btn-action svg { width: 13px; height: 13px; }
+
+    /* ── MODAL ── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 9000; align-items: center; justify-content: center; padding: 20px; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--white); border-radius: 16px; width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; animation: slideUp 0.24s ease; }
+    .modal-lg { max-width: 640px; }
+    .modal-header { padding: 20px 22px 0; display: flex; align-items: center; justify-content: space-between; }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+    .modal-body { padding: 18px 22px 22px; }
+    .modal-footer { padding: 0 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
+
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; color: var(--purple); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+    .field input, .field select, .field textarea { width: 100%; padding: 10px 12px; background: #F8F6FF; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Sora', sans-serif; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--purple); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .btn-cancel { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border); background: none; font-family: 'Sora', sans-serif; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+    .btn-save { padding: 9px 18px; border-radius: 8px; border: none; background: var(--purple); color: #fff; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-save.orange { background: var(--orange); }
+
+    .alert-box { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+    .alert-box.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #15803D; }
+    .alert-box.error { background: #FFF4F4; border: 1px solid #FBBFBF; color: #C0392B; }
+    .alert-box.warning { background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+    .tab-btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500; background: none; color: var(--text-muted); transition: all 0.15s; }
+    .tab-btn.active { background: var(--purple); color: #fff; }
+
+    /* ── DISCIPLINAS GRID (modal seleção de componente) ── */
+    .disc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .disc-card {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 12px;
+      border: 1.5px solid var(--border); background: #F8FAFF;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .disc-card:hover { border-color: var(--purple); background: var(--purple-light); }
+    .disc-icon { width: 32px; height: 32px; border-radius: 8px; background: #3B4FE4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .disc-nome { font-size: 12px; font-weight: 700; color: var(--text); }
+    .disc-prof { font-size: 11px; color: var(--text-muted); }
+
+    /* ── ALERTAS / PENDÊNCIAS ── */
+    .alerta-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 18px; border-bottom: 1px solid var(--border);
+    }
+    .alerta-item:last-child { border-bottom: none; }
+    .alerta-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .alerta-icon.orange { background: #FFF0E6; }
+    .alerta-icon.red { background: #FEE2E2; }
+    .alerta-icon.yellow { background: #FFFBEB; }
+    .alerta-titulo { font-size: 13px; font-weight: 600; color: var(--text); }
+    .alerta-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .alerta-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .alerta-badge.orange { background: #FFF0E6; color: #E06B1A; }
+    .alerta-badge.red { background: #FEE2E2; color: #DC2626; }
+
+    /* ── CALENDÁRIO ── */
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .cal-nav { background: none; border: 1px solid var(--border); cursor: pointer; color: var(--text-muted); padding: 6px 12px; border-radius: 8px; font-size: 16px; }
+    .cal-nav:hover { background: var(--bg); }
+    .cal-month { font-size: 15px; font-weight: 700; color: var(--text); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-day-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-align: center; padding: 4px 0; }
+    .cal-day { font-size: 12px; text-align: center; padding: 8px 4px; border-radius: 8px; cursor: pointer; color: var(--text); transition: all 0.1s; min-height: 36px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 2px; }
+    .cal-day:hover { background: var(--purple-light); }
+    .cal-day.empty { cursor: default; }
+    .cal-day.empty:hover { background: none; }
+    .cal-day.today { font-weight: 700; color: var(--purple); background: var(--purple-light); }
+    .cal-day.feriado { background: #FEE2E2; color: #DC2626; }
+    .cal-day.sabado-letivo { background: #DCFCE7; color: #166534; }
+    .cal-day.recesso { background: #F1F5F9; color: #64748B; }
+    .cal-day.evento { background: #DBEAFE; color: #1D4ED8; }
+    .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .cal-legend { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); }
+    .cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state { padding: 48px 24px; text-align: center; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .empty-text { font-size: 14px; color: var(--text-muted); }
+
+    /* ── OCORRÊNCIAS ── */
+    .ocr-card {
+      border: 1.5px solid #FBBFBF; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 10px; background: #FFF8F8;
+    }
+    .ocr-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+    .ocr-nome { font-size: 13px; font-weight: 700; color: #B91C1C; }
+    .ocr-meta { font-size: 11px; color: var(--text-muted); }
+    .ocr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ocr-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .ocr-val { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+    /* ── RESPONSIVO ── */
+    @media (max-width: 768px) {
+      .mobile-header { display: flex; }
+      .escola-bar { display: none; }
+      #col-sidebar { display: none; }
+      .content { padding: var(--header-h) 0 0 0; }
+      #col-main { padding: 16px 14px; }
+      .turmas-nav-grid { grid-template-columns: 1fr; }
+      .disc-grid { grid-template-columns: 1fr 1fr; }
+      .field-row { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .sidebar { display: flex; }
+    }
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .disc-grid { grid-template-columns: 1fr; }
+      th:nth-child(4), td:nth-child(4),
+      th:nth-child(5), td:nth-child(5) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- OVERLAY SIDEBAR MOBILE -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="fecharSidebar()"></div>
+
+<!-- SIDEBAR MOBILE -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">
+      <img src="sided_logo.png" width="44" height="44" style="display:block;object-fit:cover;border-radius:10px;" alt="SIDED+"/>
+    </div>
+    <div>
+      <div class="logo-name">SIDED+</div>
+      <div class="logo-sub">Diretor Escolar</div>
+    </div>
+  </div>
+  <div class="sidebar-profile">
+    <div class="prof-avatar">
+      <svg viewBox="0 0 36 36" fill="none" width="32" height="32"><circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/><path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="prof-label">Diretor(a)</div>
+    <div class="prof-nome" id="mob-dir-nome">—</div>
+    <div class="prof-escola" id="mob-dir-escola">—</div>
+  </div>
+  <div class="sidebar-nav">
+    <button onclick="fecharSidebar();navTo('inicio')" class="nav-item">🏠 Início</button>
+    <button onclick="fecharSidebar();navTo('turmas')" class="nav-item">🏫 Turmas</button>
+    <button onclick="fecharSidebar();navTo('professores')" class="nav-item">👨‍🏫 Professores</button>
+    <button onclick="fecharSidebar();navTo('alertas')" class="nav-item">⚠️ Alertas <span class="nav-badge" id="mob-badge-alertas">0</span></button>
+    <button onclick="fecharSidebar();navTo('documentos')" class="nav-item">📁 Documentos</button>
+    <button class="btn-sair" onclick="sair()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- HEADER MOBILE -->
+  <header class="mobile-header" id="mobile-header">
+    <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+      <img src="sided_logo.png" width="28" height="28" style="border-radius:7px;" alt=""/>
+    </div>
+    <div style="flex:1;min-width:0;padding:0 8px;">
+      <div class="mh-title" id="mh-title">SIDED+</div>
+      <div class="mh-sub" id="mh-sub">Diretor Escolar</div>
+    </div>
+    <div style="flex-shrink:0;">
+      <button class="mh-btn" onclick="abrirSidebar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- TOPBAR DESKTOP -->
+  <div class="escola-bar" id="cabecalho-principal">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="toggleSidebarDesktop()" class="desktop-sidebar-toggle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <div>
+        <div class="escola-bar-info" id="bar-info">Diretor(a)</div>
+        <div class="escola-bar-name" id="bar-escola">Carregando...</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:13px;color:rgba(255,255,255,0.65);" id="bar-bem-vindo"></span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="layout-wrapper">
+
+      <!-- SIDEBAR DESKTOP -->
+      <div id="col-sidebar">
+        <div class="dir-perfil">
+          <div class="dir-avatar">
+            <svg viewBox="0 0 36 36" fill="none" width="28" height="28"><circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/><path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.85)" stroke-width="2.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="dir-cargo">Diretor(a)</div>
+          <div class="dir-nome" id="desk-dir-nome">—</div>
+          <div class="dir-escola" id="desk-dir-escola">—</div>
+        </div>
+
+        <nav style="display:flex;flex-direction:column;gap:3px;flex:1;">
+          <button class="nav-item active" id="nav-inicio" onclick="navTo('inicio')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Início
+          </button>
+          <button class="nav-item" id="nav-turmas" onclick="navTo('turmas')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            Turmas
+          </button>
+          <button class="nav-item" id="nav-professores" onclick="navTo('professores')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Professores
+          </button>
+          <button class="nav-item" id="nav-alertas" onclick="navTo('alertas')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Alertas
+            <span class="nav-badge" id="desk-badge-alertas" style="display:none;">0</span>
+          </button>
+          <button class="nav-item" id="nav-documentos" onclick="navTo('documentos')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+            Documentos
+          </button>
+        </nav>
+
+        <button class="btn-sair" onclick="sair()" style="margin-top:auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sair
+        </button>
+      </div>
+
+      <!-- COLUNA PRINCIPAL -->
+      <div id="col-main">
+
+        <!-- ══ PÁGINA: INÍCIO ══ -->
+        <div class="page active" id="page-inicio">
+          <div style="margin-bottom:20px;">
+            <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px;">Bom dia, <span id="dir-nome-bv">Diretor(a)</span> 👋</div>
+            <div style="font-size:13px;color:var(--text-muted);" id="dir-escola-bv">—</div>
+          </div>
+
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+              <div class="stat-value" id="stat-turmas">—</div>
+              <div class="stat-label">Turmas</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon teal"><svg viewBox="0 0 24 24" fill="none" stroke="#0F766E" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+              <div class="stat-value" id="stat-professores">—</div>
+              <div class="stat-label">Professores</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" stroke="#FF8C38" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+              <div class="stat-value" id="stat-alunos">—</div>
+              <div class="stat-label">Alunos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+              <div class="stat-value" id="stat-pendencias">—</div>
+              <div class="stat-label">Pendências</div>
+            </div>
+          </div>
+
+          <div class="turmas-nav-grid">
+            <button class="nav-card blue" onclick="navTo('turmas')">
+              <span class="card-icon">🏫</span>
+              <div><div class="card-label">Turmas</div><div class="card-sub">Gerenciar turmas e alunos</div></div>
+            </button>
+            <button class="nav-card teal" onclick="navTo('professores')">
+              <span class="card-icon">👨‍🏫</span>
+              <div><div class="card-label">Professores</div><div class="card-sub">Gestão de docentes</div></div>
+            </button>
+            <button class="nav-card orange" onclick="navTo('alertas')">
+              <span class="card-icon">⚠️</span>
+              <div><div class="card-label">Alertas</div><div class="card-sub">Pendências e avisos</div></div>
+            </button>
+            <button class="nav-card violet" onclick="navTo('documentos')">
+              <span class="card-icon">📁</span>
+              <div><div class="card-label">Documentos</div><div class="card-sub">Calendário e comunicados</div></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ PÁGINA: TURMAS ══ -->
+        <div class="page" id="page-turmas">
+
+          <!-- LISTA DE TURMAS -->
+          <div id="view-turmas">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+              <div>
+                <div style="font-size:20px;font-weight:700;color:var(--text);">Turmas</div>
+                <div style="font-size:13px;color:var(--text-muted);">Selecione uma turma para ver detalhes</div>
+              </div>
+            </div>
+
+            <div class="section" style="margin-bottom:20px;">
+              <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="search-input" placeholder="Buscar turma..." oninput="filtrarTurmas(this.value)"/>
+              </div>
+              <div style="padding:16px 20px;">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="filtros-turno">
+                  <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;align-self:center;">Turno:</span>
+                  <button onclick="filtroTurno('')" id="ft-todos" class="tab-btn active" style="padding:5px 14px;font-size:12px;">Todos</button>
+                  <button onclick="filtroTurno('Manhã')" id="ft-manha" class="tab-btn" style="padding:5px 14px;font-size:12px;">Manhã</button>
+                  <button onclick="filtroTurno('Tarde')" id="ft-tarde" class="tab-btn" style="padding:5px 14px;font-size:12px;">Tarde</button>
+                  <button onclick="filtroTurno('Noite')" id="ft-noite" class="tab-btn" style="padding:5px 14px;font-size:12px;">Noite</button>
+                  <button onclick="filtroTurno('Integral')" id="ft-integral" class="tab-btn" style="padding:5px 14px;font-size:12px;">Integral</button>
+                </div>
+                <div class="turmas-grid" id="turmas-grid">
+                  <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">Carregando turmas...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DETALHE DA TURMA -->
+          <div id="view-turma-detalhe" style="display:none;">
+            <button class="back-btn" onclick="voltarTurmas()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Voltar às turmas
+            </button>
+
+            <div class="section" style="margin-bottom:16px;">
+              <div class="section-header">
+                <div>
+                  <div style="font-size:16px;font-weight:700;color:var(--text);" id="det-turma-nome">—</div>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="det-turma-meta">—</div>
+                </div>
+              </div>
+              <!-- ABAS DA TURMA -->
+              <div style="display:flex;border-top:1px solid var(--border);">
+                <button id="tab-alunos" onclick="tabTurma('alunos')" style="flex:1;padding:11px 8px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--purple);border-bottom:2px solid var(--purple);">Alunos</button>
+                <button id="tab-disciplinas" onclick="tabTurma('disciplinas')" style="flex:1;padding:11px 8px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;">Disciplinas</button>
+                <button id="tab-ocorrencias" onclick="tabTurma('ocorrencias')" style="flex:1;padding:11px 8px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;">Ocorrências</button>
+                <button id="tab-fechamento" onclick="tabTurma('fechamento')" style="flex:1;padding:11px 8px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;">Fechar Período</button>
+              </div>
+            </div>
+
+            <!-- ABA ALUNOS -->
+            <div id="painel-alunos">
+              <div class="section">
+                <div class="section-header">
+                  <span class="section-title">Alunos da turma</span>
+                  <span class="section-count" id="count-alunos-turma">0 alunos</span>
+                </div>
+                <div class="search-bar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input class="search-input" placeholder="Buscar aluno..." oninput="filtrarAlunosTurma(this.value)"/>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead>
+                    <tbody id="tb-alunos-turma"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ABA DISCIPLINAS -->
+            <div id="painel-disciplinas" style="display:none;">
+              <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Clique em uma disciplina para ver notas e frequência do professor responsável.</div>
+              <div class="disc-grid" id="disc-grid">
+                <div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">Carregando disciplinas...</div>
+              </div>
+            </div>
+
+            <!-- ABA OCORRÊNCIAS -->
+            <div id="painel-ocorrencias" style="display:none;">
+              <div class="section">
+                <div class="section-header">
+                  <span class="section-title">Ocorrências da turma</span>
+                  <span class="section-count" id="count-ocr-turma">—</span>
+                </div>
+                <div id="lista-ocr-turma" style="padding:16px 20px;">
+                  <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ABA FECHAR PERÍODO -->
+            <div id="painel-fechamento" style="display:none;">
+              <div class="section">
+                <div class="section-header">
+                  <span class="section-title">Fechar / Reabrir Período</span>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="font-size:12px;font-weight:600;color:var(--text-muted);">Trimestre:</label>
+                    <select id="sel-tri-fechamento" onchange="carregarFechamentoTurma()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;background:var(--bg);color:var(--text);outline:none;">
+                      <option value="1">1º Trimestre</option>
+                      <option value="2">2º Trimestre</option>
+                      <option value="3">3º Trimestre</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="padding:20px;" id="painel-fechamento-content">
+                  <div style="text-align:center;padding:32px;color:var(--text-muted);">Carregando...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- VISÃO PROFESSOR / DISCIPLINA -->
+          <div id="view-disciplina" style="display:none;">
+            <button class="back-btn" onclick="voltarDisciplinas()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Voltar às disciplinas
+            </button>
+            <div class="section" style="margin-bottom:16px;">
+              <div class="section-header">
+                <div>
+                  <div style="font-size:15px;font-weight:700;color:var(--text);" id="disc-view-titulo">—</div>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="disc-view-sub">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-header">
+                <span class="section-title">Relatório de Notas e Frequência</span>
+                <select id="sel-disc-tri" onchange="carregarRelatorioDisc()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;background:var(--bg);color:var(--text);outline:none;">
+                  <option value="1">1º Trimestre</option>
+                  <option value="2">2º Trimestre</option>
+                  <option value="3">3º Trimestre</option>
+                </select>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Aluno</th><th>Nota</th><th>Faltas</th><th>Situação</th></tr></thead>
+                  <tbody id="tb-relatorio-disc"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PÁGINA: PROFESSORES ══ -->
+        <div class="page" id="page-professores">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div style="font-size:20px;font-weight:700;color:var(--text);">Professores</div>
+              <div style="font-size:13px;color:var(--text-muted);">Gerencie os docentes da escola</div>
+            </div>
+            <button class="btn-primary" onclick="abrirModalNovoProfessor()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo professor
+            </button>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <span class="section-title">Corpo docente</span>
+              <span class="section-count" id="count-professores">0 professores</span>
+            </div>
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="search-input" placeholder="Buscar professor..." oninput="filtrarProfessores(this.value)"/>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nome</th><th>Login</th><th>Turmas</th><th>Status</th><th>Ações</th></tr></thead>
+                <tbody id="tb-professores"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">Carregando...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PÁGINA: ALERTAS ══ -->
+        <div class="page" id="page-alertas">
+          <div style="margin-bottom:20px;">
+            <div style="font-size:20px;font-weight:700;color:var(--text);">Alertas e Pendências</div>
+            <div style="font-size:13px;color:var(--text-muted);">Turmas e professores com pendências no sistema</div>
+          </div>
+
+          <div class="section" style="margin-bottom:16px;">
+            <div class="section-header">
+              <span class="section-title">⚠️ Aulas sem chamada registrada</span>
+              <span class="section-count" id="count-alerta-chamada">—</span>
+            </div>
+            <div id="lista-alerta-chamada">
+              <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+            </div>
+          </div>
+
+          <div class="section" style="margin-bottom:16px;">
+            <div class="section-header">
+              <span class="section-title">📊 Turmas sem notas no trimestre atual</span>
+              <span class="section-count" id="count-alerta-notas">—</span>
+            </div>
+            <div id="lista-alerta-notas">
+              <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section-header">
+              <span class="section-title">🔒 Turmas com período ainda aberto</span>
+              <span class="section-count" id="count-alerta-fechamento">—</span>
+            </div>
+            <div id="lista-alerta-fechamento">
+              <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ PÁGINA: DOCUMENTOS ══ -->
+        <div class="page" id="page-documentos">
+          <div style="margin-bottom:20px;">
+            <div style="font-size:20px;font-weight:700;color:var(--text);">Documentos e Calendário</div>
+            <div style="font-size:13px;color:var(--text-muted);">Calendário escolar, feriados e comunicados</div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab-btn active" id="doc-tab-calendario" onclick="docTab('calendario')">📅 Calendário</button>
+            <button class="tab-btn" id="doc-tab-comunicados" onclick="docTab('comunicados')">📢 Comunicados</button>
+          </div>
+
+          <!-- CALENDÁRIO -->
+          <div id="doc-painel-calendario">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+              <button class="btn-primary" onclick="abrirModalEvento()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo evento
+              </button>
+            </div>
+
+            <div class="section" style="margin-bottom:16px;">
+              <div style="padding:20px;">
+                <div class="cal-header">
+                  <button class="cal-nav" onclick="calNavMes(-1)">‹</button>
+                  <span class="cal-month" id="cal-dir-label">—</span>
+                  <button class="cal-nav" onclick="calNavMes(1)">›</button>
+                </div>
+                <div class="cal-grid" id="cal-dir-labels"></div>
+                <div class="cal-grid" id="cal-dir-grid"></div>
+                <div class="cal-legend">
+                  <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#FEE2E2;"></div>Feriado</div>
+                  <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#DCFCE7;"></div>Sábado letivo</div>
+                  <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#F1F5F9;"></div>Recesso</div>
+                  <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#DBEAFE;"></div>Evento</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <div class="section-header">
+                <span class="section-title">Eventos cadastrados</span>
+                <span class="section-count" id="count-eventos">0 eventos</span>
+              </div>
+              <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input class="search-input" placeholder="Buscar evento..." oninput="filtrarEventos(this.value)"/>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th>Ações</th></tr></thead>
+                  <tbody id="tb-eventos"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- COMUNICADOS -->
+          <div id="doc-painel-comunicados" style="display:none;">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+              <button class="btn-primary" onclick="abrirModalComunicado()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Novo comunicado
+              </button>
+            </div>
+            <div class="section">
+              <div class="section-header">
+                <span class="section-title">Comunicados</span>
+                <span class="section-count" id="count-comunicados">0</span>
+              </div>
+              <div id="lista-comunicados" style="padding:16px 20px;">
+                <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- fim col-main -->
+    </div><!-- fim layout-wrapper -->
+  </div><!-- fim content -->
+</main>
+
+<!-- ══ MODAL: NOVO PROFESSOR ══ -->
+<div class="modal-overlay" id="modal-professor" onclick="fecharModalOutside(event,'modal-professor')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-professor-titulo">Novo professor</div>
+      <button class="modal-close" onclick="fecharModal('modal-professor')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert-box error" id="modal-prof-erro" style="display:none;"></div>
+      <div class="field"><label>Nome completo</label><input type="text" id="prof-nome" placeholder="Nome do professor"/></div>
+      <div class="field"><label>Login</label><input type="text" id="prof-login" placeholder="Login de acesso"/></div>
+      <div class="field"><label>Senha</label><input type="password" id="prof-senha" placeholder="Senha inicial"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-professor')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-prof" onclick="salvarProfessor()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: COMPONENTE (DISCIPLINA) ══ -->
+<div class="modal-overlay" id="modal-componente" onclick="fecharModalOutside(event,'modal-componente')">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">Selecionar Componente</div>
+      <button class="modal-close" onclick="fecharModal('modal-componente')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" id="modal-comp-sub">Selecione o componente que deseja visualizar:</div>
+      <div class="disc-grid" id="modal-comp-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">Carregando...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: EVENTO CALENDÁRIO ══ -->
+<div class="modal-overlay" id="modal-evento" onclick="fecharModalOutside(event,'modal-evento')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-evento-titulo">Novo evento</div>
+      <button class="modal-close" onclick="fecharModal('modal-evento')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert-box error" id="modal-evento-erro" style="display:none;"></div>
+      <div class="field"><label>Tipo</label>
+        <select id="evento-tipo">
+          <option value="feriado_municipal">Feriado municipal</option>
+          <option value="feriado_estadual">Feriado estadual</option>
+          <option value="sabado_letivo">Sábado letivo</option>
+          <option value="recesso">Recesso</option>
+          <option value="reposicao">Reposição</option>
+          <option value="evento">Evento</option>
+        </select>
+      </div>
+      <div class="field"><label>Descrição</label><input type="text" id="evento-desc" placeholder="Descrição do evento"/></div>
+      <div class="field-row">
+        <div class="field" style="margin-bottom:0;"><label>Data início</label><input type="date" id="evento-data-ini"/></div>
+        <div class="field" style="margin-bottom:0;"><label>Data fim (opcional)</label><input type="date" id="evento-data-fim"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-evento')">Cancelar</button>
+      <button class="btn-save" onclick="salvarEvento()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: COMUNICADO ══ -->
+<div class="modal-overlay" id="modal-comunicado" onclick="fecharModalOutside(event,'modal-comunicado')">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Novo comunicado</div>
+      <button class="modal-close" onclick="fecharModal('modal-comunicado')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Título</label><input type="text" id="com-titulo" placeholder="Título do comunicado"/></div>
+      <div class="field"><label>Conteúdo</label><textarea id="com-corpo" placeholder="Texto do comunicado..." style="min-height:120px;"></textarea></div>
+      <div class="field"><label>Destinatários</label>
+        <select id="com-dest">
+          <option value="todos">Todos os professores</option>
+          <option value="geral">Geral (escola toda)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-comunicado')">Cancelar</button>
+      <button class="btn-save" onclick="salvarComunicado()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Publicar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG SUPABASE
+// ══════════════════════════════════════════
+const SUPABASE_URL = 'https://biocjxggjjfeqmpuysik.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb2NqeGdnampmZXFtcHV5c2lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODUwOTQsImV4cCI6MjA4OTc2MTA5NH0.3bL3dKqiWGoHROE6vSzf-7Orp0GLcLpn4mHtUSwC0dU';
+
+const escHtml = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const api = async (path, opts = {}) => {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...opts.headers
+    },
+    ...opts
+  });
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Erro na requisição');
+  }
+  if (res.status === 204) return null;
+  return res.json();
+};
+
+// ══════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════
+let dirData = {};
+let escolaId = null;
+let todasTurmas = [];
+let turmasCache = [];
+let professoresCache = [];
+let alunosTurmaCache = [];
+let turmaAtiva = null;
+let disciplinaAtiva = null;
+let eventosCache = [];
+let comunicadosCache = [];
+let calState = { ano: new Date().getFullYear(), mes: new Date().getMonth() };
+
+// ══════════════════════════════════════════
+// SESSÃO
+// ══════════════════════════════════════════
+const session = JSON.parse(sessionStorage.getItem('ded_user') || 'null');
+if (!session || !['diretor', 'admin'].includes(session.role)) {
+  window.location.href = 'index.html';
+}
+
+// ══════════════════════════════════════════
+// INICIALIZAÇÃO
+// ══════════════════════════════════════════
+async function init() {
+  try {
+    // Buscar dados do diretor
+    const profRes = await api(`professores?id_login=eq.${encodeURIComponent(session.login)}&select=*,escolas(*)&limit=1`);
+    if (profRes && profRes[0]) {
+      dirData = profRes[0];
+      escolaId = dirData.escola_id || dirData.escolas?.id;
+    }
+
+    const nome = dirData.nome || session.login || 'Diretor(a)';
+    const escola = dirData.escolas?.nome || '—';
+
+    // Preencher UI
+    document.getElementById('dir-nome-bv').textContent = nome.split(' ')[0];
+    document.getElementById('dir-escola-bv').textContent = escola;
+    document.getElementById('desk-dir-nome').textContent = nome;
+    document.getElementById('desk-dir-escola').textContent = escola;
+    document.getElementById('mob-dir-nome').textContent = nome;
+    document.getElementById('mob-dir-escola').textContent = escola;
+    document.getElementById('bar-escola').textContent = escola;
+    document.getElementById('bar-info').textContent = 'SIDED+ — Diretor(a)';
+    document.getElementById('bar-bem-vindo').textContent = `Olá, ${nome.split(' ')[0]}`;
+
+    await carregarStats();
+  } catch(e) {
+    console.error('[SIDED+] Init error:', e);
+    mostrarToast('Erro ao carregar dados. Verifique a conexão.');
+  }
+}
+
+async function carregarStats() {
+  if (!escolaId) return;
+  try {
+    const [turmas, profs, alunos, chamadas, avaliacoes] = await Promise.all([
+      api(`turmas?escola_id=eq.${escolaId}&select=id`),
+      api(`professores?escola_id=eq.${escolaId}&select=id`),
+      api(`alunos?select=id&turma_id=in.(${(await api(`turmas?escola_id=eq.${escolaId}&select=id`) || []).map(t=>t.id).join(',')||'0'})`).catch(()=>[]),
+      api(`aulas?turma_id=in.(${(await api(`turmas?escola_id=eq.${escolaId}&select=id`) || []).map(t=>t.id).join(',')||'0'})&status=eq.pendente&select=id`).catch(()=>[]),
+      []
+    ]);
+
+    const numTurmas = (turmas||[]).length;
+    const numProfs = (profs||[]).length;
+    const numAlunos = (alunos||[]).length;
+    const numPend = (chamadas||[]).length;
+
+    document.getElementById('stat-turmas').textContent = numTurmas;
+    document.getElementById('stat-professores').textContent = numProfs;
+    document.getElementById('stat-alunos').textContent = numAlunos;
+    document.getElementById('stat-pendencias').textContent = numPend;
+
+    // badge alertas
+    if (numPend > 0) {
+      document.getElementById('desk-badge-alertas').textContent = numPend;
+      document.getElementById('desk-badge-alertas').style.display = 'inline';
+      document.getElementById('mob-badge-alertas').textContent = numPend;
+    }
+  } catch(e) { console.error('[SIDED+] Stats error:', e); }
+}
+
+// ══════════════════════════════════════════
+// NAVEGAÇÃO
+// ══════════════════════════════════════════
+let paginaAtual = 'inicio';
+
+function navTo(pagina) {
+  paginaAtual = pagina;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${pagina}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById(`nav-${pagina}`);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('mh-title').textContent = { inicio:'SIDED+', turmas:'Turmas', professores:'Professores', alertas:'Alertas', documentos:'Documentos' }[pagina] || 'SIDED+';
+
+  if (pagina === 'turmas') carregarTurmasLista();
+  else if (pagina === 'professores') carregarProfessores();
+  else if (pagina === 'alertas') carregarAlertas();
+  else if (pagina === 'documentos') { carregarEventos(); carregarComunicados(); renderCalendario(); }
+}
+
+// ══════════════════════════════════════════
+// TURMAS
+// ══════════════════════════════════════════
+let filtroTurnoAtivo = '';
+let filtroBuscaTurma = '';
+
+async function carregarTurmasLista() {
+  if (!escolaId) return;
+  const grid = document.getElementById('turmas-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">Carregando...</div>';
+  try {
+    todasTurmas = await api(`turmas?escola_id=eq.${escolaId}&select=*,escolas(nome)&order=nome`) || [];
+    turmasCache = todasTurmas;
+    renderTurmas(todasTurmas);
+  } catch(e) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--danger);">Erro ao carregar turmas.</div>'; }
+}
+
+function renderTurmas(list) {
+  const grid = document.getElementById('turmas-grid');
+  if (!list.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text-muted);">Nenhuma turma encontrada</div>';
+    return;
+  }
+  grid.innerHTML = list.map(t => `
+    <div class="turma-card" onclick='abrirTurma(${JSON.stringify(t)})'>
+      <div class="turma-ano">${t.ano || '—'}</div>
+      <div class="turma-codigo">${t.codigo || t.nome}</div>
+      <div class="turma-info">${t.nome || ''}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="turma-turno">${t.turno || '—'}</span>
+        <span class="badge blue">${t.disciplina || 'Multi'}</span>
+      </div>
+    </div>`).join('');
+}
+
+function filtrarTurmas(q) {
+  filtroBuscaTurma = q.toLowerCase();
+  aplicarFiltrosTurma();
+}
+
+function filtroTurno(turno) {
+  filtroTurnoAtivo = turno;
+  document.querySelectorAll('[id^="ft-"]').forEach(b => b.classList.remove('active'));
+  const id = turno === '' ? 'ft-todos' : `ft-${turno.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`;
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  aplicarFiltrosTurma();
+}
+
+function aplicarFiltrosTurma() {
+  let list = todasTurmas;
+  if (filtroTurnoAtivo) list = list.filter(t => t.turno === filtroTurnoAtivo);
+  if (filtroBuscaTurma) list = list.filter(t => JSON.stringify(t).toLowerCase().includes(filtroBuscaTurma));
+  renderTurmas(list);
+}
+
+async function abrirTurma(turma) {
+  turmaAtiva = turma;
+  document.getElementById('view-turmas').style.display = 'none';
+  document.getElementById('view-turma-detalhe').style.display = 'block';
+  document.getElementById('view-disciplina').style.display = 'none';
+  document.getElementById('det-turma-nome').textContent = `${turma.codigo || ''} — ${turma.nome}`;
+  document.getElementById('det-turma-meta').textContent = `${turma.ano || ''} · ${turma.turno || ''} · ${turma.escolas?.nome || ''}`;
+  tabTurma('alunos');
+}
+
+function voltarTurmas() {
+  document.getElementById('view-turmas').style.display = 'block';
+  document.getElementById('view-turma-detalhe').style.display = 'none';
+  document.getElementById('view-disciplina').style.display = 'none';
+  turmaAtiva = null;
+}
+
+function tabTurma(aba) {
+  ['alunos','disciplinas','ocorrencias','fechamento'].forEach(a => {
+    document.getElementById(`painel-${a}`).style.display = a === aba ? 'block' : 'none';
+    const btn = document.getElementById(`tab-${a}`);
+    if (btn) {
+      btn.style.color = a === aba ? 'var(--purple)' : 'var(--text-muted)';
+      btn.style.borderBottom = a === aba ? '2px solid var(--purple)' : '2px solid transparent';
+    }
+  });
+  if (aba === 'alunos') carregarAlunosTurma();
+  else if (aba === 'disciplinas') carregarDisciplinasTurma();
+  else if (aba === 'ocorrencias') carregarOcorrenciasTurma();
+  else if (aba === 'fechamento') carregarFechamentoTurma();
+}
+
+async function carregarAlunosTurma() {
+  if (!turmaAtiva) return;
+  const tb = document.getElementById('tb-alunos-turma');
+  tb.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>';
+  try {
+    alunosTurmaCache = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
+    document.getElementById('count-alunos-turma').textContent = `${alunosTurmaCache.length} alunos`;
+    renderAlunosTurma(alunosTurmaCache);
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar alunos.</td></tr>';
+  }
+}
+
+function renderAlunosTurma(list) {
+  const tb = document.getElementById('tb-alunos-turma');
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum aluno cadastrado</td></tr>'; return; }
+  tb.innerHTML = list.map(a => `
+    <tr>
+      <td><strong>${escHtml(a.nome_completo)}</strong>${a.remanejado ? '<span style="margin-left:6px;background:#DCFCE7;color:#166534;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;">Remanejado</span>' : ''}</td>
+      <td><span class="badge ${a.remanejado ? 'teal' : 'green'}">${a.remanejado ? 'Remanejado' : 'Ativo'}</span></td>
+      <td><div class="action-btns"></div></td>
+    </tr>`).join('');
+}
+
+function filtrarAlunosTurma(q) {
+  const f = alunosTurmaCache.filter(a => a.nome_completo.toLowerCase().includes(q.toLowerCase()));
+  renderAlunosTurma(f);
+}
+
+async function carregarDisciplinasTurma() {
+  if (!turmaAtiva) return;
+  const grid = document.getElementById('disc-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">Carregando disciplinas...</div>';
+  try {
+    // Buscar professor_turmas (vínculos professor + turma + disciplina)
+    const vinculos = await api(`professor_turmas?turma_id=eq.${turmaAtiva.id}&select=*,professores(id,nome)`) || [];
+    if (!vinculos.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);">Nenhuma disciplina vinculada</div>';
+      return;
+    }
+    const disciplinas = [...new Set(vinculos.map(v => v.disciplina).filter(Boolean))].sort();
+    grid.innerHTML = disciplinas.map(disc => {
+      const prof = vinculos.find(v => v.disciplina === disc);
+      return `<div class="disc-card" onclick='abrirDisciplina("${escHtml(disc)}", ${JSON.stringify(prof?.professores || {})})'>
+        <div class="disc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+        <div>
+          <div class="disc-nome">${escHtml(disc)}</div>
+          <div class="disc-prof">Prof.: ${escHtml(prof?.professores?.nome || '—')}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--danger);">Erro ao carregar disciplinas.</div>';
+  }
+}
+
+async function abrirDisciplina(disc, professor) {
+  disciplinaAtiva = { disc, professor };
+  document.getElementById('view-turma-detalhe').style.display = 'none';
+  document.getElementById('view-disciplina').style.display = 'block';
+  document.getElementById('disc-view-titulo').textContent = `${disc} — ${turmaAtiva.nome}`;
+  document.getElementById('disc-view-sub').textContent = `Prof.: ${professor.nome || '—'} · ${turmaAtiva.turno || ''} · ${turmaAtiva.ano || ''}`;
+  await carregarRelatorioDisc();
+}
+
+function voltarDisciplinas() {
+  document.getElementById('view-turma-detalhe').style.display = 'block';
+  document.getElementById('view-disciplina').style.display = 'none';
+  tabTurma('disciplinas');
+}
+
+async function carregarRelatorioDisc() {
+  if (!turmaAtiva || !disciplinaAtiva) return;
+  const tri = parseInt(document.getElementById('sel-disc-tri').value || '1');
+  const tb = document.getElementById('tb-relatorio-disc');
+  tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>';
+  try {
+    const [alunos, avaliacoes, chamadas, notas] = await Promise.all([
+      api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`),
+      api(`avaliacoes?turma_id=eq.${turmaAtiva.id}&disciplina=eq.${encodeURIComponent(disciplinaAtiva.disc)}&trimestre=eq.${tri}&select=*`),
+      api(`aulas?turma_id=eq.${turmaAtiva.id}&select=id,data`),
+      api(`notas?turma_id=eq.${turmaAtiva.id}&disciplina=eq.${encodeURIComponent(disciplinaAtiva.disc)}&select=*`)
+    ]);
+
+    const mapNotas = {};
+    (notas||[]).forEach(n => { mapNotas[`${n.aluno_id}_${n.avaliacao_id}`] = n; });
+    const mapFaltas = {};
+    if ((chamadas||[]).length) {
+      const chamIds = (chamadas||[]).map(c => c.id).join(',');
+      if (chamIds) {
+        const faltas = await api(`chamadas?aula_id=in.(${chamIds})&presente=eq.false&select=aluno_id`).catch(()=>[]);
+        (faltas||[]).forEach(f => { mapFaltas[f.aluno_id] = (mapFaltas[f.aluno_id] || 0) + 1; });
+      }
+    }
+
+    const avNorm = (avaliacoes||[]).filter(a => a.tipo !== 'recuperacao');
+    const maxPontos = avNorm.reduce((s, a) => s + Number(a.pontos || 0), 0);
+    const mediaAprov = maxPontos * 0.6;
+
+    tb.innerHTML = (alunos||[]).map(a => {
+      const soma = avNorm.reduce((s, av) => {
+        const n = mapNotas[`${a.id}_${av.id}`];
+        return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0);
+      }, 0);
+      const faltas = mapFaltas[a.id] || 0;
+      const sit = soma >= mediaAprov ? 'Aprovado' : 'Em risco';
+      const sitClass = soma >= mediaAprov ? 'green' : 'red';
+      return `<tr>
+        <td><strong>${escHtml(a.nome_completo)}</strong></td>
+        <td><strong style="color:${soma < mediaAprov ? '#DC2626' : 'var(--text)'};">${soma.toFixed(1)}</strong><span style="font-size:11px;color:var(--text-muted);">/${maxPontos}</span></td>
+        <td>${faltas > 0 ? `<span style="color:#DC2626;font-weight:700;">${faltas}</span>` : faltas}</td>
+        <td><span class="badge ${sitClass}">${sit}</span></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum aluno</td></tr>';
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar relatório.</td></tr>';
+  }
+}
+
+async function carregarOcorrenciasTurma() {
+  if (!turmaAtiva) return;
+  const el = document.getElementById('lista-ocr-turma');
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);">Carregando...</div>';
+  try {
+    const ocrs = await api(`ocorrencias?turma_id=eq.${turmaAtiva.id}&select=*,professores(nome)&order=created_at.desc`) || [];
+    document.getElementById('count-ocr-turma').textContent = `${ocrs.length} registros`;
+    if (!ocrs.length) {
+      el.innerHTML = '<div style="text-align:center;padding:32px;color:#16A34A;font-size:13px;font-weight:600;">✅ Nenhuma ocorrência registrada</div>';
+      return;
+    }
+    el.innerHTML = ocrs.map(o => {
+      const dataFmt = o.dataAto ? o.dataAto.split('-').reverse().join('/') : (o.created_at ? new Date(o.created_at).toLocaleDateString('pt-BR') : '—');
+      return `<div class="ocr-card">
+        <div class="ocr-header">
+          <span class="ocr-nome">${escHtml(o.alunoNome || '—')}</span>
+          <span class="ocr-meta">${dataFmt} · Prof.: ${escHtml(o.professores?.nome || '—')}</span>
+        </div>
+        <div class="ocr-grid">
+          <div>
+            <div class="ocr-label">Motivo(s)</div>
+            <div class="ocr-val">${escHtml(Array.isArray(o.motivos) ? o.motivos.join(', ') : (o.motivos||'—'))}</div>
+          </div>
+          <div>
+            <div class="ocr-label">Consequência(s)</div>
+            <div class="ocr-val">${escHtml(Array.isArray(o.consequencias) ? o.consequencias.join(', ') : (o.consequencias||'—'))}</div>
+          </div>
+        </div>
+        ${o.obs ? `<div style="margin-top:10px;padding-top:10px;border-top:1px solid #FBBFBF;font-size:12px;color:var(--text);"><strong style="color:var(--text-muted);">Obs: </strong>${escHtml(o.obs)}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar ocorrências.</div>';
+  }
+}
+
+async function carregarFechamentoTurma() {
+  if (!turmaAtiva) return;
+  const tri = parseInt(document.getElementById('sel-tri-fechamento').value || '1');
+  const el = document.getElementById('painel-fechamento-content');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</div>';
+  try {
+    const fechados = await api(`trimestres_fechados?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${tri}&select=*,professores(nome)`) || [];
+    const fechadosAbertos = fechados.filter(f => !f.aberto_em);
+    const estaFechado = fechadosAbertos.length > 0;
+    const dataFechamento = estaFechado ? new Date(fechadosAbertos[0].fechado_em).toLocaleDateString('pt-BR') : null;
+
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;padding:16px;background:${estaFechado?'#F0FDF4':'#FFFBEB'};border:1.5px solid ${estaFechado?'#BBF7D0':'#FCD34D'};border-radius:12px;margin-bottom:16px;">
+        <div style="font-size:28px;">${estaFechado?'🔒':'🔓'}</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:${estaFechado?'#16A34A':'#92400E'};">${estaFechado?'Período fechado':'Período em aberto'}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${estaFechado?`Fechado em ${dataFechamento}`:tri+'º Trimestre ainda não foi fechado'}</div>
+        </div>
+      </div>
+      ${estaFechado ? `
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-primary orange" onclick="reabrirPeriodo(${fechadosAbertos[0].id})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Reabrir período
+          </button>
+        </div>` : `
+        <div style="font-size:13px;color:var(--text-muted);padding:12px 0;">O professor responsável pode fechar o período pelo painel dele. Como diretor, você pode reabrir após o fechamento.</div>`}
+    `;
+  } catch(e) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar status do período.</div>';
+  }
+}
+
+async function reabrirPeriodo(id) {
+  if (!confirm('Confirmar reabertura do período? O professor poderá editar dados novamente.')) return;
+  try {
+    await api(`trimestres_fechados?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ aberto_em: new Date().toISOString() }) });
+    mostrarToast('Período reaberto com sucesso!');
+    carregarFechamentoTurma();
+  } catch(e) { mostrarToast('Erro ao reabrir período.'); }
+}
+
+// ══════════════════════════════════════════
+// PROFESSORES
+// ══════════════════════════════════════════
+let editProfId = null;
+
+async function carregarProfessores() {
+  if (!escolaId) return;
+  const tb = document.getElementById('tb-professores');
+  tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>';
+  try {
+    professoresCache = await api(`professores?escola_id=eq.${escolaId}&select=*&order=nome`) || [];
+    document.getElementById('count-professores').textContent = `${professoresCache.length} professores`;
+    renderProfessores(professoresCache);
+  } catch(e) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar professores.</td></tr>';
+  }
+}
+
+async function renderProfessores(list) {
+  const tb = document.getElementById('tb-professores');
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum professor cadastrado</td></tr>'; return; }
+
+  // Buscar turmas de cada professor
+  const ids = list.map(p => p.id).join(',');
+  let vincMap = {};
+  if (ids) {
+    const vincs = await api(`professor_turmas?professor_id=in.(${ids})&select=professor_id,turmas(nome,codigo)`).catch(()=>[]) || [];
+    vincs.forEach(v => {
+      if (!vincMap[v.professor_id]) vincMap[v.professor_id] = [];
+      vincMap[v.professor_id].push(v.turmas?.codigo || v.turmas?.nome || '');
+    });
+  }
+
+  tb.innerHTML = list.map(p => {
+    const turmasProf = (vincMap[p.id] || []).slice(0,3).join(', ') + ((vincMap[p.id]||[]).length > 3 ? ` +${(vincMap[p.id]||[]).length-3}` : '');
+    return `<tr>
+      <td><strong>${escHtml(p.nome)}</strong></td>
+      <td><code style="font-size:11px;background:#F4F2FF;padding:2px 7px;border-radius:4px;">${escHtml(p.id_login || '')}</code></td>
+      <td style="font-size:12px;color:var(--text-muted);">${turmasProf || '—'}</td>
+      <td><span class="badge green">Ativo</span></td>
+      <td onclick="event.stopPropagation()">
+        <div class="action-btns">
+          <button class="btn-action" onclick='editarProfessor(${JSON.stringify(p)})'>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Editar
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarProfessores(q) {
+  const f = professoresCache.filter(p => JSON.stringify(p).toLowerCase().includes(q.toLowerCase()));
+  renderProfessores(f);
+}
+
+function abrirModalNovoProfessor() {
+  editProfId = null;
+  document.getElementById('modal-professor-titulo').textContent = 'Novo professor';
+  document.getElementById('prof-nome').value = '';
+  document.getElementById('prof-login').value = '';
+  document.getElementById('prof-senha').value = '';
+  document.getElementById('prof-senha').required = true;
+  document.getElementById('modal-prof-erro').style.display = 'none';
+  document.getElementById('modal-professor').classList.add('open');
+}
+
+function editarProfessor(prof) {
+  editProfId = prof.id;
+  document.getElementById('modal-professor-titulo').textContent = 'Editar professor';
+  document.getElementById('prof-nome').value = prof.nome || '';
+  document.getElementById('prof-login').value = prof.id_login || '';
+  document.getElementById('prof-senha').value = '';
+  document.getElementById('prof-senha').required = false;
+  document.getElementById('modal-prof-erro').style.display = 'none';
+  document.getElementById('modal-professor').classList.add('open');
+}
+
+async function salvarProfessor() {
+  const nome = document.getElementById('prof-nome').value.trim();
+  const login = document.getElementById('prof-login').value.trim();
+  const senha = document.getElementById('prof-senha').value.trim();
+  const erroEl = document.getElementById('modal-prof-erro');
+  const btn = document.getElementById('btn-salvar-prof');
+
+  if (!nome || !login) { erroEl.textContent = 'Nome e login são obrigatórios.'; erroEl.style.display = 'block'; return; }
+  if (!editProfId && !senha) { erroEl.textContent = 'Senha é obrigatória para novo professor.'; erroEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  try {
+    if (editProfId) {
+      const payload = { nome };
+      await api(`professores?id=eq.${editProfId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      if (senha) {
+        await api(`users?login=eq.${encodeURIComponent(login)}`, { method: 'PATCH', body: JSON.stringify({ password: senha }) }).catch(()=>{});
+      }
+    } else {
+      // Criar user e professor
+      const userRes = await api('users', { method: 'POST', body: JSON.stringify({ login, password: senha, role: 'professor' }) });
+      const userId = (userRes && userRes[0]) ? userRes[0].id : null;
+      await api('professores', { method: 'POST', body: JSON.stringify({ nome, id_login: login, escola_id: escolaId, user_id: userId }) });
+    }
+    mostrarToast(editProfId ? 'Professor atualizado!' : 'Professor criado com sucesso!');
+    fecharModal('modal-professor');
+    carregarProfessores();
+  } catch(e) {
+    erroEl.textContent = 'Erro ao salvar: ' + e.message;
+    erroEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+// ══════════════════════════════════════════
+// ALERTAS
+// ══════════════════════════════════════════
+async function carregarAlertas() {
+  if (!escolaId) return;
+  try {
+    const turmas = await api(`turmas?escola_id=eq.${escolaId}&select=id,nome,codigo,turno,professor_turmas(professor_id,disciplina,professores(nome))`) || [];
+
+    // Aulas pendentes (sem chamada salva)
+    carregarAlertasChamada(turmas);
+    carregarAlertasNotas(turmas);
+    carregarAlertasFechamento(turmas);
+  } catch(e) {
+    console.error('[ALERTAS]', e);
+  }
+}
+
+async function carregarAlertasChamada(turmas) {
+  const el = document.getElementById('lista-alerta-chamada');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</div>';
+  try {
+    const ids = turmas.map(t => t.id).join(',');
+    if (!ids) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhuma pendência encontrada</div></div>'; return; }
+    const aulas = await api(`aulas?turma_id=in.(${ids})&status=eq.pendente&select=id,data,turma_id,turmas(nome,codigo),professor_id,professores(nome)&order=data.desc&limit=20`) || [];
+    document.getElementById('count-alerta-chamada').textContent = `${aulas.length} pendências`;
+    if (!aulas.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhuma aula com chamada pendente</div></div>'; return; }
+    el.innerHTML = aulas.map(a => {
+      const data = a.data ? new Date(a.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      return `<div class="alerta-item">
+        <div class="alerta-icon orange"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF8C38" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+        <div style="flex:1;">
+          <div class="alerta-titulo">${escHtml(a.turmas?.codigo || a.turmas?.nome || '—')}</div>
+          <div class="alerta-sub">Aula de ${data} · Prof.: ${escHtml(a.professores?.nome || '—')}</div>
+        </div>
+        <span class="alerta-badge orange">Pendente</span>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar.</div>'; }
+}
+
+async function carregarAlertasNotas(turmas) {
+  const el = document.getElementById('lista-alerta-notas');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Verificando...</div>';
+  const tri = detectarTri();
+  try {
+    const ids = turmas.map(t => t.id).join(',');
+    if (!ids) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhuma pendência</div></div>'; return; }
+    const avs = await api(`avaliacoes?turma_id=in.(${ids})&trimestre=eq.${tri}&select=turma_id`) || [];
+    const comAval = new Set(avs.map(a => a.turma_id));
+    const semAval = turmas.filter(t => !comAval.has(t.id));
+    document.getElementById('count-alerta-notas').textContent = `${semAval.length} turmas`;
+    if (!semAval.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todas as turmas têm avaliações cadastradas</div></div>'; return; }
+    el.innerHTML = semAval.map(t => `
+      <div class="alerta-item">
+        <div class="alerta-icon yellow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div style="flex:1;">
+          <div class="alerta-titulo">${escHtml(t.codigo || t.nome)}</div>
+          <div class="alerta-sub">Sem avaliações cadastradas no ${tri}º Trimestre · ${escHtml(t.turno||'')}</div>
+        </div>
+        <span class="alerta-badge orange">Sem notas</span>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao verificar notas.</div>'; }
+}
+
+async function carregarAlertasFechamento(turmas) {
+  const el = document.getElementById('lista-alerta-fechamento');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Verificando...</div>';
+  const tri = detectarTri();
+  try {
+    const ids = turmas.map(t => t.id).join(',');
+    if (!ids) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Nenhuma pendência</div></div>'; return; }
+    const fechados = await api(`trimestres_fechados?turma_id=in.(${ids})&trimestre=eq.${tri}&aberto_em=is.null&select=turma_id`) || [];
+    const fechadosSet = new Set(fechados.map(f => f.turma_id));
+    const emAberto = turmas.filter(t => !fechadosSet.has(t.id));
+    document.getElementById('count-alerta-fechamento').textContent = `${emAberto.length} turmas`;
+    if (!emAberto.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Todos os períodos estão fechados</div></div>'; return; }
+    el.innerHTML = emAberto.map(t => `
+      <div class="alerta-item">
+        <div class="alerta-icon red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+        <div style="flex:1;">
+          <div class="alerta-titulo">${escHtml(t.codigo || t.nome)}</div>
+          <div class="alerta-sub">${tri}º Trimestre ainda aberto · ${escHtml(t.turno||'')}</div>
+        </div>
+        <span class="alerta-badge red">Aberto</span>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao verificar fechamentos.</div>'; }
+}
+
+function detectarTri() {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  if (hoje >= new Date(`${ano}-02-04`) && hoje <= new Date(`${ano}-05-20`)) return 1;
+  if (hoje >= new Date(`${ano}-05-21`) && hoje <= new Date(`${ano}-09-09`)) return 2;
+  if (hoje >= new Date(`${ano}-09-10`) && hoje <= new Date(`${ano}-12-18`)) return 3;
+  return 1;
+}
+
+// ══════════════════════════════════════════
+// DOCUMENTOS: CALENDÁRIO
+// ══════════════════════════════════════════
+function docTab(aba) {
+  ['calendario','comunicados'].forEach(a => {
+    document.getElementById(`doc-painel-${a}`).style.display = a === aba ? 'block' : 'none';
+    const btn = document.getElementById(`doc-tab-${a}`);
+    if (btn) btn.classList.toggle('active', a === aba);
+  });
+}
+
+function renderCalendario() {
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const { ano, mes } = calState;
+  document.getElementById('cal-dir-label').textContent = `${meses[mes]} ${ano}`;
+
+  const labelsEl = document.getElementById('cal-dir-labels');
+  const gridEl = document.getElementById('cal-dir-grid');
+  labelsEl.innerHTML = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<div class="cal-day-label">${d}</div>`).join('');
+
+  const primeiro = new Date(ano, mes, 1).getDay();
+  const dias = new Date(ano, mes + 1, 0).getDate();
+  const hoje = new Date().toISOString().split('T')[0];
+
+  // Mapear eventos
+  const evMap = {};
+  (eventosCache||[]).forEach(ev => {
+    const ini = ev.data || ev.data_ini;
+    const fim = ev.data_fim || ini;
+    if (!ini) return;
+    let cur = new Date(ini+'T12:00:00');
+    const end = new Date(fim+'T12:00:00');
+    while (cur <= end) {
+      const key = cur.toISOString().split('T')[0];
+      evMap[key] = ev.tipo || 'evento';
+      cur.setDate(cur.getDate() + 1);
+    }
+  });
+
+  let html = '';
+  for (let i = 0; i < primeiro; i++) html += '<div class="cal-day empty"></div>';
+  for (let d = 1; d <= dias; d++) {
+    const dateStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const tipo = evMap[dateStr] || '';
+    const cls = [
+      dateStr === hoje ? 'today' : '',
+      tipo.startsWith('feriado') ? 'feriado' : '',
+      tipo === 'sabado_letivo' ? 'sabado-letivo' : '',
+      tipo === 'recesso' ? 'recesso' : '',
+      tipo === 'evento' || tipo === 'reposicao' ? 'evento' : ''
+    ].filter(Boolean).join(' ');
+    html += `<div class="cal-day ${cls}">${d}</div>`;
+  }
+  gridEl.innerHTML = html;
+}
+
+function calNavMes(delta) {
+  calState.mes += delta;
+  if (calState.mes < 0) { calState.mes = 11; calState.ano--; }
+  if (calState.mes > 11) { calState.mes = 0; calState.ano++; }
+  renderCalendario();
+}
+
+async function carregarEventos() {
+  if (!escolaId) return;
+  const tb = document.getElementById('tb-eventos');
+  tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr>';
+  try {
+    eventosCache = await api(`calendario_escolar?escola_id=eq.${escolaId}&select=*&order=data`) || [];
+    document.getElementById('count-eventos').textContent = `${eventosCache.length} eventos`;
+    renderEventos(eventosCache);
+    renderCalendario();
+  } catch(e) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar.</td></tr>'; }
+}
+
+function renderEventos(list) {
+  const tb = document.getElementById('tb-eventos');
+  const tipoLabel = { feriado_municipal:'Feriado Municipal', feriado_estadual:'Feriado Estadual', sabado_letivo:'Sábado Letivo', recesso:'Recesso', reposicao:'Reposição', evento:'Evento' };
+  const tipoBadge = { feriado_municipal:'red', feriado_estadual:'orange', sabado_letivo:'green', recesso:'gray', reposicao:'blue', evento:'teal' };
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted);">Nenhum evento cadastrado</td></tr>'; return; }
+  tb.innerHTML = list.map(e => {
+    const dataIni = e.data ? new Date(e.data+'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const dataFim = e.data_fim ? new Date(e.data_fim+'T12:00:00').toLocaleDateString('pt-BR') : '';
+    const dataStr = dataFim && dataFim !== dataIni ? `${dataIni} — ${dataFim}` : dataIni;
+    return `<tr>
+      <td>${dataStr}</td>
+      <td><span class="badge ${tipoBadge[e.tipo]||'gray'}">${tipoLabel[e.tipo]||e.tipo}</span></td>
+      <td>${escHtml(e.descricao || '—')}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="action-btns">
+          <button class="btn-action danger" onclick="excluirEvento('${e.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filtrarEventos(q) {
+  const f = eventosCache.filter(e => JSON.stringify(e).toLowerCase().includes(q.toLowerCase()));
+  renderEventos(f);
+}
+
+let editEventoId = null;
+function abrirModalEvento(ev) {
+  editEventoId = ev?.id || null;
+  document.getElementById('modal-evento-titulo').textContent = ev ? 'Editar evento' : 'Novo evento';
+  document.getElementById('evento-tipo').value = ev?.tipo || 'feriado_municipal';
+  document.getElementById('evento-desc').value = ev?.descricao || '';
+  document.getElementById('evento-data-ini').value = ev?.data || '';
+  document.getElementById('evento-data-fim').value = ev?.data_fim || '';
+  document.getElementById('modal-evento-erro').style.display = 'none';
+  document.getElementById('modal-evento').classList.add('open');
+}
+
+async function salvarEvento() {
+  const tipo = document.getElementById('evento-tipo').value;
+  const descricao = document.getElementById('evento-desc').value.trim();
+  const data = document.getElementById('evento-data-ini').value;
+  const data_fim = document.getElementById('evento-data-fim').value || null;
+  const erroEl = document.getElementById('modal-evento-erro');
+  if (!data) { erroEl.textContent = 'Data é obrigatória.'; erroEl.style.display = 'block'; return; }
+  try {
+    const payload = { tipo, descricao, data, data_fim, escola_id: escolaId };
+    if (editEventoId) await api(`calendario_escolar?id=eq.${editEventoId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    else await api('calendario_escolar', { method: 'POST', body: JSON.stringify(payload) });
+    mostrarToast('Evento salvo!');
+    fecharModal('modal-evento');
+    carregarEventos();
+  } catch(e) { erroEl.textContent = 'Erro: ' + e.message; erroEl.style.display = 'block'; }
+}
+
+async function excluirEvento(id) {
+  if (!confirm('Excluir este evento?')) return;
+  try {
+    await api(`calendario_escolar?id=eq.${id}`, { method: 'DELETE' });
+    mostrarToast('Evento excluído.');
+    carregarEventos();
+  } catch(e) { mostrarToast('Erro ao excluir.'); }
+}
+
+// ══════════════════════════════════════════
+// COMUNICADOS
+// ══════════════════════════════════════════
+async function carregarComunicados() {
+  const el = document.getElementById('lista-comunicados');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</div>';
+  try {
+    comunicadosCache = await api(`comunicados?escola_id=eq.${escolaId}&select=*&order=created_at.desc&limit=30`).catch(()=>[]) || [];
+    document.getElementById('count-comunicados').textContent = comunicadosCache.length;
+    if (!comunicadosCache.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📢</div><div class="empty-text">Nenhum comunicado publicado</div></div>'; return; }
+    el.innerHTML = comunicadosCache.map(c => {
+      const data = c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—';
+      return `<div style="border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--white);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+          <span style="font-size:14px;font-weight:700;color:var(--text);">${escHtml(c.titulo||'Sem título')}</span>
+          <span style="font-size:11px;color:var(--text-muted);">${data}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">${escHtml(c.corpo||'')}</div>
+        <div style="margin-top:8px;"><span class="badge blue">${escHtml(c.destinatarios||'Todos')}</span></div>
+      </div>`;
+    }).join('');
+  } catch(e) { el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--danger);">Erro ao carregar comunicados.</div>'; }
+}
+
+function abrirModalComunicado() {
+  document.getElementById('com-titulo').value = '';
+  document.getElementById('com-corpo').value = '';
+  document.getElementById('com-dest').value = 'todos';
+  document.getElementById('modal-comunicado').classList.add('open');
+}
+
+async function salvarComunicado() {
+  const titulo = document.getElementById('com-titulo').value.trim();
+  const corpo = document.getElementById('com-corpo').value.trim();
+  const destinatarios = document.getElementById('com-dest').value;
+  if (!titulo || !corpo) { mostrarToast('Preencha título e conteúdo.'); return; }
+  try {
+    await api('comunicados', { method: 'POST', body: JSON.stringify({ titulo, corpo, destinatarios, escola_id: escolaId, autor_id: dirData.id }) });
+    mostrarToast('Comunicado publicado!');
+    fecharModal('modal-comunicado');
+    carregarComunicados();
+  } catch(e) { mostrarToast('Erro ao publicar: ' + e.message); }
+}
+
+// ══════════════════════════════════════════
+// UTILITÁRIOS
+// ══════════════════════════════════════════
+function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+function fecharModalOutside(e, id) { if (e.target === document.getElementById(id)) fecharModal(id); }
+
+function toggleSidebarDesktop() {
+  const wrapper = document.getElementById('layout-wrapper');
+  wrapper.classList.toggle('sidebar-hidden');
+  const hidden = wrapper.classList.contains('sidebar-hidden');
+  localStorage.setItem('sided_dir_sidebar_hidden', hidden ? '1' : '0');
+}
+
+function abrirSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function fecharSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+function sair() { sessionStorage.clear(); window.location.href = 'index.html'; }
+
+function mostrarToast(msg, tipo) {
+  let t = document.getElementById('toast-dir');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast-dir';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1B2550;color:#fff;padding:13px 24px;border-radius:12px;font-family:Sora,sans-serif;font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:all 0.3s ease;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;';
+    document.body.appendChild(t);
+  }
+  const iconColor = tipo === 'error' ? '#EF4444' : '#22C55E';
+  t.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>${escHtml(msg)}`;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
+}
+
+// Restaurar preferência sidebar
+if (localStorage.getItem('sided_dir_sidebar_hidden') === '1') {
+  document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
+}
+
+// BOOT
+init();
+</script>
+</body>
+</html>
