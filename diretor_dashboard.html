@@ -165,12 +165,10 @@
     #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
 
     #col-sidebar-desktop {
-      transition: transform 0.3s ease, opacity 0.25s ease, width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
-      transform-origin: left center;
+      transition: width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
     }
     #layout-wrapper.sidebar-hidden #col-sidebar-desktop {
-      transform: translateX(-110%);
-      opacity: 0;
+      display: none !important;
       width: 0 !important;
       min-width: 0 !important;
       padding: 0 !important;
