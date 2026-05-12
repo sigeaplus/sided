@@ -1059,11 +1059,32 @@ if (!session || !['diretor', 'admin'].includes(session.role)) {
 // ══════════════════════════════════════════
 async function init() {
   try {
-    // Buscar dados do diretor
+    // 1. Tenta buscar na tabela professores (diretor que também é professor)
     const profRes = await api(`professores?id_login=eq.${encodeURIComponent(session.login)}&select=*,escolas(*)&limit=1`);
     if (profRes && profRes[0]) {
       dirData = profRes[0];
       escolaId = dirData.escola_id || dirData.escolas?.id;
+    }
+
+    // 2. Se não achou em professores, busca na tabela users (diretor puro)
+    if (!escolaId) {
+      const userRes = await api(`users?login=eq.${encodeURIComponent(session.login)}&select=*&limit=1`);
+      if (userRes && userRes[0]) {
+        const u = userRes[0];
+        dirData = {
+          id: u.id,
+          nome: u.nome || session.login,
+          escola_id: u.escola_id || (u.escolas_ids && u.escolas_ids[0]) || null,
+          escolas: null
+        };
+        escolaId = dirData.escola_id;
+
+        // Busca nome da escola se tiver escola_id
+        if (escolaId) {
+          const escRes = await api(`escolas?id=eq.${escolaId}&select=id,nome&limit=1`);
+          if (escRes && escRes[0]) dirData.escolas = escRes[0];
+        }
+      }
     }
 
     const nome = dirData.nome || session.login || 'Diretor(a)';
