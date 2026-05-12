@@ -146,8 +146,11 @@
       padding: 18px 32px;
       display: flex; align-items: center; justify-content: space-between;
       border-radius: 0 0 20px 20px;
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      position: fixed; top: 0; left: 200px; right: 0; z-index: 100;
+      transition: left 0.3s ease;
     }
+    #layout-wrapper.sidebar-hidden ~ * .escola-bar,
+    body.sidebar-hidden .escola-bar { left: 0; }
     .desktop-sidebar-toggle {
       background: rgba(255,255,255,0.12);
       border: none; color: #fff;
@@ -2291,6 +2294,8 @@ function toggleSidebarDesktop() {
   localStorage.setItem('sided_dir_sidebar_hidden', hidden ? '1' : '0');
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
   if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
+  const bar = document.getElementById('cabecalho-principal');
+  if (bar) bar.style.left = hidden ? '0' : '200px';
 }
 
 function abrirSidebar() {
@@ -2325,6 +2330,8 @@ if (localStorage.getItem('sided_dir_sidebar_hidden') === '1') {
   document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
   if (btn) btn.title = 'Mostrar menu lateral';
+  const bar = document.getElementById('cabecalho-principal');
+  if (bar) bar.style.left = '0';
 }
 
 // BOOT
