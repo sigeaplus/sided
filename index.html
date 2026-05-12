@@ -1772,6 +1772,16 @@
               </div>
             </label>
           </div>
+          <div class="role-card">
+            <input type="radio" name="role" id="r-dir" value="diretor"/>
+            <label class="role-label" for="r-dir">
+              <span class="role-emoji">🏛️</span>
+              <div>
+                <div class="role-name">Diretor</div>
+                <div class="role-desc">Gerencia escola, professores, turmas e relatórios</div>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
       <button class="btn-login" id="btn-cadastrar" onclick="finalizarCadastro()">
@@ -1830,6 +1840,8 @@
   const ROTAS = {
     professor: 'professor_dashboard.html',
     professor_individual: 'professorindividual_dashboard.html',
+    diretor: 'diretor_dashboard.html',
+    especialista: 'diretor_dashboard.html',
     admin: 'admin_dashboard.html',
     secretaria: 'secretaria_dashboard.html',
     aluno: 'aluno_dashboard.html',
@@ -2149,7 +2161,7 @@
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
             sessionStorage.setItem('ded_user', JSON.stringify(data[0]));
-            window.location.href = data[0].role === 'professor_individual' ? 'professorindividual_dashboard.html' : DASH;
+            window.location.href = ROTAS[data[0].role] || DASH;
           } else {
             mostrarErro('Conta não encontrada. Crie uma conta primeiro.');
           }
@@ -2372,7 +2384,7 @@
 
   function irParaDashboard() {
     const user = JSON.parse(sessionStorage.getItem('ded_user') || '{}');
-    window.location.href = user.role === 'professor_individual' ? 'professorindividual_dashboard.html' : DASH;
+    window.location.href = ROTAS[user.role] || DASH;
   }
 
   async function cadGoogle() {
