@@ -38,7 +38,7 @@
     .sidebar {
       position: fixed; top: 0; left: 0; bottom: 0;
       width: 220px;
-      background: #dbeafe;
+      background: #EAF1FF;
       display: flex; flex-direction: column;
       z-index: 200;
       transition: transform 0.35s ease;
@@ -46,27 +46,27 @@
 
     .sidebar-logo {
       padding: 18px 16px 14px;
-      border-bottom: 1px solid rgba(37,99,235,0.22);
+      border-bottom: 1px solid rgba(37,99,235,0.16);
       display: flex; align-items: center; gap: 10px;
-      background: #dbeafe;
+      background: #EAF1FF;
     }
     .logo-icon { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
-    .logo-name { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #1e3a8a; letter-spacing: 1px; }
-    .logo-sub { font-size: 10px; color: rgba(30,58,138,0.7); }
+    .logo-name { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; color: #1D4ED8; letter-spacing: 1px; }
+    .logo-sub { font-size: 10px; color: rgba(37,99,235,0.6); }
 
     .sidebar-profile {
       padding: 20px 16px 16px;
-      border-bottom: 1px solid rgba(37,99,235,0.22);
+      border-bottom: 1px solid rgba(37,99,235,0.16);
       display: flex; flex-direction: column; align-items: center; gap: 8px;
-      background: #dbeafe;
+      background: #EAF1FF;
     }
     .prof-avatar { width: 64px; height: 64px; border-radius: 50%; background: #3B4FE4; display: flex; align-items: center; justify-content: center; }
     .prof-avatar svg { width: 32px; height: 32px; }
-    .prof-label { font-size: 12px; font-weight: 700; color: #1e293b; }
-    .prof-nome { font-size: 12px; font-weight: 600; color: #1e293b; text-align: center; width: 100%; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 5px 8px; background: #fff; min-height: 28px; display: flex; align-items: center; justify-content: center; }
-    .prof-escola { font-size: 10px; font-weight: 700; color: #1e3a8a; text-align: center; text-transform: uppercase; letter-spacing: 0.4px; }
+    .prof-label { font-size: 12px; font-weight: 700; color: #333; }
+    .prof-nome { font-size: 12px; font-weight: 600; color: #333; text-align: center; width: 100%; border: 1px solid #ccc; border-radius: 8px; padding: 5px 8px; background: #fff; min-height: 28px; display: flex; align-items: center; justify-content: center; }
+    .prof-escola { font-size: 10px; font-weight: 700; color: #555; text-align: center; text-transform: uppercase; letter-spacing: 0.4px; }
 
-    .sidebar-nav { flex: 1; padding: 16px 12px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #dbeafe; }
+    .sidebar-nav { flex: 1; padding: 16px 12px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #EAF1FF; }
 
     .btn-fechar-tri {
       width: 100%; padding: 14px 10px;
@@ -94,7 +94,7 @@
     .btn-sair {
       width: 100%; padding: 10px 12px; border-radius: 8px;
       border: none; background: none;
-      color: #1e3a8a; font-family: 'Sora', sans-serif;
+      color: #1D4ED8; font-family: 'Sora', sans-serif;
       font-size: 13px; font-weight: 600; cursor: pointer;
       display: flex; align-items: center; justify-content: center; gap: 7px;
       text-decoration: underline;
@@ -164,11 +164,11 @@
     /* CONTENT */
     #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
 
-    #col-sidebar {
+    #col-sidebar-desktop {
       transition: transform 0.3s ease, opacity 0.25s ease, width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
       transform-origin: left center;
     }
-    #layout-wrapper.sidebar-hidden #col-sidebar {
+    #layout-wrapper.sidebar-hidden #col-sidebar-desktop {
       transform: translateX(-110%);
       opacity: 0;
       width: 0 !important;
@@ -185,15 +185,15 @@
     .stb {
       width: 100%; display: flex; align-items: center; gap: 8px;
       padding: 7px 8px; border-radius: 9px; border: 1.5px solid transparent;
-      background: rgba(255,255,255,0.8); cursor: pointer;
+      background: rgba(255,255,255,0.7); cursor: pointer;
       font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600;
-      color: #1e3a8a; text-align: left;
+      color: #334155; text-align: left;
       transition: all 0.15s cubic-bezier(0.4,0,0.2,1);
     }
     .stb:hover {
       background: #fff;
-      border-color: var(--c, #93c5fd);
-      color: var(--c, #1e3a8a);
+      border-color: var(--c, #CBD5E1);
+      color: var(--c, #334155);
       transform: translateX(2px);
       box-shadow: 0 1px 6px rgba(0,0,0,0.06);
     }
@@ -555,7 +555,6 @@
     <div class="prof-nome" id="mob-dir-nome">—</div>
     <div style="width:100%;height:1px;background:rgba(90,52,128,0.15);margin:4px 0;"></div>
     <div class="prof-escola" id="mob-dir-escola">—</div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.45);text-align:center;font-family:'Space Mono',monospace;margin-top:2px;" id="mob-dir-escolaid"></div>
   </div>
 
   <div class="sidebar-nav">
@@ -1016,7 +1015,7 @@
       </div><!-- fim col-main -->
 
       <!-- SIDEBAR DIREITA INLINE (idêntica ao professor) -->
-      <div id="col-sidebar-desktop" style="position:sticky;top:0;align-self:flex-start;height:100vh;width:200px;flex-shrink:0;background:#dbeafe;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;z-index:20;overflow-y:auto;overflow-x:hidden;order:-1;">
+      <div id="col-sidebar-desktop" style="position:sticky;top:0;align-self:flex-start;height:100vh;width:200px;flex-shrink:0;background:#EAF1FF;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;z-index:20;overflow-y:auto;overflow-x:hidden;order:-1;">
 
         <!-- PERFIL (clicável, igual professor) -->
         <div id="sidebar-estado-normal" style="display:flex;flex-direction:column;align-items:center;">
@@ -1028,11 +1027,11 @@
               <path d="M5 34c0-7.18 5.82-13 13-13s13 5.82 13 13" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
             </svg>
           </button>
-          <div style="font-size:11px;font-weight:700;color:#1e3a8a;margin-bottom:5px;text-align:center;">Diretor(a)</div>
-          <div style="width:100%;border:1.5px solid #93c5fd;border-radius:8px;padding:5px 8px;background:#fff;font-size:11px;color:#1e3a8a;font-weight:600;text-align:center;margin-bottom:10px;min-height:24px;font-family:'Sora',sans-serif;" id="sidebar-dir-nome-display">—</div>
-          <div style="width:100%;height:1px;background:#93c5fd;margin-bottom:8px;"></div>
-          <div style="font-size:10px;font-weight:700;color:#1e3a8a;text-align:center;letter-spacing:0.4px;margin-bottom:4px;text-transform:uppercase;line-height:1.4;" id="sidebar-escola-display">—</div>
-          <div style="font-size:9px;color:#64748b;text-align:center;margin-bottom:14px;font-family:'Space Mono',monospace;" id="sidebar-escolaid-display"></div>
+          <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:5px;text-align:center;">Diretor(a)</div>
+          <div style="width:100%;border:1.5px solid #BFDBFE;border-radius:8px;padding:5px 8px;background:#fff;font-size:11px;color:#334155;text-align:center;margin-bottom:10px;min-height:24px;font-family:'Sora',sans-serif;" id="sidebar-dir-nome-display">—</div>
+          <div style="width:100%;height:1px;background:#BFDBFE;margin-bottom:8px;"></div>
+          <div style="font-size:10px;font-weight:700;color:#64748B;text-align:center;letter-spacing:0.4px;margin-bottom:4px;text-transform:uppercase;line-height:1.4;" id="sidebar-escola-display">—</div>
+          <div style="font-size:9px;color:#94a3b8;text-align:center;margin-bottom:14px;font-family:'Space Mono',monospace;" id="sidebar-escolaid-display"></div>
         </div>
 
         <!-- BOTÃO FECHAR PERÍODO (igual btn-fechar-tri do professor) -->
@@ -1054,7 +1053,7 @@
 
         <!-- NAV ITEMS (igual professor) -->
         <div id="sidebar-nav-items" style="display:flex;flex-direction:column;gap:4px;">
-          <div style="font-size:9px;font-weight:800;color:#1e3a8a;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;padding-left:2px;">Navegação</div>
+          <div style="font-size:9px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;padding-left:2px;">Navegação</div>
           <button onclick="navTo('inicio')" class="stb" id="nav-inicio" data-c="#2563EB">
             <span class="stb-icon" style="background:#EFF6FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
             Início
@@ -1075,8 +1074,8 @@
 
         <!-- RODAPÉ (igual professor) -->
         <div style="margin-top:auto;padding-top:12px;display:flex;flex-direction:column;align-items:center;gap:6px;">
-          <button onclick="sair()" style="background:none;border:none;color:#1e3a8a;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;text-decoration:underline;opacity:0.85;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.85">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <button onclick="sair()" style="background:none;border:none;color:#2563EB;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;text-decoration:underline;opacity:0.8;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.8">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sair
           </button>
         </div>
@@ -1387,11 +1386,8 @@ async function init() {
     document.getElementById('mob-dir-escola').textContent = escola;
     document.getElementById('sidebar-dir-nome-display').textContent = nome;
     document.getElementById('sidebar-escola-display').textContent = escola;
-    const escolaIdLabel = escolaId ? `ID: ${escolaId}` : '';
     const sidebarIdEl = document.getElementById('sidebar-escolaid-display');
-    if (sidebarIdEl) sidebarIdEl.textContent = escolaIdLabel;
-    const mobIdEl = document.getElementById('mob-dir-escolaid');
-    if (mobIdEl) mobIdEl.textContent = escolaIdLabel;
+    if (sidebarIdEl) sidebarIdEl.textContent = escolaId ? `ID: ${escolaId}` : '';
     document.getElementById('bar-escola').textContent = escola;
     document.getElementById('bar-info').textContent = 'SIDED+ — Diretor(a)';
     document.getElementById('bar-bem-vindo').textContent = `Olá, ${nome.split(' ')[0]}`;
@@ -2295,7 +2291,6 @@ function toggleSidebarDesktop() {
   const wrapper = document.getElementById('layout-wrapper');
   const hidden = wrapper.classList.toggle('sidebar-hidden');
   localStorage.setItem('sided_dir_sidebar_hidden', hidden ? '1' : '0');
-  // Update button tooltip
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
   if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
 }
