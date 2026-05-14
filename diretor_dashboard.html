@@ -165,22 +165,32 @@
     /* CONTENT */
     #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
 
+    /* SIDEBAR DESKTOP — fixed, fora do fluxo */
     #col-sidebar-desktop {
-      transition: width 0.35s ease, margin 0.35s ease, padding 0.35s ease;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 220px;
+      background: #dbeafe;
+      border-radius: 0 20px 20px 0;
+      display: flex; flex-direction: column;
+      align-items: stretch;
+      padding: 20px 12px 16px;
+      gap: 0;
+      z-index: 50;
+      overflow-y: auto; overflow-x: hidden;
+      transition: transform 0.35s ease;
     }
     #layout-wrapper.sidebar-hidden #col-sidebar-desktop {
-      display: none !important;
-      width: 0 !important;
-      min-width: 0 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      overflow: hidden;
+      transform: translateX(-220px);
       pointer-events: none;
     }
 
-    .content { padding: 0; flex: 1; min-height: 100vh; }
+    /* MAIN recua 220px no desktop para não ficar atrás da sidebar */
+    .main { margin-left: 220px; transition: margin-left 0.35s ease; }
 
-    #col-main { padding-top: 72px !important; }
+    .content { flex: 1; min-height: 100vh; }
+
+    #col-main { padding-top: 80px; }
 
     /* Botões do menu lateral */
     .stb {
@@ -487,7 +497,7 @@
     @media (max-width: 768px) {
       .sidebar { display: flex; transform: translateX(-100%); background: var(--purple-dark); box-shadow: 4px 0 24px rgba(0,0,0,0.25); }
       .sidebar.open { transform: translateX(0); }
-      .main { padding-top: var(--header-h); }
+      .main { padding-top: var(--header-h); margin-left: 0 !important; }
       .escola-bar { display: none; }
       .mobile-header { display: flex; }
       #col-sidebar-desktop { display: none !important; }
@@ -1015,8 +1025,8 @@
 
       </div><!-- fim col-main -->
 
-      <!-- SIDEBAR DIREITA INLINE (idêntica ao professor) -->
-      <div id="col-sidebar-desktop" style="position:sticky;top:0;align-self:flex-start;height:100vh;width:220px;flex-shrink:0;background:#dbeafe;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;z-index:20;overflow-y:auto;overflow-x:hidden;order:-1;">
+      <!-- SIDEBAR DESKTOP (fixed, controlada por CSS) -->
+      <div id="col-sidebar-desktop">
 
         <!-- PERFIL (clicável, igual professor) -->
         <div id="sidebar-estado-normal" style="display:flex;flex-direction:column;align-items:center;">
@@ -2289,13 +2299,16 @@ function fecharModal(id) { document.getElementById(id).classList.remove('open');
 function fecharModalOutside(e, id) { if (e.target === document.getElementById(id)) fecharModal(id); }
 
 function toggleSidebarDesktop() {
+  const sidebar = document.getElementById('col-sidebar-desktop');
   const wrapper = document.getElementById('layout-wrapper');
+  const mainEl = document.querySelector('main.main');
+  const bar = document.getElementById('cabecalho-principal');
+  const btn = document.getElementById('btn-toggle-sidebar-desktop');
   const hidden = wrapper.classList.toggle('sidebar-hidden');
   localStorage.setItem('sided_dir_sidebar_hidden', hidden ? '1' : '0');
-  const btn = document.getElementById('btn-toggle-sidebar-desktop');
-  if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
-  const bar = document.getElementById('cabecalho-principal');
+  if (mainEl) mainEl.style.marginLeft = hidden ? '0' : '220px';
   if (bar) bar.style.left = hidden ? '0' : '220px';
+  if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
 }
 
 function abrirSidebar() {
@@ -2325,16 +2338,22 @@ function mostrarToast(msg) {
   t._hide = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
 }
 
-if (localStorage.getItem('sided_dir_sidebar_hidden') === '1') {
-  document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
+// Restaurar preferência sidebar
+(function() {
+  const hidden = localStorage.getItem('sided_dir_sidebar_hidden') === '1';
+  const mainEl = document.querySelector('main.main');
+  const bar = document.getElementById('cabecalho-principal');
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
-  if (btn) btn.title = 'Mostrar menu lateral';
-  const bar = document.getElementById('cabecalho-principal');
-  if (bar) bar.style.left = '0';
-} else {
-  const bar = document.getElementById('cabecalho-principal');
-  if (bar) bar.style.left = '220px';
-}
+  if (hidden) {
+    document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
+    if (mainEl) mainEl.style.marginLeft = '0';
+    if (bar) bar.style.left = '0';
+    if (btn) btn.title = 'Mostrar menu lateral';
+  } else {
+    if (mainEl) mainEl.style.marginLeft = '220px';
+    if (bar) bar.style.left = '220px';
+  }
+})();
 
 // BOOT
 init();
