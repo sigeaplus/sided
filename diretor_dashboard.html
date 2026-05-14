@@ -146,11 +146,9 @@
       padding: 18px 32px;
       display: flex; align-items: center; justify-content: space-between;
       border-radius: 0 0 20px 20px;
-      position: fixed; top: 0; left: 200px; right: 0; z-index: 100;
-      transition: left 0.3s ease;
+      position: fixed; top: 0; left: 220px; right: 0; z-index: 100;
+      transition: left 0.35s ease;
     }
-    #layout-wrapper.sidebar-hidden ~ * .escola-bar,
-    body.sidebar-hidden .escola-bar { left: 0; }
     .desktop-sidebar-toggle {
       background: rgba(255,255,255,0.12);
       border: none; color: #fff;
@@ -168,7 +166,7 @@
     #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
 
     #col-sidebar-desktop {
-      transition: width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+      transition: width 0.35s ease, margin 0.35s ease, padding 0.35s ease;
     }
     #layout-wrapper.sidebar-hidden #col-sidebar-desktop {
       display: none !important;
@@ -1016,7 +1014,7 @@
       </div><!-- fim col-main -->
 
       <!-- SIDEBAR DIREITA INLINE (idêntica ao professor) -->
-      <div id="col-sidebar-desktop" style="position:sticky;top:0;align-self:flex-start;height:100vh;width:200px;flex-shrink:0;background:#dbeafe;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;z-index:20;overflow-y:auto;overflow-x:hidden;order:-1;">
+      <div id="col-sidebar-desktop" style="position:sticky;top:0;align-self:flex-start;height:100vh;width:220px;flex-shrink:0;background:#dbeafe;border-radius:0 20px 20px 0;min-height:100vh;display:flex;flex-direction:column;align-items:stretch;padding:20px 12px 16px;gap:0;z-index:20;overflow-y:auto;overflow-x:hidden;order:-1;">
 
         <!-- PERFIL (clicável, igual professor) -->
         <div id="sidebar-estado-normal" style="display:flex;flex-direction:column;align-items:center;">
@@ -2295,7 +2293,7 @@ function toggleSidebarDesktop() {
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
   if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
   const bar = document.getElementById('cabecalho-principal');
-  if (bar) bar.style.left = hidden ? '0' : '200px';
+  if (bar) bar.style.left = hidden ? '0' : '220px';
 }
 
 function abrirSidebar() {
@@ -2325,13 +2323,15 @@ function mostrarToast(msg) {
   t._hide = setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
 }
 
-// Restaurar preferência sidebar
 if (localStorage.getItem('sided_dir_sidebar_hidden') === '1') {
   document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
   if (btn) btn.title = 'Mostrar menu lateral';
   const bar = document.getElementById('cabecalho-principal');
   if (bar) bar.style.left = '0';
+} else {
+  const bar = document.getElementById('cabecalho-principal');
+  if (bar) bar.style.left = '220px';
 }
 
 // BOOT
