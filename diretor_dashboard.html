@@ -110,7 +110,13 @@
     }
     .sidebar-overlay.open { display: block; }
 
-    .main { min-height: 100vh; }
+    /* LAYOUT DESKTOP: sidebar fixed + main com margin-left */
+    .main {
+      min-height: 100vh;
+      margin-left: 220px;
+      transition: margin-left 0.35s ease;
+    }
+    .main.sidebar-off { margin-left: 0; }
 
     /* HEADER MOBILE */
     .mobile-header { display: none; }
@@ -140,6 +146,24 @@
     .mh-title { font-size: 14px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .mh-sub { font-size: 11px; color: rgba(255,255,255,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+    /* SIDEBAR DESKTOP */
+    #col-sidebar-desktop {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 220px;
+      background: #dbeafe;
+      border-radius: 0 20px 20px 0;
+      display: flex; flex-direction: column;
+      align-items: stretch;
+      padding: 20px 12px 16px;
+      z-index: 200;
+      overflow-y: auto; overflow-x: hidden;
+      transition: transform 0.35s ease;
+    }
+    #col-sidebar-desktop.off {
+      transform: translateX(-220px);
+    }
+
     /* TOPBAR ESCOLA */
     .escola-bar {
       background: var(--purple-dark);
@@ -147,10 +171,8 @@
       display: flex; align-items: center; justify-content: space-between;
       border-radius: 0 0 20px 20px;
       position: fixed; top: 0; left: 220px; right: 0; z-index: 100;
-      transition: left 0.3s ease;
+      transition: left 0.35s ease;
     }
-    #layout-wrapper.sidebar-hidden ~ * .escola-bar,
-    body.sidebar-hidden .escola-bar { left: 0; }
     .desktop-sidebar-toggle {
       background: rgba(255,255,255,0.12);
       border: none; color: #fff;
@@ -166,38 +188,6 @@
 
     /* CONTENT */
     #layout-wrapper { display: flex; gap: 0; align-items: stretch; min-height: 100vh; }
-
-    /* SIDEBAR DESKTOP — fixed, fora do main */
-    #col-sidebar-desktop {
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
-      width: 220px;
-      background: #dbeafe;
-      border-radius: 0 20px 20px 0;
-      display: flex; flex-direction: column;
-      align-items: stretch;
-      padding: 20px 12px 16px;
-      z-index: 50;
-      overflow-y: auto; overflow-x: hidden;
-      transition: transform 0.35s ease;
-    }
-    #col-sidebar-desktop.hidden {
-      transform: translateX(-220px);
-      pointer-events: none;
-    }
-
-    #col-sidebar-desktop {
-      transition: width 0.3s ease, margin 0.3s ease, padding 0.3s ease;
-    }
-    #layout-wrapper.sidebar-hidden #col-sidebar-desktop {
-      display: none !important;
-      width: 0 !important;
-      min-width: 0 !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      overflow: hidden;
-      pointer-events: none;
-    }
 
     .content { padding: 56px 0 0 0; flex: 1; min-height: 100vh; }
 
@@ -506,7 +496,7 @@
     @media (max-width: 768px) {
       .sidebar { display: flex; transform: translateX(-100%); background: var(--purple-dark); box-shadow: 4px 0 24px rgba(0,0,0,0.25); }
       .sidebar.open { transform: translateX(0); }
-      .main { padding-top: var(--header-h); }
+      .main { padding-top: var(--header-h); margin-left: 0 !important; }
       .escola-bar { display: none; }
       .mobile-header { display: flex; }
       #col-sidebar-desktop { display: none !important; }
@@ -721,11 +711,12 @@
     </div>
   </header>
 
+
   <div class="content">
     <div id="layout-wrapper" style="display:flex;gap:0;align-items:stretch;min-height:100vh;">
 
       <!-- COLUNA PRINCIPAL -->
-      <div id="col-main" style="flex:1;min-width:0;padding:80px 28px 28px 240px;">
+      <div id="col-main" style="flex:1;min-width:0;padding:80px 28px 28px 28px;">
 
         <!-- ══ PÁGINA: INÍCIO ══ -->
         <div id="page-inicio" style="animation: fadeUp 0.3s ease both;">
@@ -1101,7 +1092,6 @@
 
       </div><!-- fim col-main -->
 
-
     </div><!-- fim layout-wrapper -->
   </div><!-- fim content -->
 </main>
@@ -1419,7 +1409,6 @@ async function init() {
     document.getElementById('perfil-header-escola').textContent = escola;
     document.getElementById('perfil-nome-input').value = nome;
     document.getElementById('perfil-login-input').value = dirData.id_login || session.login || '';
-
 
 
     await carregarStats();
@@ -2308,14 +2297,14 @@ function fecharModalOutside(e, id) { if (e.target === document.getElementById(id
 
 function toggleSidebarDesktop() {
   const sidebar = document.getElementById('col-sidebar-desktop');
-  const main = document.getElementById('col-main');
+  const mainEl = document.querySelector('main.main');
   const bar = document.getElementById('cabecalho-principal');
   const btn = document.getElementById('btn-toggle-sidebar-desktop');
-  const hidden = sidebar.classList.toggle('hidden');
-  localStorage.setItem('sided_dir_sidebar_hidden', hidden ? '1' : '0');
-  if (main) main.style.paddingLeft = hidden ? '28px' : '240px';
-  if (bar) bar.style.left = hidden ? '0' : '220px';
-  if (btn) btn.title = hidden ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
+  const off = sidebar.classList.toggle('off');
+  localStorage.setItem('sided_dir_sidebar_hidden', off ? '1' : '0');
+  if (mainEl) mainEl.classList.toggle('sidebar-off', off);
+  if (bar) bar.style.left = off ? '0' : '220px';
+  if (btn) btn.title = off ? 'Mostrar menu lateral' : 'Ocultar menu lateral';
 }
 
 function abrirSidebar() {
@@ -2346,15 +2335,18 @@ function mostrarToast(msg) {
 }
 
 // Restaurar preferência sidebar
-if (localStorage.getItem('sided_dir_sidebar_hidden') === '1') {
-  document.getElementById('layout-wrapper').classList.add('sidebar-hidden');
-  const btn = document.getElementById('btn-toggle-sidebar-desktop');
-  if (btn) btn.title = 'Mostrar menu lateral';
-  const bar = document.getElementById('cabecalho-principal');
-  if (bar) bar.style.left = '0';
-}
+(function() {
+  const off = localStorage.getItem('sided_dir_sidebar_hidden') === '1';
+  if (off) {
+    const s = document.getElementById('col-sidebar-desktop');
+    const m = document.querySelector('main.main');
+    const b = document.getElementById('cabecalho-principal');
+    if (s) s.classList.add('off');
+    if (m) m.classList.add('sidebar-off');
+    if (b) b.style.left = '0';
+  }
+})();
 
-// BOOT
 init();
 </script>
 </body>
