@@ -1875,6 +1875,10 @@
             <strong>Recuperação</strong>
             <span>Linha completa</span>
           </button>
+          <button type="button" class="tipo-card tipo-card-rec" data-tipo="confirmar_nota" onclick="selecionarTipoAvaliacao(this)" style="border-color:#7C3AED;background:#FAF5FF;">
+            <strong style="color:#7C3AED;">✓ Confirmar Nota</strong>
+            <span>Nota fechada do trimestre</span>
+          </button>
         </div>
       </div>
       <div id="grupo-composicao" class="grupo-composicao">
@@ -4347,7 +4351,8 @@ async function abrirNotas(avalId) {
     ? alunosTurma.filter(a => (somaTri[a.id] || 0) < limiteRecup)
     : alunosTurma;
 
-  renderNotasAlunos(alunosVisiveis, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri);
+  const isConfirmar = avaliacaoAtiva.tipo === 'confirmar_nota';
+  renderNotasAlunos(alunosVisiveis, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri, isConfirmar);
 
   // Configurar navegação com Enter
   setTimeout(() => configurarNavegacaoNotas(), 100);
@@ -4428,7 +4433,7 @@ function atualizarTotalGrupoAluno(alunoId) {
   if (target) target.textContent = finalValor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
-const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri) => {
+const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri, isConfirmar = false) => {
   // adicionar extras manualmente incluídos
   alunosRecuperacaoExtra.forEach(id => {
     if (!lista.find(a => a.id === id)) {
@@ -4470,15 +4475,16 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
       <!-- LINHA 2: Nota: [pill] ............. Recuperação Paralela: [pill] -->
       <div class="nota-row-inputs">
         <div class="nota-inline-group">
-          <span class="nota-inline-label">${isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
+          <span class="nota-inline-label">${isConfirmar ? 'Soma calculada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
           <input class="nota-input-pill" id="nota-${a.id}" type="number" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
-            value="${n.nota !== undefined && n.nota !== null ? n.nota : ''}"
+            value="${isConfirmar ? (somaTri[a.id] || 0).toFixed(2) : (n.nota !== undefined && n.nota !== null ? n.nota : '')}"
             placeholder="–"
             ${n.nao_realizado ? 'disabled' : ''}
+            ${isConfirmar ? 'readonly style="opacity:0.6;cursor:not-allowed;background:#EEF2FF;"' : ''}
             oninput="atualizarTotal('${a.id}')"/>
         </div>
         <div class="nota-inline-group">
-          <span class="nota-inline-label">Recuperação Paralela:</span>
+          <span class="nota-inline-label">${isConfirmar ? 'Nota Final:' : 'Recuperação Paralela:'}</span>
           <input class="nota-input-pill" id="rec-${a.id}" type="number" min="0" step="0.5"
             value="${n.recuperacao_paralela !== undefined && n.recuperacao_paralela !== null ? n.recuperacao_paralela : ''}"
             placeholder="–"
@@ -4488,9 +4494,9 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 
       <!-- LINHA 3: Não realizada [checkbox] ............. Notas do Aluno: X -->
       <div class="nota-row-footer">
-        <div class="nao-realizado-wrap">
+        <div class="nao-realizado-wrap" ${isConfirmar ? 'style="display:none;"' : ''}>
           <input type="checkbox" id="nr-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}')"/>
-          <label for="nr-${a.id}">Não realizada</label>
+          <label for="nr-${a.id}">Ausente</label>
         </div>
         <div class="nota-total" id="total-${a.id}">
           ${isRecup
@@ -4648,8 +4654,32 @@ async function salvarTodasNotas() {
         lancado_em: new Date().toISOString()
       }));
 
-    await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
-    if (rows.length) await api('notas', { method: 'POST', body: JSON.stringify(rows) });
+    if (avaliacaoAtiva.tipo === 'confirmar_nota') {
+      // Confirmar Nota: salva APENAS em notas_confirmadas, não toca na tabela notas
+      const payloadsConf = rows
+        .filter(r => r.recuperacao_paralela !== null && r.recuperacao_paralela !== undefined)
+        .map(r => ({
+          turma_id      : turmaAtiva.id,
+          aluno_id      : r.aluno_id,
+          professor_id  : profData.id,
+          trimestre     : avaliacaoAtiva.trimestre,
+          nota_final    : r.recuperacao_paralela,
+          soma_original : r.nota,
+          justificativa : 'Confirmado via avaliação',
+          tipo_avaliacao: 'trimestral',
+          updated_at    : new Date().toISOString()
+        }));
+      if (payloadsConf.length) {
+        await api('notas_confirmadas', {
+          method : 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body   : JSON.stringify(payloadsConf)
+        });
+      }
+    } else {
+      await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
+      if (rows.length) await api('notas', { method: 'POST', body: JSON.stringify(rows) });
+    }
 
     // Invalida só o cache de avaliações (notas mudaram, mas aulas/alunos permanecem válidos)
     const chaveAval = turmaAtiva.id + '::avaliacoes';
