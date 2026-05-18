@@ -1208,11 +1208,15 @@
           <div id="aval-disciplina-tabs" style="display:flex;border-bottom:2px solid var(--border);gap:0;overflow-x:auto;"></div>
         </div>
 
-        <!-- Botão cadastrar -->
-        <div style="display:flex;align-items:center;justify-content:center;margin-bottom:20px;">
+        <!-- Botões principais -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
           <button class="btn-new" onclick="abrirModalAvaliacao()" style="padding:12px 28px;font-size:14px;border-radius:20px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Cadastrar avaliação
+          </button>
+          <button onclick="abrirConfirmarNotaTrimestral()" style="display:inline-flex;align-items:center;gap:7px;padding:12px 22px;border-radius:20px;border:none;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;box-shadow:0 2px 10px rgba(124,58,237,0.3);" onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1" title="Confirmar nota final do trimestre (substitui a soma calculada)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+            Confirmar Nota Trimestral
           </button>
         </div>
 
@@ -1882,6 +1886,88 @@
     <div class="modal-footer">
       <button class="btn-cancel" onclick="fecharModal('modal-avaliacao')">Cancelar</button>
       <button class="btn-save" id="btn-salvar-aval" onclick="salvarAvaliacao()">Salvar avaliação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR NOTA TRIMESTRAL -->
+<div class="modal-overlay" id="modal-confirmar-nota-tri" onclick="fecharModalOutside(event,'modal-confirmar-nota-tri')">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#7C3AED,#4F46E5);border-radius:16px 16px 0 0;padding:18px 22px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </div>
+        <div>
+          <div class="modal-title" style="color:#fff;font-size:15px;">Confirmar Nota Trimestral</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:1px;">A nota confirmada substituirá a soma calculada</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-confirmar-nota-tri')" style="border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.1);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" style="padding:20px 22px;">
+      <div id="cnt-alert" style="display:none;" class="alert-box error"></div>
+
+      <div class="field">
+        <label>Trimestre</label>
+        <select id="cnt-tri" onchange="cnt_carregarDados()" style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
+          <option value="1">1º Trimestre</option>
+          <option value="2">2º Trimestre</option>
+          <option value="3">3º Trimestre</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Aluno(a)</label>
+        <select id="cnt-aluno" onchange="cnt_atualizarSoma()" style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
+          <option value="">Selecione o(a) aluno(a)...</option>
+        </select>
+      </div>
+
+      <div id="cnt-soma-wrap" style="display:none;background:#F0F4FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:#1D4ED8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Soma calculada pelo sistema</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:24px;font-weight:800;color:#1D4ED8;" id="cnt-soma-valor">—</div>
+          <div style="font-size:12px;color:#4B5563;" id="cnt-soma-detalhe">de 30 pts</div>
+        </div>
+        <div id="cnt-nota-confirmada-atual" style="margin-top:8px;font-size:12px;color:#7C3AED;font-weight:600;display:none;"></div>
+      </div>
+
+      <div class="field">
+        <label>Nota final confirmada</label>
+        <input id="cnt-nota" type="number" min="0" step="0.5" placeholder="Ex: 25"
+          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#7C3AED;outline:none;transition:border-color 0.2s;"
+          oninput="cnt_validar()"
+          onfocus="this.style.borderColor='#7C3AED'"
+          onblur="this.style.borderColor='var(--border)'"/>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Esta nota <strong>substituirá</strong> a soma calculada pelo sistema para este trimestre.</div>
+      </div>
+
+      <div class="field">
+        <label>Justificativa <span style="font-weight:400;color:var(--text-muted);">(obrigatória)</span></label>
+        <textarea id="cnt-justificativa" rows="3" placeholder="Ex: Aluno realizou trabalho extra não registrado nas avaliações..."
+          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#7C3AED'"
+          onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+
+      <div id="cnt-diff-wrap" style="display:none;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:4px;"></div>
+    </div>
+    <div class="modal-footer" style="padding:0 22px 22px;display:flex;gap:10px;justify-content:space-between;align-items:center;">
+      <div>
+        <button id="cnt-btn-remover" onclick="cnt_remover()" style="display:none;padding:8px 14px;border-radius:8px;border:1.5px solid #FBBFBF;background:none;color:#DC2626;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">
+          Remover confirmação
+        </button>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-cancel" onclick="fecharModal('modal-confirmar-nota-tri')">Cancelar</button>
+        <button id="cnt-btn-salvar" onclick="cnt_salvar()" style="padding:9px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#7C3AED,#4F46E5);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;opacity:0.5;" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          Confirmar nota
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -4428,28 +4514,44 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 };
 
 function configurarNavegacaoNotas() {
-  // Coletar apenas os inputs de nota principal na ordem em que aparecem no DOM
-  const inputsNota = document.querySelectorAll('input[id^="nota-"]');
-
-  // Criar array dos inputs mantendo a ordem do DOM
+  // Coletar inputs de nota e recuperação paralela em ordem intercalada (nota → rec → próxima nota → próxima rec...)
+  const cards = document.querySelectorAll('.nota-aluno-card');
   const todosInputs = [];
-  inputsNota.forEach(input => {
-    todosInputs.push({ input });
+
+  cards.forEach(card => {
+    // pegar id do card para montar os ids dos inputs
+    const cardId = card.id; // ncard-{alunoId}
+    if (!cardId) return;
+    const alunoId = cardId.replace('ncard-', '');
+    const inputNota = document.getElementById(`nota-${alunoId}`);
+    const inputRec  = document.getElementById(`rec-${alunoId}`);
+    if (inputNota) todosInputs.push(inputNota);
+    if (inputRec)  todosInputs.push(inputRec);
   });
 
-  // Adicionar event listeners (sem ordenação, mantém a ordem visual)
-  todosInputs.forEach((item, index) => {
-    item.input.addEventListener('keydown', function(e) {
+  // Fallback: se não achou via cards, usa só os nota-*
+  if (!todosInputs.length) {
+    document.querySelectorAll('input[id^="nota-"]').forEach(inp => todosInputs.push(inp));
+  }
+
+  todosInputs.forEach((input, index) => {
+    // remover listener anterior se houver
+    const clone = input.cloneNode(true);
+    input.parentNode.replaceChild(clone, input);
+    todosInputs[index] = clone;
+  });
+
+  todosInputs.forEach((input, index) => {
+    input.addEventListener('keydown', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
         const proximoIndex = index + 1;
         if (proximoIndex < todosInputs.length) {
-          todosInputs[proximoIndex].input.focus();
-          todosInputs[proximoIndex].input.select();
+          todosInputs[proximoIndex].focus();
+          todosInputs[proximoIndex].select();
         } else {
-          // Se chegou no último, volta para o primeiro
-          todosInputs[0].input.focus();
-          todosInputs[0].input.select();
+          todosInputs[0].focus();
+          todosInputs[0].select();
         }
       }
     });
@@ -4539,26 +4641,11 @@ async function salvarTodasNotas() {
     await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
     if (rows.length) await api('notas', { method: 'POST', body: JSON.stringify(rows) });
 
-    // verificar se todos os alunos visíveis têm nota preenchida ou marcado como não realizado
-    const todosLancados = rows.every(r => r.nota !== null || r.nao_realizado);
-
     // Invalida só o cache de avaliações (notas mudaram, mas aulas/alunos permanecem válidos)
     const chaveAval = turmaAtiva.id + '::avaliacoes';
     Object.keys(_cache).forEach(k => { if (k === chaveAval) delete _cache[k]; });
     mostrarToastNotas();
-
-    if (todosLancados) {
-      // volta direto sem chamar carregarAvaliacoes — voltarAvaliacoes usará cache ou buscará
-      setTimeout(() => {
-        document.getElementById('notas-screen').style.display = 'none';
-        document.getElementById('pagina-avaliacoes').style.display = 'block';
-        atualizarCabecalho({ info: 'Avaliações', titulo: turmaAtiva?.nome || '', detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#FF8C38' });
-        atualizarHeaderMobile('Avaliações', turmaAtiva?.nome || '', true, true);
-        carregarAvaliacoes();
-      }, 1600);
-    } else {
-      resetBtn();
-    }
+    resetBtn();
   } catch (e) {
     console.error('Erro ao salvar notas:', e);
     mostrarToast('Erro ao salvar notas. Tente novamente.');
@@ -7026,6 +7113,203 @@ function iniciarOcorrencias() {
   if (dr && !dr.value) dr.value = new Date().toISOString().slice(0,10);
   ocrAtualizarResumo();
   ocrRenderHistorico();
+}
+
+// ══════════════════════════════════════════
+// CONFIRMAR NOTA TRIMESTRAL — Supabase
+// ══════════════════════════════════════════
+
+// Calcula soma do trimestre para um aluno a partir das avaliações em memória
+async function _cntCalcularSoma(tri, alunoId) {
+  const avNorm = avaliacoesTurma.filter(a => a.trimestre === parseInt(tri) && a.tipo !== 'recuperacao');
+  if (!avNorm.length) return 0;
+  const ids = avNorm.map(a => a.id).join(',');
+  const notas = await api(`notas?avaliacao_id=in.(${ids})&aluno_id=eq.${alunoId}&select=*`) || [];
+  let soma = 0;
+  notas.forEach(n => {
+    if (!n.nao_realizado && n.nota !== null && n.nota !== undefined) soma += Number(n.nota);
+    if (!n.nao_realizado && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) soma += Number(n.recuperacao_paralela);
+  });
+  return soma;
+}
+
+let _cntSomaAtual = 0;
+
+async function abrirConfirmarNotaTrimestral() {
+  // Popular select trimestre com o trimestre atual
+  const triAtual = detectarTrimestreAtual?.()?.tri || 1;
+  const selTri = document.getElementById('cnt-tri');
+  if (selTri) selTri.value = String(triAtual);
+
+  // Popular select alunos
+  const selAluno = document.getElementById('cnt-aluno');
+  if (selAluno) {
+    selAluno.innerHTML = '<option value="">Selecione o(a) aluno(a)...</option>' +
+      (alunosTurma || []).map(a => `<option value="${a.id}">${a.nome_completo}</option>`).join('');
+  }
+
+  // Limpar campos
+  document.getElementById('cnt-nota').value = '';
+  document.getElementById('cnt-justificativa').value = '';
+  document.getElementById('cnt-soma-wrap').style.display = 'none';
+  document.getElementById('cnt-diff-wrap').style.display = 'none';
+  document.getElementById('cnt-alert').style.display = 'none';
+  document.getElementById('cnt-btn-salvar').disabled = true;
+  document.getElementById('cnt-btn-salvar').style.opacity = '0.5';
+  document.getElementById('cnt-btn-remover').style.display = 'none';
+
+  document.getElementById('modal-confirmar-nota-tri').classList.add('open');
+}
+
+async function cnt_carregarDados() {
+  const tri = document.getElementById('cnt-tri')?.value;
+  const alunoId = document.getElementById('cnt-aluno')?.value;
+  document.getElementById('cnt-nota').value = '';
+  document.getElementById('cnt-justificativa').value = '';
+  document.getElementById('cnt-soma-wrap').style.display = 'none';
+  document.getElementById('cnt-diff-wrap').style.display = 'none';
+  document.getElementById('cnt-btn-remover').style.display = 'none';
+  document.getElementById('cnt-btn-salvar').disabled = true;
+  document.getElementById('cnt-btn-salvar').style.opacity = '0.5';
+  if (alunoId) await cnt_atualizarSoma();
+}
+
+async function cnt_atualizarSoma() {
+  const tri = document.getElementById('cnt-tri')?.value;
+  const alunoId = document.getElementById('cnt-aluno')?.value;
+  if (!tri || !alunoId || !turmaAtiva) return;
+
+  const somaTxt = document.getElementById('cnt-soma-valor');
+  const somaDetalhe = document.getElementById('cnt-soma-detalhe');
+  const somaWrap = document.getElementById('cnt-soma-wrap');
+  const notaConfAtual = document.getElementById('cnt-nota-confirmada-atual');
+  const btnRemover = document.getElementById('cnt-btn-remover');
+
+  somaTxt.textContent = '...';
+  somaWrap.style.display = 'block';
+
+  const soma = await _cntCalcularSoma(tri, alunoId);
+  _cntSomaAtual = soma;
+  const max = parseInt(tri) === 3 ? 40 : 30;
+  somaTxt.textContent = soma.toFixed(2).replace('.',',');
+  somaDetalhe.textContent = `de ${max} pts`;
+
+  // Verificar se já tem nota confirmada no Supabase
+  const ja = await api(
+    `notas_confirmadas?turma_id=eq.${turmaAtiva.id}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=*&limit=1`
+  );
+
+  if (ja && ja[0]) {
+    const reg = ja[0];
+    notaConfAtual.style.display = 'block';
+    notaConfAtual.textContent = `✓ Nota confirmada atual: ${Number(reg.nota_final).toFixed(2).replace('.',',')} pts — "${reg.justificativa}"`;
+    btnRemover.style.display = 'inline-flex';
+    document.getElementById('cnt-nota').value = reg.nota_final;
+    document.getElementById('cnt-justificativa').value = reg.justificativa;
+    cnt_validar();
+  } else {
+    notaConfAtual.style.display = 'none';
+    btnRemover.style.display = 'none';
+  }
+}
+
+function cnt_validar() {
+  const nota = parseFloat(document.getElementById('cnt-nota').value);
+  const just = document.getElementById('cnt-justificativa').value.trim();
+  const tri = document.getElementById('cnt-tri')?.value;
+  const alunoId = document.getElementById('cnt-aluno')?.value;
+  const btnSalvar = document.getElementById('cnt-btn-salvar');
+  const diffWrap = document.getElementById('cnt-diff-wrap');
+
+  const valido = !isNaN(nota) && nota >= 0 && just.length >= 5 && alunoId;
+
+  btnSalvar.disabled = !valido;
+  btnSalvar.style.opacity = valido ? '1' : '0.5';
+
+  if (!isNaN(nota) && alunoId && document.getElementById('cnt-soma-wrap').style.display !== 'none') {
+    const diff = nota - _cntSomaAtual;
+    const max = parseInt(tri) === 3 ? 40 : 30;
+    if (Math.abs(diff) > 0.01) {
+      const pos = diff > 0;
+      diffWrap.style.display = 'block';
+      diffWrap.style.background = pos ? '#F0FDF4' : '#FFF4F4';
+      diffWrap.style.border = `1px solid ${pos ? '#BBF7D0' : '#FBBFBF'}`;
+      diffWrap.style.color = pos ? '#166534' : '#B91C1C';
+      diffWrap.innerHTML = `<strong>${pos ? '▲' : '▼'} ${Math.abs(diff).toFixed(2).replace('.',',')} pts</strong> em relação à soma calculada (${_cntSomaAtual.toFixed(2).replace('.',',')} → ${nota.toFixed(2).replace('.',',')} / ${max} pts)`;
+    } else {
+      diffWrap.style.display = 'none';
+    }
+  } else {
+    diffWrap.style.display = 'none';
+  }
+}
+
+async function cnt_salvar() {
+  const nota = parseFloat(document.getElementById('cnt-nota').value);
+  const just = document.getElementById('cnt-justificativa').value.trim();
+  const tri = document.getElementById('cnt-tri')?.value;
+  const alunoId = document.getElementById('cnt-aluno')?.value;
+  const alertEl = document.getElementById('cnt-alert');
+  alertEl.style.display = 'none';
+
+  if (isNaN(nota) || nota < 0) { alertEl.textContent = 'Digite uma nota válida.'; alertEl.style.display = 'block'; return; }
+  if (!just || just.length < 5) { alertEl.textContent = 'A justificativa deve ter ao menos 5 caracteres.'; alertEl.style.display = 'block'; return; }
+  if (!alunoId) { alertEl.textContent = 'Selecione um(a) aluno(a).'; alertEl.style.display = 'block'; return; }
+  if (!turmaAtiva) { alertEl.textContent = 'Nenhuma turma ativa.'; alertEl.style.display = 'block'; return; }
+
+  const aluno = (alunosTurma || []).find(a => String(a.id) === String(alunoId));
+
+  const payload = {
+    turma_id     : turmaAtiva.id,
+    aluno_id     : parseInt(alunoId),
+    professor_id : profData.id,
+    trimestre    : parseInt(tri),
+    nota_final   : nota,
+    soma_original: _cntSomaAtual,
+    justificativa: just,
+    updated_at   : new Date().toISOString()
+  };
+
+  try {
+    await api('notas_confirmadas', {
+      method : 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body   : JSON.stringify(payload)
+    });
+    mostrarToast(`✓ Nota ${nota} confirmada para ${aluno?.nome_completo?.split(' ')[0] || 'aluno(a)'} no ${tri}º trimestre.`);
+    fecharModal('modal-confirmar-nota-tri');
+  } catch (e) {
+    alertEl.textContent = 'Erro ao salvar no banco. Tente novamente.';
+    alertEl.style.display = 'block';
+    console.error('[CNT] Erro:', e);
+  }
+}
+
+async function cnt_remover() {
+  const tri = document.getElementById('cnt-tri')?.value;
+  const alunoId = document.getElementById('cnt-aluno')?.value;
+  if (!alunoId || !turmaAtiva) return;
+  if (!confirm('Remover a nota confirmada? A soma calculada voltará a ser exibida.')) return;
+
+  try {
+    await api(
+      `notas_confirmadas?turma_id=eq.${turmaAtiva.id}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}`,
+      { method: 'DELETE' }
+    );
+    mostrarToast('Nota confirmada removida.');
+    fecharModal('modal-confirmar-nota-tri');
+  } catch (e) {
+    mostrarToast('Erro ao remover. Tente novamente.');
+    console.error('[CNT] Erro ao remover:', e);
+  }
+}
+
+// Expõe a nota confirmada para uso no relatório/ficha do aluno (async — Supabase)
+async function cntObterNotaFinal(turmaId, tri, alunoId) {
+  const res = await api(
+    `notas_confirmadas?turma_id=eq.${turmaId}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=nota_final&limit=1`
+  );
+  return res && res[0] ? res[0].nota_final : null;
 }
 </script>
 </body>
