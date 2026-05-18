@@ -4197,7 +4197,14 @@ async function salvarAvaliacao() {
   const nome = document.getElementById('aval-nome').value.trim();
   const pontos = parseFloat(document.getElementById('aval-pontos').value);
   const tipo = document.getElementById('aval-tipo').value;
-  if (tipo !== 'confirmar_nota' && (!nome || !pontos)) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  // Para Confirmar Nota: fechar este modal e abrir o fluxo próprio
+  if (tipo === 'confirmar_nota') {
+    btn.disabled = false;
+    fecharModal('modal-avaliacao');
+    abrirConfirmarNotaTrimestral();
+    return;
+  }
+  if (!nome || !pontos) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
   if (_isGrupoTipo(tipo) && !grupoComposicaoSelecionada.length) {
     alEl.textContent = 'Selecione ao menos uma sub-avaliação para o grupo.';
     alEl.style.display = 'block';
