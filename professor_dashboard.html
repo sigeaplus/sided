@@ -1936,6 +1936,16 @@
       </div>
 
       <div class="field">
+        <label>Tipo de avaliação</label>
+        <select id="cnt-tipo" style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
+          <option value="trimestral">Nota Trimestral</option>
+          <option value="recuperacao">Recuperação</option>
+          <option value="conselho">Conselho de Classe</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label>Nota final confirmada</label>
         <input id="cnt-nota" type="number" min="0" step="0.5" placeholder="Ex: 25"
           style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:#7C3AED;outline:none;transition:border-color 0.2s;"
@@ -4751,6 +4761,15 @@ async function carregarRelatorio(tri) {
   const faltasPorAluno = {};
   faltas.forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id] || 0) + 1; });
 
+  // Buscar notas confirmadas (fechadas) do trimestre
+  let notasConfirmadas = [];
+  if (alunosTurma.length) {
+    const ids = alunosTurma.map(a => a.id).join(',');
+    notasConfirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${tri}&aluno_id=in.(${ids})&select=aluno_id,nota_final,tipo_avaliacao`) || [];
+  }
+  const notaFechadaPorAluno = {};
+  notasConfirmadas.forEach(nc => { notaFechadaPorAluno[nc.aluno_id] = nc; });
+
   // Mapa notas
   const notasMap = {};
   notasTri.forEach(n => {
@@ -4766,7 +4785,7 @@ async function carregarRelatorio(tri) {
     const discsSet = [...new Set(avalTri.map(a => a.disciplina).filter(Boolean))].sort();
     thead.innerHTML = `<th>Aluno</th>` +
       discsSet.map(d => `<th style="white-space:nowrap;">${d}</th>`).join('') +
-      `<th>Total</th><th>Faltas</th>`;
+      `<th>Total</th><th style="white-space:nowrap;color:#7C3AED;">Nota Fechada</th><th>Faltas</th>`;
 
     relatorioCache = alunosTurma.map(a => {
       const notasPorDisc = {};
@@ -4780,13 +4799,14 @@ async function carregarRelatorio(tri) {
       });
       // Em Fundamental I, limitar cada disciplina a 30 pts
       const total = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
-      return { aluno: a, notasPorDisc, discsSet, total, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      const ncI = notaFechadaPorAluno[a.id];
+      return { aluno: a, notasPorDisc, discsSet, total, notaFechada: ncI ? ncI.nota_final : null, tipoFechada: ncI ? ncI.tipo_avaliacao : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   } else {
     // Fundamental II: colunas por avaliação (comportamento original)
     thead.innerHTML = `<th>Aluno</th>` +
       avalTri.map(a => `<th style="white-space:nowrap;">${a.nome.length > 18 ? a.nome.substring(0,18)+'…' : a.nome}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`).join('') +
-      `<th>Total de Notas</th><th>Faltas</th>`;
+      `<th>Total de Notas</th><th style="white-space:nowrap;color:#7C3AED;">Nota Fechada</th><th>Faltas</th>`;
 
     // Buscar também avaliações de recuperação do trimestre para incluir recuperacao_paralela
     const avalTodos = avaliacoesTurma.filter(a => a.trimestre === tri);
@@ -4800,7 +4820,8 @@ async function carregarRelatorio(tri) {
       const somaBase = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.nota || 0)), 0);
       const somaRec = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
       const total = somaBase + somaRec;
-      return { aluno: a, notasAluno, total, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      const nc = notaFechadaPorAluno[a.id];
+      return { aluno: a, notasAluno, total, notaFechada: nc ? nc.nota_final : null, tipoFechada: nc ? nc.tipo_avaliacao : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   }
 
@@ -4828,6 +4849,11 @@ function renderRelatorio(dados, avalTri) {
       <td style="font-weight:700;color:${r.abaixo?'#C0392B':'var(--success)'};">
         ${r.total.toFixed(1)}<span style="font-weight:400;font-size:11px;color:var(--text-muted);"> / ${r.totalEsperado}</span>
         <div style="font-size:10px;margin-top:2px;color:${r.abaixo?'#C0392B':'#15803D'};">${r.abaixo?'⚠ Abaixo da média ('+r.media+')':'✓ Acima da média'}</div>
+      </td>
+      <td style="font-weight:700;color:${r.notaFechada !== null ? '#7C3AED' : 'var(--text-muted)'};">
+        ${r.notaFechada !== null
+          ? `<div style="display:flex;align-items:center;gap:5px;"><span style="background:#EDE9FE;color:#7C3AED;border-radius:6px;padding:2px 7px;font-size:12px;font-weight:700;">${Number(r.notaFechada).toFixed(1)}</span><span style="font-size:10px;color:#7C3AED;font-weight:500;">${r.tipoFechada||''}</span></div>`
+          : '<span style="font-size:11px;color:var(--text-muted);font-weight:400;">—</span>'}
       </td>
       <td style="color:${r.faltas>0?'#C0392B':'var(--text-muted)'};">${r.faltas}</td>
     </tr>`).join('');
@@ -7258,16 +7284,18 @@ async function cnt_salvar() {
   if (!turmaAtiva) { alertEl.textContent = 'Nenhuma turma ativa.'; alertEl.style.display = 'block'; return; }
 
   const aluno = (alunosTurma || []).find(a => String(a.id) === String(alunoId));
+  const tipo = document.getElementById('cnt-tipo')?.value || 'trimestral';
 
   const payload = {
-    turma_id     : turmaAtiva.id,
-    aluno_id     : parseInt(alunoId),
-    professor_id : profData.id,
-    trimestre    : parseInt(tri),
-    nota_final   : nota,
-    soma_original: _cntSomaAtual,
-    justificativa: just,
-    updated_at   : new Date().toISOString()
+    turma_id       : turmaAtiva.id,
+    aluno_id       : parseInt(alunoId),
+    professor_id   : profData.id,
+    trimestre      : parseInt(tri),
+    nota_final     : nota,
+    soma_original  : _cntSomaAtual,
+    justificativa  : just,
+    tipo_avaliacao : tipo,
+    updated_at     : new Date().toISOString()
   };
 
   try {
