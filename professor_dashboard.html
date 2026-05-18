@@ -3903,7 +3903,7 @@ function _renderChecklistGrupo() {
   const ownerByChild = _mapaFilhosGrupos();
   const candidates = avaliacoesTurma.filter(a =>
     !_isGrupoTipo(_tipoExibicaoAval(a)) &&
-    a.tipo !== 'recuperacao' &&
+    a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota' &&
     parseInt(a.trimestre) === tri &&
     a.id !== editandoAvalId &&
     (!ownerByChild[a.id] || ownerByChild[a.id] === editandoAvalId)
@@ -4218,7 +4218,7 @@ async function salvarAvaliacao() {
     
     avaliacoesTurma.forEach(aval => {
       // Contar apenas avaliações normais (não recuperação) do mesmo trimestre e disciplina
-      if (aval.tipo !== 'recuperacao' && 
+      if (aval.tipo !== 'recuperacao' && aval.tipo !== 'confirmar_nota' && 
           parseInt(aval.trimestre) === triAtual && 
           aval.disciplina === disciplina &&
           aval.id !== editandoAvalId) { // se editando, não contar a avaliação atual
@@ -4238,7 +4238,7 @@ async function salvarAvaliacao() {
   const tipoPersistir = _isGrupoTipo(tipo) ? 'normal' : tipo;
   // Para confirmar_nota: nome e pontos são automáticos
   const nomeReal = tipo === 'confirmar_nota' ? 'Nota Final' : nome;
-  const pontosReal = tipo === 'confirmar_nota' ? 0 : pontos;
+  const pontosReal = tipo === 'confirmar_nota' ? null : pontos;
   const body = {
     nome: nomeReal, pontos: pontosReal,
     trimestre: parseInt(document.getElementById('aval-tri').value),
@@ -4312,7 +4312,7 @@ async function abrirNotas(avalId) {
 
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
   const totalTri = avaliacoesTurma
-    .filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao')
+    .filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota')
     .reduce((s,a) => s + Number(a.pontos), 0);
 
   document.getElementById('notas-title').textContent = avaliacaoAtiva.nome;
@@ -4330,7 +4330,7 @@ async function abrirNotas(avalId) {
 
   // Soma do trimestre por aluno (excluindo recuperação)
   // Em Fundamental I, apenas da disciplina ativa
-  let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao');
+  let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
   if (isFundamentalI() && avalDiscFiltro) {
     avaisNormais = avaisNormais.filter(a => a.disciplina === avalDiscFiltro);
   }
@@ -4779,7 +4779,7 @@ async function carregarRelatorio(tri) {
   tri = parseInt(tri) || 1;
   document.getElementById('relatorio-total-alunos').textContent = `Total de alunos: ${alunosTurma.length}`;
 
-  const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao');
+  const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
   const media = tri === 3 ? 24 : 18;
   const totalEsperado = tri === 3 ? 40 : 30;
 
@@ -4955,7 +4955,7 @@ async function abrirFichaAluno(alunoId) {
   let somaAno = 0;
   const isFundI = isFundamentalI();
   [1,2,3].forEach(tri => {
-    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao');
+    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
     if (isFundI) {
       // Fundamental I: somar por disciplina, máximo 30 por disciplina
       const discsSet = [...new Set(avNorm.map(a => a.disciplina).filter(Boolean))].sort();
@@ -4991,7 +4991,7 @@ async function abrirFichaAluno(alunoId) {
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
 
   document.getElementById('ficha-notas-lista').innerHTML = [1,2,3].map(tri => {
-    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao');
+    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
     const avRecup = porTri[tri].filter(a => a.tipo === 'recuperacao');
     const isFundI = isFundamentalI();
     
@@ -7185,7 +7185,7 @@ function iniciarOcorrencias() {
 
 // Calcula soma do trimestre para um aluno a partir das avaliações em memória
 async function _cntCalcularSoma(tri, alunoId) {
-  const avNorm = avaliacoesTurma.filter(a => a.trimestre === parseInt(tri) && a.tipo !== 'recuperacao');
+  const avNorm = avaliacoesTurma.filter(a => a.trimestre === parseInt(tri) && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
   if (!avNorm.length) return 0;
   const ids = avNorm.map(a => a.id).join(',');
   const notas = await api(`notas?avaliacao_id=in.(${ids})&aluno_id=eq.${alunoId}&select=*`) || [];
