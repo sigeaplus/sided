@@ -4135,7 +4135,7 @@ async function abrirModalAvaliacao(data) {
   document.getElementById('aval-pontos').value = data?.pontos || '';
   document.getElementById('aval-tri').value = data?.trimestre || detectarTrimestreAtual().tri || '1';
   document.getElementById('aval-tipo').value = tipoAtual;
-  document.getElementById('aval-alert').style.display = 'none';
+  const _avalAlert = document.getElementById('aval-alert'); _avalAlert.style.display = 'none'; _avalAlert.textContent = '';
   grupoComposicaoSelecionada = editandoAvalId ? [..._obterConfigGrupo(editandoAvalId).children] : [];
 
   // Verificar se é Fundamental I
@@ -4197,7 +4197,7 @@ async function salvarAvaliacao() {
   const nome = document.getElementById('aval-nome').value.trim();
   const pontos = parseFloat(document.getElementById('aval-pontos').value);
   const tipo = document.getElementById('aval-tipo').value;
-  if (!nome || !pontos) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (tipo !== 'confirmar_nota' && (!nome || !pontos)) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
   if (_isGrupoTipo(tipo) && !grupoComposicaoSelecionada.length) {
     alEl.textContent = 'Selecione ao menos uma sub-avaliação para o grupo.';
     alEl.style.display = 'block';
@@ -4209,7 +4209,7 @@ async function salvarAvaliacao() {
   const fieldDisc = document.getElementById('aval-field-disciplina');
   const isFundI = fieldDisc && fieldDisc.style.display !== 'none';
   const disciplina = isFundI ? document.getElementById('aval-disciplina').value : null;
-  if (isFundI && !disciplina) { alEl.textContent = 'Selecione a disciplina.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (isFundI && !disciplina && tipo !== 'confirmar_nota') { alEl.textContent = 'Selecione a disciplina.'; alEl.style.display = 'block'; btn.disabled = false; return; }
 
   // Validação: em Fundamental I, cada disciplina tem máximo 30 pts
   if (isFundI && disciplina && !_isGrupoTipo(tipo)) {
@@ -4236,8 +4236,11 @@ async function salvarAvaliacao() {
 
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const tipoPersistir = _isGrupoTipo(tipo) ? 'normal' : tipo;
+  // Para confirmar_nota: nome e pontos são automáticos
+  const nomeReal = tipo === 'confirmar_nota' ? 'Nota Final' : nome;
+  const pontosReal = tipo === 'confirmar_nota' ? 0 : pontos;
   const body = {
-    nome, pontos,
+    nome: nomeReal, pontos: pontosReal,
     trimestre: parseInt(document.getElementById('aval-tri').value),
     tipo: tipoPersistir,
     turma_id: turmaAtiva.id,
