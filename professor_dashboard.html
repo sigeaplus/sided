@@ -4089,7 +4089,7 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
         const statusBg = status === 'lancada' ? '#DCFCE7' : '#FEF3C7';
         const statusClr = status === 'lancada' ? '#166534' : '#92400E';
         return `
-        <div class="aval-card ${tipoExibicao === 'soma' ? 'grupo-card-soma' : ''} ${tipoExibicao === 'media' ? 'grupo-card-media' : ''}" style="cursor:${isGrupo ? 'default' : 'pointer'};" ${isGrupo ? '' : `onclick="abrirNotas('${a.id}')"`}>
+        <div class="aval-card ${tipoExibicao === 'soma' ? 'grupo-card-soma' : ''} ${tipoExibicao === 'media' ? 'grupo-card-media' : ''}" style="cursor:${isGrupo ? 'default' : 'pointer'};${_isNotaFinal(a) ? 'border-color:#C4B5FD;background:#FAF5FF;' : ''}" ${isGrupo ? '' : `onclick="abrirNotas('${a.id}')"`}>
           ${!isGrupo && status !== 'vazia' ? `<span class="aval-status-badge-inline" style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
           <div class="aval-card-header" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:${isGrupo ? '0' : '130px'}">
             <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${_nomeExibicaoAval(a)}</span>
@@ -4099,7 +4099,7 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
             </button>
           </div>
           <div style="font-size:13px;color:var(--text);line-height:1.8;">
-            Valor Total: <strong>${a.pontos}</strong><br>
+            ${_isNotaFinal(a) ? '' : `Valor Total: <strong>${a.pontos}</strong><br>`}
             Tipo: <strong>${_labelTipo(tipoExibicao)}</strong><br>
             Divisão: <strong>${nomesTri[a.trimestre] || ''}</strong>
           </div>
@@ -4305,8 +4305,8 @@ async function abrirNotas(avalId) {
   const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
   if (notaPadraoWrap) notaPadraoWrap.style.display = isConfirmar ? 'none' : 'flex';
 
-  // Garantir alunos carregados (Fundamental I pode ter chegado aqui sem carregarAlunos)
-  if (!alunosTurma.length) {
+  // Garantir alunos carregados
+  if (!alunosTurma.length || isConfirmar) {
     alunosTurma = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
   }
 
@@ -4462,6 +4462,10 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
     }
   });
 
+  if (!lista.length) {
+    document.getElementById('notas-list').innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:14px;">Nenhum aluno encontrado para esta turma.</div>';
+    return;
+  }
   document.getElementById('notas-list').innerHTML = lista.map(a => {
     const n = mapNotas[a.id] || {};
     const totalNormal = somaTri[a.id] || 0;
