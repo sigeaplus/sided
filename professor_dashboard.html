@@ -3877,13 +3877,17 @@ function _mapaFilhosGrupos() {
   return ownerByChild;
 }
 function _isGrupoTipo(tipo) { return tipo === 'soma' || tipo === 'media'; }
+function _isNotaFinal(aval) { return aval && typeof aval.nome === 'string' && aval.nome.startsWith('__NOTA_FINAL__'); }
+function _nomeExibicaoAval(aval) { return _isNotaFinal(aval) ? aval.nome.replace('__NOTA_FINAL__', '') || 'Nota Final' : aval.nome; }
 function _tipoExibicaoAval(aval) {
   if (!aval) return 'normal';
   const cfg = _obterConfigGrupo(aval.id);
+  if (_isNotaFinal(aval)) return 'confirmar_nota';
   if (aval.tipo === 'normal' && _isGrupoTipo(cfg.mode)) return cfg.mode;
   return aval.tipo;
 }
 function _labelTipo(tipo) {
+  if (tipo === 'confirmar_nota') return 'Nota Final';
   if (tipo === 'soma') return 'Soma';
   if (tipo === 'media') return 'Média';
   if (tipo === 'recuperacao') return 'Recuperação';
@@ -3903,7 +3907,7 @@ function _renderChecklistGrupo() {
   const ownerByChild = _mapaFilhosGrupos();
   const candidates = avaliacoesTurma.filter(a =>
     !_isGrupoTipo(_tipoExibicaoAval(a)) &&
-    a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota' &&
+    a.tipo !== 'recuperacao' && !_isNotaFinal(a) &&
     parseInt(a.trimestre) === tri &&
     a.id !== editandoAvalId &&
     (!ownerByChild[a.id] || ownerByChild[a.id] === editandoAvalId)
@@ -4088,7 +4092,7 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
         <div class="aval-card ${tipoExibicao === 'soma' ? 'grupo-card-soma' : ''} ${tipoExibicao === 'media' ? 'grupo-card-media' : ''}" style="cursor:${isGrupo ? 'default' : 'pointer'};" ${isGrupo ? '' : `onclick="abrirNotas('${a.id}')"`}>
           ${!isGrupo && status !== 'vazia' ? `<span class="aval-status-badge-inline" style="position:absolute;top:14px;right:14px;background:${statusBg};color:${statusClr};font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;">${statusTxt}</span>` : ''}
           <div class="aval-card-header" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:${isGrupo ? '0' : '130px'}">
-            <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${a.nome}</span>
+            <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${_nomeExibicaoAval(a)}</span>
             ${a.disciplina ? `<span style="font-size:10px;font-weight:700;background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;">${a.disciplina}</span>` : ''}
             <button onclick="event.stopPropagation();editarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="${isGrupo ? 'Editar grupo' : 'Editar'}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -4218,7 +4222,7 @@ async function salvarAvaliacao() {
     
     avaliacoesTurma.forEach(aval => {
       // Contar apenas avaliações normais (não recuperação) do mesmo trimestre e disciplina
-      if (aval.tipo !== 'recuperacao' && aval.tipo !== 'confirmar_nota' && 
+      if (aval.tipo !== 'recuperacao' && !_isNotaFinal(aval) && 
           parseInt(aval.trimestre) === triAtual && 
           aval.disciplina === disciplina &&
           aval.id !== editandoAvalId) { // se editando, não contar a avaliação atual
@@ -4235,9 +4239,9 @@ async function salvarAvaliacao() {
   }
 
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  const tipoPersistir = _isGrupoTipo(tipo) ? 'normal' : tipo;
-  // Para confirmar_nota: nome e pontos são automáticos
-  const nomeReal = tipo === 'confirmar_nota' ? 'Nota Final' : nome;
+  const tipoPersistir = (_isGrupoTipo(tipo) || tipo === 'confirmar_nota') ? 'normal' : tipo;
+  // Para confirmar_nota: nome com prefixo especial, pontos mínimo válido
+  const nomeReal = tipo === 'confirmar_nota' ? '__NOTA_FINAL__' + (nome || 'Nota Final') : nome;
   const pontosReal = tipo === 'confirmar_nota' ? 1 : pontos;
   const body = {
     nome: nomeReal, pontos: pontosReal,
@@ -4296,7 +4300,7 @@ async function abrirNotas(avalId) {
   avaliacaoAtiva = avaliacoesTurma.find(a => a.id === avalId);
   if (!avaliacaoAtiva) return;
   alunosRecuperacaoExtra = new Set();
-  const isConfirmar = avaliacaoAtiva.tipo === 'confirmar_nota';
+  const isConfirmar = _isNotaFinal(avaliacaoAtiva);
 
   const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
   if (notaPadraoWrap) notaPadraoWrap.style.display = isConfirmar ? 'none' : 'flex';
@@ -4310,23 +4314,23 @@ async function abrirNotas(avalId) {
   document.getElementById('pagina-avaliacoes').style.display = 'none';
   document.getElementById('notas-screen').style.display = 'block';
 
-  atualizarCabecalho({ info: isConfirmar ? 'Avaliações — Nota Final' : 'Avaliações — Lançar Notas', titulo: avaliacaoAtiva.nome, detalhe: 'Voltar às avaliações', voltarFn: 'voltarAvaliacoes', cor: '#FF8C38' });
+  atualizarCabecalho({ info: isConfirmar ? 'Avaliações — Nota Final' : 'Avaliações — Lançar Notas', titulo: _nomeExibicaoAval(avaliacaoAtiva), detalhe: 'Voltar às avaliações', voltarFn: 'voltarAvaliacoes', cor: '#FF8C38' });
 
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
   const totalTri = avaliacoesTurma
-    .filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota')
+    .filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && !_isNotaFinal(a))
     .reduce((s,a) => s + Number(a.pontos), 0);
 
-  document.getElementById('notas-title').textContent = avaliacaoAtiva.nome;
+  document.getElementById('notas-title').textContent = _nomeExibicaoAval(avaliacaoAtiva);
   document.getElementById('notas-pontos').textContent = isConfirmar ? '—' : `${avaliacaoAtiva.pontos} pts`;
   document.getElementById('notas-tri').textContent = nomesTri[avaliacaoAtiva.trimestre] || '';
   document.getElementById('notas-tipo').textContent = isConfirmar ? 'Nota Final' : (avaliacaoAtiva.tipo === 'normal' ? 'Normal' : 'Recuperação');
   document.getElementById('notas-total-tri').textContent = isConfirmar ? `${totalTri} pts no trimestre` : `${totalTri} pts`;
 
-  atualizarHeaderMobile(avaliacaoAtiva.nome, isConfirmar ? `Nota Final · ${nomesTri[avaliacaoAtiva.trimestre]}` : `${avaliacaoAtiva.pontos}pts · ${nomesTri[avaliacaoAtiva.trimestre]}`, true, true);
+  atualizarHeaderMobile(_nomeExibicaoAval(avaliacaoAtiva), isConfirmar ? `Nota Final · ${nomesTri[avaliacaoAtiva.trimestre]}` : `${avaliacaoAtiva.pontos}pts · ${nomesTri[avaliacaoAtiva.trimestre]}`, true, true);
 
   // Soma do trimestre por aluno (excluindo recuperação e confirmar_nota)
-  let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
+  let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
   if (isFundamentalI() && avalDiscFiltro) {
     avaisNormais = avaisNormais.filter(a => a.disciplina === avalDiscFiltro);
   }
@@ -4675,7 +4679,7 @@ async function salvarTodasNotas() {
         lancado_em: new Date().toISOString()
       }));
 
-    if (avaliacaoAtiva.tipo === 'confirmar_nota') {
+    if (_isNotaFinal(avaliacaoAtiva)) {
       // Nota Final: salva em notas_confirmadas usando soma calculada + nota final inserida
       const somaTri = window._somaTri || {};
       const payloadsConf = alunosTurma
@@ -4696,7 +4700,7 @@ async function salvarTodasNotas() {
           trimestre     : avaliacaoAtiva.trimestre,
           nota_final    : r.nota_final,
           soma_original : r.soma_original,
-          justificativa : `Nota final via avaliação "${avaliacaoAtiva.nome}"`,
+          justificativa : `Nota final via avaliação "${_nomeExibicaoAval(avaliacaoAtiva)}"`,
           tipo_avaliacao: 'trimestral',
           updated_at    : new Date().toISOString()
         }));
@@ -4733,7 +4737,7 @@ function toggleNaoRealizado(alunoId) {
 function atualizarTotal(alunoId) {
   const somaTri = window._somaTri || {};
   const mapNotas = window._mapNotas || {};
-  const isConfirmar = avaliacaoAtiva?.tipo === 'confirmar_nota';
+  const isConfirmar = _isNotaFinal(avaliacaoAtiva);
 
   if (isConfirmar) {
     // Para nota final: mostra a nota que vai substituir a soma
@@ -4818,7 +4822,7 @@ async function carregarRelatorio(tri) {
   tri = parseInt(tri) || 1;
   document.getElementById('relatorio-total-alunos').textContent = `Total de alunos: ${alunosTurma.length}`;
 
-  const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
+  const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
   const media = tri === 3 ? 24 : 18;
   const totalEsperado = tri === 3 ? 40 : 30;
 
@@ -4882,7 +4886,7 @@ async function carregarRelatorio(tri) {
   } else {
     // Fundamental II: colunas por avaliação (comportamento original)
     thead.innerHTML = `<th>Aluno</th>` +
-      avalTri.map(a => `<th style="white-space:nowrap;">${a.nome.length > 18 ? a.nome.substring(0,18)+'…' : a.nome}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`).join('') +
+      avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
       `<th>Total de Notas</th><th style="white-space:nowrap;color:#7C3AED;">Nota Fechada</th><th>Faltas</th>`;
 
     // Buscar também avaliações de recuperação do trimestre para incluir recuperacao_paralela
@@ -4994,7 +4998,7 @@ async function abrirFichaAluno(alunoId) {
   let somaAno = 0;
   const isFundI = isFundamentalI();
   [1,2,3].forEach(tri => {
-    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
+    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && !_isNotaFinal(a));
     if (isFundI) {
       // Fundamental I: somar por disciplina, máximo 30 por disciplina
       const discsSet = [...new Set(avNorm.map(a => a.disciplina).filter(Boolean))].sort();
@@ -5030,7 +5034,7 @@ async function abrirFichaAluno(alunoId) {
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
 
   document.getElementById('ficha-notas-lista').innerHTML = [1,2,3].map(tri => {
-    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
+    const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && !_isNotaFinal(a));
     const avRecup = porTri[tri].filter(a => a.tipo === 'recuperacao');
     const isFundI = isFundamentalI();
     
@@ -7224,7 +7228,7 @@ function iniciarOcorrencias() {
 
 // Calcula soma do trimestre para um aluno a partir das avaliações em memória
 async function _cntCalcularSoma(tri, alunoId) {
-  const avNorm = avaliacoesTurma.filter(a => a.trimestre === parseInt(tri) && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
+  const avNorm = avaliacoesTurma.filter(a => a.trimestre === parseInt(tri) && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
   if (!avNorm.length) return 0;
   const ids = avNorm.map(a => a.id).join(',');
   const notas = await api(`notas?avaliacao_id=in.(${ids})&aluno_id=eq.${alunoId}&select=*`) || [];
