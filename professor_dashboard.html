@@ -4197,14 +4197,7 @@ async function salvarAvaliacao() {
   const nome = document.getElementById('aval-nome').value.trim();
   const pontos = parseFloat(document.getElementById('aval-pontos').value);
   const tipo = document.getElementById('aval-tipo').value;
-  // Para Confirmar Nota: fechar este modal e abrir o fluxo próprio
-  if (tipo === 'confirmar_nota') {
-    btn.disabled = false;
-    fecharModal('modal-avaliacao');
-    abrirConfirmarNotaTrimestral();
-    return;
-  }
-  if (!nome || !pontos) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (tipo !== 'confirmar_nota' && (!nome || !pontos)) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
   if (_isGrupoTipo(tipo) && !grupoComposicaoSelecionada.length) {
     alEl.textContent = 'Selecione ao menos uma sub-avaliação para o grupo.';
     alEl.style.display = 'block';
@@ -4245,7 +4238,7 @@ async function salvarAvaliacao() {
   const tipoPersistir = _isGrupoTipo(tipo) ? 'normal' : tipo;
   // Para confirmar_nota: nome e pontos são automáticos
   const nomeReal = tipo === 'confirmar_nota' ? 'Nota Final' : nome;
-  const pontosReal = tipo === 'confirmar_nota' ? null : pontos;
+  const pontosReal = tipo === 'confirmar_nota' ? 1 : pontos;
   const body = {
     nome: nomeReal, pontos: pontosReal,
     trimestre: parseInt(document.getElementById('aval-tri').value),
@@ -4303,8 +4296,10 @@ async function abrirNotas(avalId) {
   avaliacaoAtiva = avaliacoesTurma.find(a => a.id === avalId);
   if (!avaliacaoAtiva) return;
   alunosRecuperacaoExtra = new Set();
+  const isConfirmar = avaliacaoAtiva.tipo === 'confirmar_nota';
+
   const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
-  if (notaPadraoWrap) notaPadraoWrap.style.display = 'flex';
+  if (notaPadraoWrap) notaPadraoWrap.style.display = isConfirmar ? 'none' : 'flex';
 
   // Garantir alunos carregados (Fundamental I pode ter chegado aqui sem carregarAlunos)
   if (!alunosTurma.length) {
@@ -4314,8 +4309,8 @@ async function abrirNotas(avalId) {
   // trocar telas
   document.getElementById('pagina-avaliacoes').style.display = 'none';
   document.getElementById('notas-screen').style.display = 'block';
-  // cabeçalho com voltar
-  atualizarCabecalho({ info: 'Avaliações — Lançar Notas', titulo: avaliacaoAtiva.nome, detalhe: 'Voltar às avaliações', voltarFn: 'voltarAvaliacoes', cor: '#FF8C38' });
+
+  atualizarCabecalho({ info: isConfirmar ? 'Avaliações — Nota Final' : 'Avaliações — Lançar Notas', titulo: avaliacaoAtiva.nome, detalhe: 'Voltar às avaliações', voltarFn: 'voltarAvaliacoes', cor: '#FF8C38' });
 
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
   const totalTri = avaliacoesTurma
@@ -4323,20 +4318,14 @@ async function abrirNotas(avalId) {
     .reduce((s,a) => s + Number(a.pontos), 0);
 
   document.getElementById('notas-title').textContent = avaliacaoAtiva.nome;
-  document.getElementById('notas-pontos').textContent = `${avaliacaoAtiva.pontos} pts`;
+  document.getElementById('notas-pontos').textContent = isConfirmar ? '—' : `${avaliacaoAtiva.pontos} pts`;
   document.getElementById('notas-tri').textContent = nomesTri[avaliacaoAtiva.trimestre] || '';
-  document.getElementById('notas-tipo').textContent = avaliacaoAtiva.tipo === 'normal' ? 'Normal' : 'Recuperação';
-  document.getElementById('notas-total-tri').textContent = `${totalTri} pts`;
+  document.getElementById('notas-tipo').textContent = isConfirmar ? 'Nota Final' : (avaliacaoAtiva.tipo === 'normal' ? 'Normal' : 'Recuperação');
+  document.getElementById('notas-total-tri').textContent = isConfirmar ? `${totalTri} pts no trimestre` : `${totalTri} pts`;
 
-  atualizarHeaderMobile(avaliacaoAtiva.nome, `${avaliacaoAtiva.pontos}pts · ${nomesTri[avaliacaoAtiva.trimestre]}`, true, true);
+  atualizarHeaderMobile(avaliacaoAtiva.nome, isConfirmar ? `Nota Final · ${nomesTri[avaliacaoAtiva.trimestre]}` : `${avaliacaoAtiva.pontos}pts · ${nomesTri[avaliacaoAtiva.trimestre]}`, true, true);
 
-  // Notas desta avaliação
-  const notasSalvas = await api(`notas?avaliacao_id=eq.${avalId}&select=*`) || [];
-  const mapNotas = {};
-  notasSalvas.forEach(n => { mapNotas[n.aluno_id] = n; });
-
-  // Soma do trimestre por aluno (excluindo recuperação)
-  // Em Fundamental I, apenas da disciplina ativa
+  // Soma do trimestre por aluno (excluindo recuperação e confirmar_nota)
   let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && a.tipo !== 'confirmar_nota');
   if (isFundamentalI() && avalDiscFiltro) {
     avaisNormais = avaisNormais.filter(a => a.disciplina === avalDiscFiltro);
@@ -4352,24 +4341,36 @@ async function abrirNotas(avalId) {
     });
   }
 
+  // Para confirmar_nota: mapNotas vem de notas_confirmadas (nota_final já salva)
+  let mapNotas = {};
+  if (isConfirmar) {
+    if (alunosTurma.length) {
+      const ids = alunosTurma.map(a => a.id).join(',');
+      const confirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${avaliacaoAtiva.trimestre}&aluno_id=in.(${ids})&select=*`) || [];
+      confirmadas.forEach(c => {
+        mapNotas[c.aluno_id] = { nota: c.soma_original ?? somaTri[c.aluno_id] ?? 0, recuperacao_paralela: c.nota_final, nao_realizado: false };
+      });
+    }
+  } else {
+    const notasSalvas = await api(`notas?avaliacao_id=eq.${avalId}&select=*`) || [];
+    notasSalvas.forEach(n => { mapNotas[n.aluno_id] = n; });
+  }
+
   const maxTri = isFundamentalI() ? 30 : (avaliacaoAtiva.trimestre === 3 ? 40 : 30);
   const mediaMin = isFundamentalI() ? 18 : (avaliacaoAtiva.trimestre === 3 ? 24 : 18);
   const limiteRecup = maxTri * 0.6;
 
-  window._somaTri = somaTri; // salvar para uso no incluirAlunoRecuperacao
-  window._mapNotas = mapNotas; // salvar para cálculo correto em atualizarTotal
+  window._somaTri = somaTri;
+  window._mapNotas = mapNotas;
 
   const isRecup = avaliacaoAtiva.tipo === 'recuperacao';
 
-  // Para recuperação: apenas alunos abaixo de 60% do total do trimestre
   const alunosVisiveis = isRecup
     ? alunosTurma.filter(a => (somaTri[a.id] || 0) < limiteRecup)
     : alunosTurma;
 
-  const isConfirmar = avaliacaoAtiva.tipo === 'confirmar_nota';
   renderNotasAlunos(alunosVisiveis, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri, isConfirmar);
 
-  // Configurar navegação com Enter
   setTimeout(() => configurarNavegacaoNotas(), 100);
 }
 
@@ -4487,36 +4488,41 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
         ${isRecup ? `<span style="margin-left:auto;font-size:11px;color:#92400E;background:#FEF3C7;padding:3px 10px;border-radius:20px;font-weight:600;flex-shrink:0;">Nota atual: ${totalNormal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pct}%)</span>` : ''}
       </div>
 
-      <!-- LINHA 2: Nota: [pill] ............. Recuperação Paralela: [pill] -->
+      <!-- LINHA 2: Nota: [pill] ............. Recuperação Paralela / Nota Final: [pill] -->
       <div class="nota-row-inputs">
         <div class="nota-inline-group">
-          <span class="nota-inline-label">${isConfirmar ? 'Soma calculada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
+          <span class="nota-inline-label">${isConfirmar ? 'Nota somada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
           <input class="nota-input-pill" id="nota-${a.id}" type="number" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
             value="${isConfirmar ? (somaTri[a.id] || 0).toFixed(2) : (n.nota !== undefined && n.nota !== null ? n.nota : '')}"
             placeholder="–"
             ${n.nao_realizado ? 'disabled' : ''}
-            ${isConfirmar ? 'readonly style="opacity:0.6;cursor:not-allowed;background:#EEF2FF;"' : ''}
+            ${isConfirmar ? 'readonly tabindex="-1" style="opacity:0.65;cursor:not-allowed;background:#EEF2FF;border-color:#C7D2FE;"' : ''}
             oninput="atualizarTotal('${a.id}')"/>
         </div>
         <div class="nota-inline-group">
-          <span class="nota-inline-label">${isConfirmar ? 'Nota Final:' : 'Recuperação Paralela:'}</span>
+          <span class="nota-inline-label" style="${isConfirmar ? 'color:#7C3AED;font-weight:700;' : ''}">${isConfirmar ? 'Nota final:' : 'Recuperação Paralela:'}</span>
           <input class="nota-input-pill" id="rec-${a.id}" type="number" min="0" step="0.5"
             value="${n.recuperacao_paralela !== undefined && n.recuperacao_paralela !== null ? n.recuperacao_paralela : ''}"
-            placeholder="–"
+            placeholder="${isConfirmar ? 'Inserir nota final' : '–'}"
+            style="${isConfirmar ? 'border-color:#7C3AED;font-weight:700;color:#7C3AED;' : ''}"
             oninput="atualizarTotal('${a.id}')"/>
         </div>
       </div>
 
       <!-- LINHA 3: Não realizada [checkbox] ............. Notas do Aluno: X -->
       <div class="nota-row-footer">
-        <div class="nao-realizado-wrap" ${isConfirmar ? 'style="display:none;"' : ''}>
+        <div class="nao-realizado-wrap" ${isConfirmar ? 'style="visibility:hidden;"' : ''}>
           <input type="checkbox" id="nr-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}')"/>
           <label for="nr-${a.id}">Ausente</label>
         </div>
         <div class="nota-total" id="total-${a.id}">
-          ${isRecup
-            ? `Nota final: <strong>${notaFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${recNota !== null && recNota > totalNormal ? ' <span style="font-size:11px;color:#166534;">(rec. aplicada)</span>' : ''}`
-            : `Notas do Aluno: <strong>${totalNormal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`}
+          ${isConfirmar
+            ? (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined
+                ? `Nota final aplicada: <strong style="color:#7C3AED;">${Number(n.recuperacao_paralela).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> <span style="font-size:11px;color:#7C3AED;">(substitui a soma)</span>`
+                : `Nota somada: <strong>${(somaTri[a.id]||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> — <span style="font-size:11px;color:var(--text-muted);">sem nota final definida</span>`)
+            : isRecup
+              ? `Nota final: <strong>${notaFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${recNota !== null && recNota > totalNormal ? ' <span style="font-size:11px;color:#166534;">(rec. aplicada)</span>' : ''}`
+              : `Notas do Aluno: <strong>${totalNormal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`}
         </div>
       </div>
 
@@ -4670,17 +4676,27 @@ async function salvarTodasNotas() {
       }));
 
     if (avaliacaoAtiva.tipo === 'confirmar_nota') {
-      // Confirmar Nota: salva APENAS em notas_confirmadas, não toca na tabela notas
-      const payloadsConf = rows
-        .filter(r => r.recuperacao_paralela !== null && r.recuperacao_paralela !== undefined)
+      // Nota Final: salva em notas_confirmadas usando soma calculada + nota final inserida
+      const somaTri = window._somaTri || {};
+      const payloadsConf = alunosTurma
+        .map(a => {
+          const recEl = document.getElementById(`rec-${a.id}`);
+          const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
+          return {
+            aluno_id      : a.id,
+            nota_final    : notaFinalVal,
+            soma_original : somaTri[a.id] ?? 0
+          };
+        })
+        .filter(r => r.nota_final !== null && !isNaN(r.nota_final))
         .map(r => ({
           turma_id      : turmaAtiva.id,
           aluno_id      : r.aluno_id,
           professor_id  : profData.id,
           trimestre     : avaliacaoAtiva.trimestre,
-          nota_final    : r.recuperacao_paralela,
-          soma_original : r.nota,
-          justificativa : 'Confirmado via avaliação',
+          nota_final    : r.nota_final,
+          soma_original : r.soma_original,
+          justificativa : `Nota final via avaliação "${avaliacaoAtiva.nome}"`,
           tipo_avaliacao: 'trimestral',
           updated_at    : new Date().toISOString()
         }));
@@ -4717,6 +4733,22 @@ function toggleNaoRealizado(alunoId) {
 function atualizarTotal(alunoId) {
   const somaTri = window._somaTri || {};
   const mapNotas = window._mapNotas || {};
+  const isConfirmar = avaliacaoAtiva?.tipo === 'confirmar_nota';
+
+  if (isConfirmar) {
+    // Para nota final: mostra a nota que vai substituir a soma
+    const notaFinalVal = parseFloat(document.getElementById(`rec-${alunoId}`)?.value);
+    const somaAtual = (somaTri[alunoId] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const el = document.getElementById(`total-${alunoId}`);
+    if (!el) return;
+    if (!isNaN(notaFinalVal)) {
+      el.innerHTML = `Nota final aplicada: <strong style="color:#7C3AED;">${notaFinalVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> <span style="font-size:11px;color:#7C3AED;">(substitui a soma)</span>`;
+    } else {
+      el.innerHTML = `Nota somada: <strong>${somaAtual}</strong> — <span style="font-size:11px;color:var(--text-muted);">sem nota final definida</span>`;
+    }
+    return;
+  }
+
   const notaSalva = mapNotas[alunoId]?.nota;
   const notaSalvaNum = (notaSalva !== null && notaSalva !== undefined) ? Number(notaSalva) : 0;
   const totalSemAtual = (somaTri[alunoId] || 0) - notaSalvaNum;
