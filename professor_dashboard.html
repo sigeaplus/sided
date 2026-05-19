@@ -4355,7 +4355,7 @@ async function abrirNotas(avalId) {
   if (isConfirmar) {
     if (alunosTurma.length) {
       const ids = alunosTurma.map(a => a.id).join(',');
-      const confirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${avaliacaoAtiva.trimestre}&aluno_id=in.(${ids})&select=*`) || [];
+      const confirmadas = await api(`notas_confirmadas?trimestre=eq.${avaliacaoAtiva.trimestre}&aluno_id=in.(${ids})&select=*`) || [];
       confirmadas.forEach(c => {
         mapNotas[c.aluno_id] = { nota: c.soma_original ?? somaTri[c.aluno_id] ?? 0, recuperacao_paralela: c.nota_final, nao_realizado: false };
       });
@@ -4703,7 +4703,6 @@ async function salvarTodasNotas() {
         })
         .filter(r => r.nota_final !== null && !isNaN(r.nota_final))
         .map(r => ({
-          turma_id      : turmaAtiva.id,
           aluno_id      : r.aluno_id,
           professor_id  : profData.id,
           trimestre     : avaliacaoAtiva.trimestre,
@@ -4854,7 +4853,7 @@ async function carregarRelatorio(tri) {
   let notasConfirmadas = [];
   if (alunosTurma.length) {
     const ids = alunosTurma.map(a => a.id).join(',');
-    notasConfirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${tri}&aluno_id=in.(${ids})&select=aluno_id,nota_final`) || [];
+    notasConfirmadas = await api(`notas_confirmadas?trimestre=eq.${tri}&aluno_id=in.(${ids})&select=aluno_id,nota_final`) || [];
   }
   const notaFechadaPorAluno = {};
   notasConfirmadas.forEach(nc => { notaFechadaPorAluno[nc.aluno_id] = nc; });
@@ -7311,7 +7310,7 @@ async function cnt_atualizarSoma() {
 
   // Verificar se já tem nota confirmada no Supabase
   const ja = await api(
-    `notas_confirmadas?turma_id=eq.${turmaAtiva.id}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=*&limit=1`
+    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=*&limit=1`
   );
 
   if (ja && ja[0]) {
@@ -7409,7 +7408,7 @@ async function cnt_remover() {
 
   try {
     await api(
-      `notas_confirmadas?turma_id=eq.${turmaAtiva.id}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}`,
+      `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}`,
       { method: 'DELETE' }
     );
     mostrarToast('Nota confirmada removida.');
@@ -7423,7 +7422,7 @@ async function cnt_remover() {
 // Expõe a nota confirmada para uso no relatório/ficha do aluno (async — Supabase)
 async function cntObterNotaFinal(turmaId, tri, alunoId) {
   const res = await api(
-    `notas_confirmadas?turma_id=eq.${turmaId}&aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=nota_final&limit=1`
+    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=nota_final&limit=1`
   );
   return res && res[0] ? res[0].nota_final : null;
 }
