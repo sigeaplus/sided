@@ -4297,7 +4297,7 @@ let alunosRecuperacaoExtra = new Set();
 
 async function abrirNotas(avalId) {
   modoGrupoNotasAtivo = null;
-  avaliacaoAtiva = avaliacoesTurma.find(a => a.id === avalId);
+  avaliacaoAtiva = avaliacoesTurma.find(a => String(a.id) === String(avalId));
   if (!avaliacaoAtiva) return;
   alunosRecuperacaoExtra = new Set();
   const isConfirmar = _isNotaFinal(avaliacaoAtiva);
@@ -4305,8 +4305,13 @@ async function abrirNotas(avalId) {
   const notaPadraoWrap = document.getElementById('nota-padrao-wrap');
   if (notaPadraoWrap) notaPadraoWrap.style.display = isConfirmar ? 'none' : 'flex';
 
-  // Garantir alunos carregados
+  // Garantir alunos carregados — sempre rebusca para nota final
   if (!alunosTurma.length || isConfirmar) {
+    const fetchedAlunos = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
+    if (fetchedAlunos.length) alunosTurma = fetchedAlunos;
+  }
+  // Se ainda vazio, tentar uma vez mais sem cache
+  if (!alunosTurma.length) {
     alunosTurma = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
   }
 
@@ -4371,7 +4376,7 @@ async function abrirNotas(avalId) {
 
   const alunosVisiveis = isRecup
     ? alunosTurma.filter(a => (somaTri[a.id] || 0) < limiteRecup)
-    : alunosTurma;
+    : [...alunosTurma];
 
   renderNotasAlunos(alunosVisiveis, mapNotas, somaTri, mediaMin, isRecup, totalTri, maxTri, isConfirmar);
 
