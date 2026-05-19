@@ -4710,7 +4710,6 @@ async function salvarTodasNotas() {
           nota_final    : r.nota_final,
           soma_original : r.soma_original,
           justificativa : `Nota final via avaliação "${_nomeExibicaoAval(avaliacaoAtiva)}"`,
-          tipo_avaliacao: 'trimestral',
           updated_at    : new Date().toISOString()
         }));
       if (payloadsConf.length) {
@@ -4855,7 +4854,7 @@ async function carregarRelatorio(tri) {
   let notasConfirmadas = [];
   if (alunosTurma.length) {
     const ids = alunosTurma.map(a => a.id).join(',');
-    notasConfirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${tri}&aluno_id=in.(${ids})&select=aluno_id,nota_final,tipo_avaliacao`) || [];
+    notasConfirmadas = await api(`notas_confirmadas?turma_id=eq.${turmaAtiva.id}&trimestre=eq.${tri}&aluno_id=in.(${ids})&select=aluno_id,nota_final`) || [];
   }
   const notaFechadaPorAluno = {};
   notasConfirmadas.forEach(nc => { notaFechadaPorAluno[nc.aluno_id] = nc; });
@@ -4890,7 +4889,7 @@ async function carregarRelatorio(tri) {
       // Em Fundamental I, limitar cada disciplina a 30 pts
       const total = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
       const ncI = notaFechadaPorAluno[a.id];
-      return { aluno: a, notasPorDisc, discsSet, total, notaFechada: ncI ? ncI.nota_final : null, tipoFechada: ncI ? ncI.tipo_avaliacao : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      return { aluno: a, notasPorDisc, discsSet, total, notaFechada: ncI ? ncI.nota_final : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   } else {
     // Fundamental II: colunas por avaliação (comportamento original)
@@ -4911,7 +4910,7 @@ async function carregarRelatorio(tri) {
       const somaRec = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
       const total = somaBase + somaRec;
       const nc = notaFechadaPorAluno[a.id];
-      return { aluno: a, notasAluno, total, notaFechada: nc ? nc.nota_final : null, tipoFechada: nc ? nc.tipo_avaliacao : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      return { aluno: a, notasAluno, total, notaFechada: nc ? nc.nota_final : null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   }
 
@@ -7384,7 +7383,6 @@ async function cnt_salvar() {
     nota_final     : nota,
     soma_original  : _cntSomaAtual,
     justificativa  : just,
-    tipo_avaliacao : tipo,
     updated_at     : new Date().toISOString()
   };
 
