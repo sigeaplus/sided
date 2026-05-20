@@ -4334,17 +4334,21 @@ async function abrirNotas(avalId) {
 
   atualizarHeaderMobile(_nomeExibicaoAval(avaliacaoAtiva), isConfirmar ? `Nota Final · ${nomesTri[avaliacaoAtiva.trimestre]}` : `${avaliacaoAtiva.pontos}pts · ${nomesTri[avaliacaoAtiva.trimestre]}`, true, true);
 
-  // Soma do trimestre por aluno (excluindo recuperação e confirmar_nota)
+  // Soma do trimestre por aluno — igual ao relatório geral
   let avaisNormais = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
+  const avaisRecup  = avaliacoesTurma.filter(a => a.trimestre === avaliacaoAtiva.trimestre && a.tipo === 'recuperacao');
   if (isFundamentalI() && avalDiscFiltro) {
     avaisNormais = avaisNormais.filter(a => a.disciplina === avalDiscFiltro);
   }
   let somaTri = {};
-  if (avaisNormais.length) {
-    const ids = avaisNormais.map(a => a.id).join(',');
-    const todasNotas = await api(`notas?avaliacao_id=in.(${ids})&select=*`) || [];
+  const todosIdsParaSoma = [
+    ...avaisNormais.map(a => a.id),
+    ...avaisRecup.map(a => a.id)
+  ];
+  if (todosIdsParaSoma.length) {
+    const todasNotas = await api(`notas?avaliacao_id=in.(${todosIdsParaSoma.join(',')})&select=*`) || [];
     todasNotas.forEach(n => {
-      if (!n.nao_realizado) {
+      if (!n.nao_realizado && !n.ausente) {
         if (n.nota !== null && n.nota !== undefined)
           somaTri[n.aluno_id] = (somaTri[n.aluno_id] || 0) + Number(n.nota);
         if (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined)
@@ -4702,11 +4706,12 @@ async function salvarTodasNotas() {
         const recEl = document.getElementById(`rec-${a.id}`);
         const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
         return {
-          avaliacao_id          : avaliacaoAtiva.id,
-          aluno_id              : a.id,
-          nota                  : somaTri[a.id] ?? 0,
-          recuperacao_paralela  : notaFinalVal,
-          nao_realizado         : false
+          avaliacao_id         : avaliacaoAtiva.id,
+          aluno_id             : a.id,
+          nota                 : somaTri[a.id] ?? 0,
+          recuperacao_paralela : notaFinalVal,
+          nao_realizado        : false,
+          ausente              : false
         };
       });
       await api('notas', {
