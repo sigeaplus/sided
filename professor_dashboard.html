@@ -1988,9 +1988,10 @@ const SUPABASE_URL = 'https://biocjxggjjfeqmpuysik.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb2NqeGdnampmZXFtcHV5c2lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODUwOTQsImV4cCI6MjA4OTc2MTA5NH0.3bL3dKqiWGoHROE6vSzf-7Orp0GLcLpn4mHtUSwC0dU';
 
 const api = async (path, opts = {}) => {
+  const { headers: extraHeaders, ...restOpts } = opts;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...opts.headers },
-    ...opts
+    ...restOpts,
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...extraHeaders },
   });
   if (res.status === 204) return null;
   const data = await res.json();
@@ -4694,7 +4695,6 @@ async function salvarTodasNotas() {
         nota: document.getElementById(`nr-${a.id}`)?.checked ? null : (document.getElementById(`nota-${a.id}`)?.value !== '' && document.getElementById(`nota-${a.id}`)?.value != null ? parseFloat(document.getElementById(`nota-${a.id}`)?.value) : null),
         recuperacao_paralela: document.getElementById(`rec-${a.id}`)?.value !== '' && document.getElementById(`rec-${a.id}`)?.value != null ? parseFloat(document.getElementById(`rec-${a.id}`)?.value) : null,
         nao_realizado: document.getElementById(`nr-${a.id}`)?.checked || false,
-        ausente      : document.getElementById(`aus-${a.id}`)?.checked || false,
         lancado_em: new Date().toISOString()
       }));
 
@@ -4710,8 +4710,7 @@ async function salvarTodasNotas() {
           aluno_id             : a.id,
           nota                 : somaTri[a.id] ?? 0,
           recuperacao_paralela : notaFinalVal,
-          nao_realizado        : false,
-          ausente              : false
+          nao_realizado        : false
         };
       });
       await api('notas', {
@@ -4731,7 +4730,7 @@ async function salvarTodasNotas() {
     resetBtn();
   } catch (e) {
     console.error('Erro ao salvar notas:', e);
-    mostrarToast('Erro ao salvar notas. Tente novamente.');
+    mostrarToast('Erro ao salvar: ' + (e.message || 'Tente novamente.'));
     resetBtn();
   }
 }
