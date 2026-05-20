@@ -2224,6 +2224,13 @@ function aplicarFiltros() {
 function renderTurmas(lista) {
   const grid = document.getElementById('turmas-grid');
 
+  // Ordenar: nome da turma alfabético, desempate por disciplina
+  lista = [...lista].sort((a, b) => {
+    const nomeA = (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
+    if (nomeA !== 0) return nomeA;
+    return (a.disciplina || '').localeCompare(b.disciplina || '', 'pt-BR');
+  });
+
   document.getElementById('turmas-header').textContent = `Minhas turmas (${lista.length})`;
   grid.innerHTML = lista.length
     ? lista.map((t, i) => {
