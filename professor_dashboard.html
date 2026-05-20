@@ -4469,16 +4469,17 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
   document.getElementById('notas-list').innerHTML = lista.map(a => {
     const n = mapNotas[a.id] || {};
     const totalNormal = somaTri[a.id] || 0;
-    const recNota = n.nota !== null && n.nota !== undefined ? Number(n.nota) : null;
+    const recNota     = (n.nota !== null && n.nota !== undefined) ? Number(n.nota) : 0;
+    const recParalela = (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) ? Number(n.recuperacao_paralela) : 0;
 
-    // nota final: se recuperação, substitui se for maior
-    const notaFinal = isRecup && recNota !== null
-      ? Math.max(totalNormal, recNota)
+    // nota final = soma do trimestre + nota da recuperação + recuperação paralela (igual ao relatório)
+    const notaFinal = isRecup && !n.nao_realizado
+      ? totalNormal + recNota + recParalela
       : totalNormal;
 
     const abaixo = notaFinal < mediaMin;
 
-    // percentual atual
+    // percentual atual (antes da recuperação)
     const pct = maxTri > 0 ? ((totalNormal / maxTri) * 100).toFixed(0) : 0;
 
     return `<div class="nota-aluno-card ${abaixo ? 'abaixo' : ''}" id="ncard-${a.id}">
@@ -4529,7 +4530,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
                 ? `Nota final aplicada: <strong style="color:#7C3AED;">${Number(n.recuperacao_paralela).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> <span style="font-size:11px;color:#7C3AED;">(substitui a soma)</span>`
                 : `Nota somada: <strong>${(somaTri[a.id]||0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> — <span style="font-size:11px;color:var(--text-muted);">sem nota final definida</span>`)
             : isRecup
-              ? `Nota final: <strong>${notaFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${recNota !== null && recNota > totalNormal ? ' <span style="font-size:11px;color:#166534;">(rec. aplicada)</span>' : ''}`
+              ? `Nota final: <strong>${notaFinal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${(recNota > 0 || recParalela > 0) ? ` <span style="font-size:11px;color:#166534;">(${totalNormal.toFixed(1)} + ${(recNota+recParalela).toFixed(1)} rec.)</span>` : ''}`
               : `Notas do Aluno: <strong>${totalNormal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`}
         </div>
       </div>
@@ -4744,14 +4745,25 @@ function atualizarTotal(alunoId) {
     return;
   }
 
-  const notaSalva = mapNotas[alunoId]?.nota;
-  const notaSalvaNum = (notaSalva !== null && notaSalva !== undefined) ? Number(notaSalva) : 0;
-  const totalSemAtual = (somaTri[alunoId] || 0) - notaSalvaNum;
-  const nota = parseFloat(document.getElementById(`nota-${alunoId}`).value) || 0;
-  const rec = parseFloat(document.getElementById(`rec-${alunoId}`).value) || 0;
-  const totalComNova = totalSemAtual + nota + rec;
-  const totalFormatado = totalComNova.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  document.getElementById(`total-${alunoId}`).innerHTML = `Nota do aluno (${avaliacaoAtiva.trimestre}º tri): <strong>${totalFormatado}</strong>`;
+  const isRecupAtual = avaliacaoAtiva?.tipo === 'recuperacao';
+  const somaTurma = (somaTri[alunoId] || 0);
+  const nota = parseFloat(document.getElementById(`nota-${alunoId}`)?.value) || 0;
+  const rec  = parseFloat(document.getElementById(`rec-${alunoId}`)?.value)  || 0;
+  const el   = document.getElementById(`total-${alunoId}`);
+  if (!el) return;
+
+  if (isRecupAtual) {
+    // soma: total do trimestre + nota da recuperação + recuperação paralela
+    const novaTotal = somaTurma + nota + rec;
+    const breakdown = (nota > 0 || rec > 0) ? ` <span style="font-size:11px;color:#166534;">(${somaTurma.toFixed(1)} + ${(nota+rec).toFixed(1)} rec.)</span>` : '';
+    el.innerHTML = `Nota final: <strong>${novaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${breakdown}`;
+  } else {
+    const notaSalva = mapNotas[alunoId]?.nota;
+    const notaSalvaNum = (notaSalva !== null && notaSalva !== undefined) ? Number(notaSalva) : 0;
+    const totalSemAtual = somaTurma - notaSalvaNum;
+    const totalComNova = totalSemAtual + nota + rec;
+    el.innerHTML = `Notas do Aluno: <strong>${totalComNova.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`;
+  }
 }
 
 function aplicarNotaPadrao() {
