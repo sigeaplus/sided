@@ -4559,48 +4559,47 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 };
 
 function configurarNavegacaoNotas() {
-  // Coletar inputs de nota e recuperação paralela em ordem intercalada (nota → rec → próxima nota → próxima rec...)
-  const cards = document.querySelectorAll('.nota-aluno-card');
-  const todosInputs = [];
+  // Enter em "nota-X" vai para "nota-Y" (próximo aluno)
+  // Enter em "rec-X"  vai para "rec-Y"  (próximo aluno)
+  const cards = Array.from(document.querySelectorAll('.nota-aluno-card'));
+
+  const listaNotas = [];
+  const listaRec   = [];
 
   cards.forEach(card => {
-    // pegar id do card para montar os ids dos inputs
-    const cardId = card.id; // ncard-{alunoId}
-    if (!cardId) return;
-    const alunoId = cardId.replace('ncard-', '');
+    const alunoId = (card.id || '').replace('ncard-', '');
+    if (!alunoId) return;
     const inputNota = document.getElementById(`nota-${alunoId}`);
     const inputRec  = document.getElementById(`rec-${alunoId}`);
-    if (inputNota) todosInputs.push(inputNota);
-    if (inputRec)  todosInputs.push(inputRec);
+    if (inputNota) listaNotas.push(inputNota);
+    if (inputRec)  listaRec.push(inputRec);
   });
 
-  // Fallback: se não achou via cards, usa só os nota-*
-  if (!todosInputs.length) {
-    document.querySelectorAll('input[id^="nota-"]').forEach(inp => todosInputs.push(inp));
+  // Fallback
+  if (!listaNotas.length) {
+    document.querySelectorAll('input[id^="nota-"]').forEach(inp => listaNotas.push(inp));
   }
 
-  todosInputs.forEach((input, index) => {
-    // remover listener anterior se houver
-    const clone = input.cloneNode(true);
-    input.parentNode.replaceChild(clone, input);
-    todosInputs[index] = clone;
-  });
-
-  todosInputs.forEach((input, index) => {
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const proximoIndex = index + 1;
-        if (proximoIndex < todosInputs.length) {
-          todosInputs[proximoIndex].focus();
-          todosInputs[proximoIndex].select();
-        } else {
-          todosInputs[0].focus();
-          todosInputs[0].select();
-        }
-      }
+  const registrar = (lista) => {
+    // Clonar para remover listeners antigos
+    const clones = lista.map((inp, i) => {
+      const c = inp.cloneNode(true);
+      inp.parentNode.replaceChild(c, inp);
+      return c;
     });
-  });
+    clones.forEach((inp, i) => {
+      inp.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const prox = clones[(i + 1) % clones.length];
+        prox.focus();
+        prox.select();
+      });
+    });
+  };
+
+  registrar(listaNotas);
+  registrar(listaRec);
 }
 
 function incluirAlunoRecuperacao() {
