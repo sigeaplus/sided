@@ -4529,7 +4529,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
             <label for="nr-${a.id}" style="font-size:13px;color:var(--text);cursor:pointer;">Não realizado</label>
           </span>
           <span style="display:flex;align-items:center;gap:6px;">
-            <input type="checkbox" id="aus-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}', 'aus')"/>
+            <input type="checkbox" id="aus-${a.id}" ${n.ausente ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}', 'aus')"/>
             <label for="aus-${a.id}" style="font-size:13px;color:var(--text);cursor:pointer;">Ausente</label>
           </span>
         </div>
@@ -4626,7 +4626,8 @@ function incluirAlunoRecuperacao() {
     if (notaEl) mapNotasAtual[a.id] = {
       nota: notaEl.value !== '' ? parseFloat(notaEl.value) : null,
       recuperacao_paralela: recEl?.value !== '' ? parseFloat(recEl?.value) : null,
-      nao_realizado: (nrEl?.checked || document.getElementById(`aus-${a.id}`)?.checked || false)
+      nao_realizado: nrEl?.checked || false,
+      ausente: document.getElementById(`aus-${a.id}`)?.checked || false
     };
   });
 
@@ -4688,7 +4689,8 @@ async function salvarTodasNotas() {
         aluno_id: a.id,
         nota: document.getElementById(`nr-${a.id}`)?.checked ? null : (document.getElementById(`nota-${a.id}`)?.value !== '' && document.getElementById(`nota-${a.id}`)?.value != null ? parseFloat(document.getElementById(`nota-${a.id}`)?.value) : null),
         recuperacao_paralela: document.getElementById(`rec-${a.id}`)?.value !== '' && document.getElementById(`rec-${a.id}`)?.value != null ? parseFloat(document.getElementById(`rec-${a.id}`)?.value) : null,
-        nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
+        nao_realizado: document.getElementById(`nr-${a.id}`)?.checked || false,
+        ausente      : document.getElementById(`aus-${a.id}`)?.checked || false,
         lancado_em: new Date().toISOString()
       }));
 
@@ -4730,16 +4732,14 @@ async function salvarTodasNotas() {
 }
 
 function toggleNaoRealizado(alunoId, origem) {
-  // Sincroniza os dois checkboxes — ambos mapeiam para nao_realizado
   const nrEl  = document.getElementById(`nr-${alunoId}`);
   const ausEl = document.getElementById(`aus-${alunoId}`);
-  const checked = origem === 'nr' ? nrEl?.checked : ausEl?.checked;
-  if (nrEl)  nrEl.checked  = checked;
-  if (ausEl) ausEl.checked = checked;
+  // Cada um é independente — mas ambos desabilitam a nota
+  const desabilitar = nrEl?.checked || ausEl?.checked;
   const notaEl = document.getElementById(`nota-${alunoId}`);
   if (notaEl) {
-    notaEl.disabled = checked;
-    if (checked) notaEl.value = '';
+    notaEl.disabled = desabilitar;
+    if (desabilitar) notaEl.value = '';
   }
   atualizarTotal(alunoId);
 }
@@ -4771,9 +4771,12 @@ function atualizarTotal(alunoId) {
   if (!el) return;
 
   if (isRecupAtual) {
+    const nrChecked  = document.getElementById(`nr-${alunoId}`)?.checked || false;
+    const ausChecked = document.getElementById(`aus-${alunoId}`)?.checked || false;
+    const notaRecup  = (nrChecked || ausChecked) ? 0 : nota;
     // soma: total do trimestre + nota da recuperação + recuperação paralela
-    const novaTotal = somaTurma + nota + rec;
-    const breakdown = (nota > 0 || rec > 0) ? ` <span style="font-size:11px;color:#166534;">(${somaTurma.toFixed(1)} + ${(nota+rec).toFixed(1)} rec.)</span>` : '';
+    const novaTotal = somaTurma + notaRecup + rec;
+    const breakdown = (notaRecup > 0 || rec > 0) ? ` <span style="font-size:11px;color:#166534;">(${somaTurma.toFixed(1)} + ${(notaRecup+rec).toFixed(1)} rec.)</span>` : '';
     el.innerHTML = `Nota final: <strong>${novaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${breakdown}`;
   } else {
     const notaSalva = mapNotas[alunoId]?.nota;
