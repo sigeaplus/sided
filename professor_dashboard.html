@@ -4350,16 +4350,11 @@ async function abrirNotas(avalId) {
     });
   }
 
-  // Para confirmar_nota: mapNotas vem de notas_confirmadas (nota_final já salva)
+  // Para confirmar_nota: notas salvas na tabela 'notas' com recuperacao_paralela = nota final
   let mapNotas = {};
   if (isConfirmar) {
-    if (alunosTurma.length) {
-      const ids = alunosTurma.map(a => a.id).join(',');
-      const confirmadas = await api(`notas_confirmadas?trimestre=eq.${avaliacaoAtiva.trimestre}&aluno_id=in.(${ids})&select=*`) || [];
-      confirmadas.forEach(c => {
-        mapNotas[c.aluno_id] = { nota: c.soma_original ?? somaTri[c.aluno_id] ?? 0, recuperacao_paralela: c.nota_final, nao_realizado: false };
-      });
-    }
+    const notasSalvas = await api(`notas?avaliacao_id=eq.${avalId}&select=*`) || [];
+    notasSalvas.forEach(n => { mapNotas[n.aluno_id] = n; });
   } else {
     const notasSalvas = await api(`notas?avaliacao_id=eq.${avalId}&select=*`) || [];
     notasSalvas.forEach(n => { mapNotas[n.aluno_id] = n; });
@@ -4689,35 +4684,25 @@ async function salvarTodasNotas() {
       }));
 
     if (_isNotaFinal(avaliacaoAtiva)) {
-      // Nota Final: salva em notas_confirmadas usando soma calculada + nota final inserida
+      // Nota Final: salva em 'notas' usando avaliacao_id da avaliação __NOTA_FINAL__
+      // nota = soma calculada (readonly), recuperacao_paralela = nota final inserida pelo professor
       const somaTri = window._somaTri || {};
-      const payloadsConf = alunosTurma
-        .map(a => {
-          const recEl = document.getElementById(`rec-${a.id}`);
-          const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
-          return {
-            aluno_id      : a.id,
-            nota_final    : notaFinalVal,
-            soma_original : somaTri[a.id] ?? 0
-          };
-        })
-        .filter(r => r.nota_final !== null && !isNaN(r.nota_final))
-        .map(r => ({
-          aluno_id      : r.aluno_id,
-          professor_id  : profData.id,
-          trimestre     : avaliacaoAtiva.trimestre,
-          nota_final    : r.nota_final,
-          soma_original : r.soma_original,
-          justificativa : `Nota final via avaliação "${_nomeExibicaoAval(avaliacaoAtiva)}"`,
-          updated_at    : new Date().toISOString()
-        }));
-      if (payloadsConf.length) {
-        await api('notas_confirmadas', {
-          method : 'POST',
-          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
-          body   : JSON.stringify(payloadsConf)
-        });
-      }
+      const upserts = alunosTurma.map(a => {
+        const recEl = document.getElementById(`rec-${a.id}`);
+        const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
+        return {
+          avaliacao_id          : avaliacaoAtiva.id,
+          aluno_id              : a.id,
+          nota                  : somaTri[a.id] ?? 0,
+          recuperacao_paralela  : notaFinalVal,
+          nao_realizado         : false
+        };
+      });
+      await api('notas', {
+        method : 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body   : JSON.stringify(upserts)
+      });
     } else {
       await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
       if (rows.length) await api('notas', { method: 'POST', body: JSON.stringify(rows) });
