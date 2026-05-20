@@ -4344,8 +4344,11 @@ async function abrirNotas(avalId) {
     const ids = avaisNormais.map(a => a.id).join(',');
     const todasNotas = await api(`notas?avaliacao_id=in.(${ids})&select=*`) || [];
     todasNotas.forEach(n => {
-      if (!n.nao_realizado && n.nota !== null && n.nota !== undefined) {
-        somaTri[n.aluno_id] = (somaTri[n.aluno_id] || 0) + Number(n.nota);
+      if (!n.nao_realizado) {
+        if (n.nota !== null && n.nota !== undefined)
+          somaTri[n.aluno_id] = (somaTri[n.aluno_id] || 0) + Number(n.nota);
+        if (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined)
+          somaTri[n.aluno_id] = (somaTri[n.aluno_id] || 0) + Number(n.recuperacao_paralela);
       }
     });
   }
