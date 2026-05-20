@@ -4832,11 +4832,14 @@ async function carregarRelatorio(tri) {
   const media = tri === 3 ? 24 : 18;
   const totalEsperado = tri === 3 ? 40 : 30;
 
-  // Buscar notas
+  // Buscar notas (avaliações normais + recuperação trimestral)
   let notasTri = [];
-  if (avalTri.length && alunosTurma.length) {
-    const ids = avalTri.map(a => a.id).join(',');
-    notasTri = await api(`notas?avaliacao_id=in.(${ids})&select=*`) || [];
+  const avalRecup = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo === 'recuperacao');
+  const idsNormais = avalTri.length ? avalTri.map(a => a.id) : [];
+  const idsRecup   = avalRecup.length ? avalRecup.map(a => a.id) : [];
+  const todosIds   = [...idsNormais, ...idsRecup];
+  if (todosIds.length && alunosTurma.length) {
+    notasTri = await api(`notas?avaliacao_id=in.(${todosIds.join(',')})&select=*`) || [];
   }
 
   // Buscar faltas
@@ -4885,18 +4888,22 @@ async function carregarRelatorio(tri) {
       avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
       `<th>Total de Notas</th><th>Faltas</th>`;
 
-    // Buscar também avaliações de recuperação do trimestre para incluir recuperacao_paralela
-    const avalTodos = avaliacoesTurma.filter(a => a.trimestre === tri);
     relatorioCache = alunosTurma.map(a => {
       const notasAluno = avalTri.map(av => {
         const n = notasMap[a.id]?.[av.id];
         if (!n) return { nota: null, naoRealizado: false, recuperacaoParalela: null };
         return { nota: n.nota, naoRealizado: n.nao_realizado, recuperacaoParalela: n.recuperacao_paralela };
       });
-      // Soma das notas normais + recuperação paralela (campo extra por avaliação)
+      // Soma das notas normais + recuperação paralela de cada avaliação
       const somaBase = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.nota || 0)), 0);
-      const somaRec = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
-      const total = somaBase + somaRec;
+      const somaRecPar = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
+      // Soma das notas da avaliação de recuperação trimestral
+      const somaRecup = avalRecup.reduce((s, av) => {
+        const n = notasMap[a.id]?.[av.id];
+        return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0)
+                 + (n && !n.nao_realizado && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
+      }, 0);
+      const total = somaBase + somaRecPar + somaRecup;
       return { aluno: a, notasAluno, total, notaFechada: null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   }
