@@ -4523,9 +4523,15 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 
       <!-- LINHA 3: Não realizada [checkbox] ............. Notas do Aluno: X -->
       <div class="nota-row-footer">
-        <div class="nao-realizado-wrap" ${isConfirmar ? 'style="visibility:hidden;"' : ''}>
-          <input type="checkbox" id="nr-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}')"/>
-          <label for="nr-${a.id}">Ausente</label>
+        <div class="nao-realizado-wrap" ${isConfirmar ? 'style="visibility:hidden;"' : ''} style="gap:16px;">
+          <span style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="nr-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}', 'nr')"/>
+            <label for="nr-${a.id}" style="font-size:13px;color:var(--text);cursor:pointer;">Não realizado</label>
+          </span>
+          <span style="display:flex;align-items:center;gap:6px;">
+            <input type="checkbox" id="aus-${a.id}" ${n.nao_realizado ? 'checked' : ''} onchange="toggleNaoRealizado('${a.id}', 'aus')"/>
+            <label for="aus-${a.id}" style="font-size:13px;color:var(--text);cursor:pointer;">Ausente</label>
+          </span>
         </div>
         <div class="nota-total" id="total-${a.id}">
           ${isConfirmar
@@ -4620,7 +4626,7 @@ function incluirAlunoRecuperacao() {
     if (notaEl) mapNotasAtual[a.id] = {
       nota: notaEl.value !== '' ? parseFloat(notaEl.value) : null,
       recuperacao_paralela: recEl?.value !== '' ? parseFloat(recEl?.value) : null,
-      nao_realizado: nrEl?.checked || false
+      nao_realizado: (nrEl?.checked || document.getElementById(`aus-${a.id}`)?.checked || false)
     };
   });
 
@@ -4682,7 +4688,7 @@ async function salvarTodasNotas() {
         aluno_id: a.id,
         nota: document.getElementById(`nr-${a.id}`)?.checked ? null : (document.getElementById(`nota-${a.id}`)?.value !== '' && document.getElementById(`nota-${a.id}`)?.value != null ? parseFloat(document.getElementById(`nota-${a.id}`)?.value) : null),
         recuperacao_paralela: document.getElementById(`rec-${a.id}`)?.value !== '' && document.getElementById(`rec-${a.id}`)?.value != null ? parseFloat(document.getElementById(`rec-${a.id}`)?.value) : null,
-        nao_realizado: document.getElementById(`nr-${a.id}`)?.checked || false,
+        nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
         lancado_em: new Date().toISOString()
       }));
 
@@ -4723,10 +4729,19 @@ async function salvarTodasNotas() {
   }
 }
 
-function toggleNaoRealizado(alunoId) {
-  const nr = document.getElementById(`nr-${alunoId}`).checked;
-  document.getElementById(`nota-${alunoId}`).disabled = nr;
-  if (nr) document.getElementById(`nota-${alunoId}`).value = '';
+function toggleNaoRealizado(alunoId, origem) {
+  // Sincroniza os dois checkboxes — ambos mapeiam para nao_realizado
+  const nrEl  = document.getElementById(`nr-${alunoId}`);
+  const ausEl = document.getElementById(`aus-${alunoId}`);
+  const checked = origem === 'nr' ? nrEl?.checked : ausEl?.checked;
+  if (nrEl)  nrEl.checked  = checked;
+  if (ausEl) ausEl.checked = checked;
+  const notaEl = document.getElementById(`nota-${alunoId}`);
+  if (notaEl) {
+    notaEl.disabled = checked;
+    if (checked) notaEl.value = '';
+  }
+  atualizarTotal(alunoId);
 }
 
 function atualizarTotal(alunoId) {
@@ -4797,7 +4812,7 @@ async function salvarNotas() {
     aluno_id: a.id,
     nota: document.getElementById(`nota-${a.id}`).value !== '' ? parseFloat(document.getElementById(`nota-${a.id}`).value) : null,
     recuperacao_paralela: document.getElementById(`rec-${a.id}`).value !== '' ? parseFloat(document.getElementById(`rec-${a.id}`).value) : null,
-    nao_realizado: document.getElementById(`nr-${a.id}`).checked,
+    nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
     lancado_em: new Date().toISOString()
   }));
   await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
