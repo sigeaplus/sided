@@ -2751,11 +2751,18 @@ const TRI_DATAS = {
   3: { ini: '-09-10', fim: '-12-18' },
 };
 
-/** Data da aula vinda da API (DD-MM-YYYY ou ISO com hora) — sempre DD-MM-YYYY */
+/** Normaliza data da aula para YYYY-MM-DD independente do formato de entrada */
 function dataAulaOnly(raw) {
   if (raw == null || raw === '') return '';
-  const s = String(raw);
-  return s.includes('T') ? s.split('T')[0] : s.slice(0, 10);
+  const s = String(raw).trim();
+  // ISO com hora: 2026-05-13T00:00:00Z → 2026-05-13
+  if (s.includes('T')) return s.split('T')[0];
+  // Já é YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // Formato DD/MM/YYYY ou DD-MM-YYYY
+  const m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return s.slice(0, 10);
 }
 
 function trimestreDeAula(dataISO) {
@@ -2835,11 +2842,13 @@ function renderListaAulas() {
     const tri = trimestreDeAula(a.data);
     const triBadge = tri ? `<span style="font-size:10px;font-weight:700;color:var(--orange);background:#FFF0E6;padding:2px 7px;border-radius:20px;">${nomesTri[tri]}</span>` : '';
     const temChamada = chamadaCacheGet(a.id);
-    const chamadaTag = temChamada === true
+    // Determinar se tem chamada: cache tem prioridade, mas status do banco é fallback
+    const temChamadaEfetivo = temChamada === true || (temChamada !== false && a.status === 'lecionada');
+    const chamadaTag = a.status === 'futura'
+      ? '' // Aulas futuras não mostram tag de chamada
+      : temChamadaEfetivo
       ? `<span style="font-size:10px;font-weight:700;color:#166534;background:#DCFCE7;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Chamada lançada</span>`
-      : temChamada === false
-      ? `<span style="font-size:10px;font-weight:700;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Chamada pendente</span>`
-      : '';
+      : `<span style="font-size:10px;font-weight:700;color:#92400E;background:#FEF3C7;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Chamada pendente</span>`;
 
     // Data formatada com dia da semana
     const iso = dataAulaOnly(a.data);
@@ -3164,18 +3173,8 @@ async function _getMetaAulas(turmaId, tri) {
 // Atualiza só o contador — lecionadas de total criadas
 async function atualizarContadorAulas() {
   const tri = detectarTrimestreAtual().tri;
-  const triDatas = {
-    1: { ini: `-02-04`, fim: `-05-20` },
-    2: { ini: `-05-21`, fim: `-09-09` },
-    3: { ini: `-09-10`, fim: `-12-18` },
-  };
   const ano = new Date().getFullYear();
-  const ini = new Date(`${ano}${triDatas[tri].ini}`);
-  const fim = new Date(`${ano}${triDatas[tri].fim}`);
-  const aulasDoTri = aulasTurma.filter(a => {
-    const d = new Date(dataAulaOnly(a.data) + 'T12:00:00');
-    return d >= ini && d <= fim;
-  });
+  const aulasDoTri = aulasTurma.filter(a => trimestreDeAula(a.data) === tri);
   const lecionadas = aulasDoTri.filter(a => a.status === 'lecionada').length;
   const totalCriadas = aulasDoTri.length;
   const el = document.getElementById('counter-aulas');
@@ -3189,10 +3188,10 @@ function calcularStatusAuto(dataISO, aulaId) {
   const dataAula = new Date(dataAulaOnly(dataISO) + 'T00:00:00');
   if (dataAula > hoje) return 'futura';
   if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
-  // Se o cache ainda não carregou mas a aula tem status lecionada no array local, manter
+  // Respeitar status salvo no banco quando cache não confirmou o contrário
   if (aulaId) {
     const aulaLocal = aulasTurma.find(a => a.id === aulaId);
-    if (aulaLocal && aulaLocal.status === 'lecionada' && chamadaCacheGet(aulaId) === undefined) return 'lecionada';
+    if (aulaLocal && aulaLocal.status === 'lecionada' && chamadaCacheGet(aulaId) !== false) return 'lecionada';
   }
   return 'pendente';
 }
@@ -3204,14 +3203,18 @@ function recalcularStatusLocal() {
     const dataAula = new Date(dataAulaOnly(a.data) + 'T00:00:00');
     let s;
     if (dataAula > hoje) {
+      // Data futura: sempre futura, independente do status no banco
       s = 'futura';
     } else if (chamadaCacheGet(a.id) === true) {
+      // Confirmado pelo banco que tem chamada → lecionada
       s = 'lecionada';
-    } else if (a.status === 'lecionada' && chamadaCacheGet(a.id) === undefined) {
-      // Cache ainda não carregou — manter o status salvo no banco
-      s = 'lecionada';
+    } else if (chamadaCacheGet(a.id) === false) {
+      // Confirmado pelo banco que NÃO tem chamada → só então pendente
+      // mas respeitar se o status do banco diz lecionada (foi marcado manualmente)
+      s = a.status === 'lecionada' ? 'lecionada' : 'pendente';
     } else {
-      s = 'pendente';
+      // Cache indefinido (não carregou ainda) → usar o status do banco
+      s = (a.status === 'lecionada' || a.status === 'pendente') ? a.status : 'pendente';
     }
     if (a.status !== s) { a.status = s; mudou = true; }
   });
