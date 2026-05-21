@@ -4887,6 +4887,14 @@ async function carregarRelatorio(tri) {
     notasMap[n.aluno_id][n.avaliacao_id] = n;
   });
 
+  // Buscar notas confirmadas para este trimestre (todas de uma vez)
+  let notasConfirmadasMap = {};
+  if (alunosTurma.length) {
+    const idsAlunos = alunosTurma.map(a => a.id).join(',');
+    const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&turma_id=eq.${turmaAtiva.id}&select=aluno_id,nota_final`) || [];
+    confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
+  }
+
   const thead = document.getElementById('relatorio-thead');
   const isFundI = isFundamentalI();
 
@@ -4908,8 +4916,11 @@ async function carregarRelatorio(tri) {
         notasPorDisc[d] = soma;
       });
       // Em Fundamental I, limitar cada disciplina a 30 pts
-      const total = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
-      return { aluno: a, notasPorDisc, discsSet, total, notaFechada: null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      const somaCalc = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
+      // Usar nota confirmada se existir
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+      const total = notaFechada !== null ? notaFechada : somaCalc;
+      return { aluno: a, notasPorDisc, discsSet, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   } else {
     // Fundamental II: colunas por avaliação (comportamento original)
@@ -4932,8 +4943,11 @@ async function carregarRelatorio(tri) {
         return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0)
                  + (n && !n.nao_realizado && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
       }, 0);
-      const total = somaBase + somaRecPar + somaRecup;
-      return { aluno: a, notasAluno, total, notaFechada: null, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      const somaCalc = somaBase + somaRecPar + somaRecup;
+      // Usar nota confirmada se existir
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+      const total = notaFechada !== null ? notaFechada : somaCalc;
+      return { aluno: a, notasAluno, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
   }
 
@@ -4960,6 +4974,7 @@ function renderRelatorio(dados, avalTri) {
       }
       <td style="font-weight:700;color:${r.abaixo?'#C0392B':'var(--success)'};">
         ${r.total.toFixed(1)}<span style="font-weight:400;font-size:11px;color:var(--text-muted);"> / ${r.totalEsperado}</span>
+        ${r.notaFechada !== null ? `<span style="display:inline-block;margin-left:5px;font-size:9px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;">✎ confirmada</span>` : ''}
         <div style="font-size:10px;margin-top:2px;color:${r.abaixo?'#C0392B':'#15803D'};">${r.abaixo?'⚠ Abaixo da média ('+r.media+')':'✓ Acima da média'}</div>
       </td>
       <td style="color:${r.faltas>0?'#C0392B':'var(--text-muted)'};">${r.faltas}</td>
@@ -5016,6 +5031,11 @@ async function abrirFichaAluno(alunoId) {
   const mapNotas = {};
   (notasRes||[]).forEach(n => { mapNotas[n.avaliacao_id] = n; });
 
+  // Buscar notas confirmadas dos 3 trimestres para este aluno
+  const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${alunoId}&turma_id=eq.${turmaAtiva.id}&select=trimestre,nota_final`) || [];
+  const notasConfAluno = {};
+  confResAluno.forEach(c => { notasConfAluno[c.trimestre] = Number(c.nota_final); });
+
   const totalFaltas = (faltasRes||[]).length;
   const totalAulas = (todasChamadas||[]).length;
   const pctFreq = totalAulas > 0 ? (((totalAulas - totalFaltas) / totalAulas) * 100).toFixed(0) : 100;
@@ -5024,6 +5044,12 @@ async function abrirFichaAluno(alunoId) {
   let somaAno = 0;
   const isFundI = isFundamentalI();
   [1,2,3].forEach(tri => {
+    // Se existe nota confirmada para este trimestre, usar ela diretamente
+    if (notasConfAluno.hasOwnProperty(tri)) {
+      somaAno += notasConfAluno[tri];
+      totalEsperadoAno += maxPorTri[tri];
+      return;
+    }
     const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && !_isNotaFinal(a));
     if (isFundI) {
       // Fundamental I: somar por disciplina, máximo 30 por disciplina
@@ -5067,7 +5093,10 @@ async function abrirFichaAluno(alunoId) {
     // Em Fundamental I, somaTri = soma por disciplina (máximo 30 cada)
     // Em outros: somaTri = soma de todas as avaliações
     let somaTri = 0;
-    if (isFundI) {
+    const notaConfTri = notasConfAluno.hasOwnProperty(tri) ? notasConfAluno[tri] : null;
+    if (notaConfTri !== null) {
+      somaTri = notaConfTri;
+    } else if (isFundI) {
       const discsSet = [...new Set(avNorm.map(a => a.disciplina).filter(Boolean))];
       discsSet.forEach(d => {
         const avalsDisc = avNorm.filter(av => av.disciplina === d);
@@ -5120,6 +5149,7 @@ async function abrirFichaAluno(alunoId) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:${abaixo?'#FFF0F0':'var(--white)'};border:1.5px solid ${abaixo?'#FBBFBF':'var(--border)'};border-radius:10px;cursor:pointer;" onclick="toggleFichaTri('ficha-tri-${tri}',this)">
         <span style="font-size:13px;font-weight:700;color:${abaixo?'#C0392B':'var(--text)'};">${nomesTri[tri]} — ${ano}</span>
         <div style="display:flex;align-items:center;gap:10px;">
+          ${notaConfTri !== null ? `<span style="font-size:9px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;padding:2px 6px;font-weight:700;">✎ confirmada</span>` : ''}
           <span style="font-size:14px;font-weight:700;color:${abaixo?'#C0392B':'var(--purple)'};">${somaTri.toFixed(1)}/${maxPorTri[tri]}</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${abaixo?'#C0392B':'var(--purple)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </div>
@@ -5127,8 +5157,9 @@ async function abrirFichaAluno(alunoId) {
 
       <!-- Detalhe expandível -->
       <div id="ficha-tri-${tri}" style="display:none;background:#FAFBFF;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;padding:14px 16px;">
+        ${notaConfTri !== null ? `<div style="margin-bottom:10px;padding:8px 12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;color:#1D4ED8;font-weight:600;">✎ Nota final confirmada pelo professor: <strong>${somaTri.toFixed(1)} pts</strong>. As notas abaixo são para referência.</div>` : ''}
         <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${isFundI ? 'Nota por Disciplina' : (turmaAtiva?.disciplina || 'Disciplina')} — ${turmaAtiva?.nome || ''}</div>
-        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+        <table style="width:100%;font-size:13px;border-collapse:collapse;${notaConfTri !== null ? 'opacity:0.65;' : ''}">
           <tr style="border-bottom:1px solid var(--border);">
             <th style="text-align:left;padding:6px 0;font-size:11px;color:var(--text-muted);font-weight:600;">${isFundI ? 'Disciplina' : 'Avaliação'}</th>
             <th style="text-align:right;padding:6px 0;font-size:11px;color:var(--text-muted);font-weight:600;">Nota</th>
