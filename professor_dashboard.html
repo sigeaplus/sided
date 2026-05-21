@@ -2808,6 +2808,7 @@ function filtrarAulasTri(el) {
     el.classList.add('active');
   }
   renderListaAulas();
+  atualizarContadorAulas();
 }
 
 // Renderiza lista agrupada por status — síncrono, sem queries
@@ -2842,8 +2843,12 @@ function renderListaAulas() {
     const tri = trimestreDeAula(a.data);
     const triBadge = tri ? `<span style="font-size:10px;font-weight:700;color:var(--orange);background:#FFF0E6;padding:2px 7px;border-radius:20px;">${nomesTri[tri]}</span>` : '';
     const temChamada = chamadaCacheGet(a.id);
-    // Determinar se tem chamada: cache tem prioridade, mas status do banco é fallback
-    const temChamadaEfetivo = temChamada === true || (temChamada !== false && a.status === 'lecionada');
+    // Determinar se tem chamada: SOMENTE pelo cache da tabela chamadas.
+    // cache === true  → tem registro na tabela chamadas → lançada
+    // cache === false → confirmado pelo banco que NÃO tem registro → pendente
+    // cache === undefined → cache ainda não carregou (não deve acontecer após sincronizarCachesChamada)
+    //   → nesse caso, NÃO assumimos lecionada pelo status do banco (evita falso positivo)
+    const temChamadaEfetivo = temChamada === true;
     const chamadaTag = a.status === 'futura'
       ? '' // Aulas futuras não mostram tag de chamada
       : temChamadaEfetivo
@@ -3171,12 +3176,27 @@ async function _getMetaAulas(turmaId, tri) {
 }
 
 // Atualiza só o contador — lecionadas de total criadas
+// Respeita o filtro de trimestre ativo (aulasTriFiltro) em vez de usar sempre o trimestre atual
 async function atualizarContadorAulas() {
-  const tri = detectarTrimestreAtual().tri;
-  const ano = new Date().getFullYear();
-  const aulasDoTri = aulasTurma.filter(a => trimestreDeAula(a.data) === tri);
-  const lecionadas = aulasDoTri.filter(a => a.status === 'lecionada').length;
-  const totalCriadas = aulasDoTri.length;
+  let lista = [...aulasTurma];
+
+  // Aplicar o mesmo filtro de trimestre que está ativo na lista
+  if (aulasTriFiltro && aulasTriFiltro !== 'todos') {
+    lista = lista.filter(a => trimestreDeAula(a.data) === parseInt(aulasTriFiltro));
+  }
+  // Aplicar filtro de disciplina se ativo (Fundamental I)
+  if (aulasDiscFiltro) {
+    lista = lista.filter(a => a.disciplina === aulasDiscFiltro);
+  }
+
+  const lecionadas = lista.filter(a => {
+    // Usar cache de chamada como fonte primária, status como fallback
+    const temChamada = chamadaCacheGet(a.id);
+    if (temChamada === true) return true;
+    if (temChamada === false) return false;
+    return a.status === 'lecionada';
+  }).length;
+  const totalCriadas = lista.length;
   const el = document.getElementById('counter-aulas');
   if (el) el.textContent = `${lecionadas} de ${totalCriadas}`;
 }
@@ -3187,11 +3207,13 @@ function calcularStatusAuto(dataISO, aulaId) {
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const dataAula = new Date(dataAulaOnly(dataISO) + 'T00:00:00');
   if (dataAula > hoje) return 'futura';
+  // Fonte de verdade: tabela chamadas (via cache)
   if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
-  // Respeitar status salvo no banco quando cache não confirmou o contrário
+  if (aulaId && chamadaCacheGet(aulaId) === false) return 'pendente';
+  // Cache indefinido (não carregou) → status do banco como último recurso
   if (aulaId) {
     const aulaLocal = aulasTurma.find(a => a.id === aulaId);
-    if (aulaLocal && aulaLocal.status === 'lecionada' && chamadaCacheGet(aulaId) !== false) return 'lecionada';
+    if (aulaLocal && aulaLocal.status === 'lecionada') return 'lecionada';
   }
   return 'pendente';
 }
@@ -3209,11 +3231,11 @@ function recalcularStatusLocal() {
       // Confirmado pelo banco que tem chamada → lecionada
       s = 'lecionada';
     } else if (chamadaCacheGet(a.id) === false) {
-      // Confirmado pelo banco que NÃO tem chamada → só então pendente
-      // mas respeitar se o status do banco diz lecionada (foi marcado manualmente)
-      s = a.status === 'lecionada' ? 'lecionada' : 'pendente';
+      // Confirmado pelo banco que NÃO tem registro em chamadas → pendente
+      // NÃO usa status do banco como override: evita falso "lecionada" quando PATCH falhou
+      s = 'pendente';
     } else {
-      // Cache indefinido (não carregou ainda) → usar o status do banco
+      // Cache indefinido (não carregou ainda) → usar o status do banco como último recurso
       s = (a.status === 'lecionada' || a.status === 'pendente') ? a.status : 'pendente';
     }
     if (a.status !== s) { a.status = s; mudou = true; }
