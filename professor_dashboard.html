@@ -4026,6 +4026,7 @@ async function carregarAvaliacoes() {
   if (totalAlunos > 0) {
     avaliacoesTurma.forEach(aval => {
       if (aval.tipo === 'recuperacao') return;
+      if (_isNotaFinal(aval)) return;  // Nota final nunca é contabilizada
       if (parseInt(aval.trimestre) !== parseInt(triSel)) return;
       if (isFundamentalI() && avalDiscFiltro && aval.disciplina !== avalDiscFiltro) return;
       const count = contPorAval[aval.id] || 0;
@@ -4911,9 +4912,11 @@ async function carregarRelatorio(tri) {
   // Buscar notas confirmadas para este trimestre (todas de uma vez)
   let notasConfirmadasMap = {};
   if (alunosTurma.length) {
-    const idsAlunos = alunosTurma.map(a => a.id).join(',');
-    const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&turma_id=eq.${turmaAtiva.id}&select=aluno_id,nota_final`) || [];
-    confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
+    try {
+      const idsAlunos = alunosTurma.map(a => a.id).join(',');
+      const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&select=aluno_id,nota_final`) || [];
+      confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
+    } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
   }
 
   const thead = document.getElementById('relatorio-thead');
@@ -5053,9 +5056,11 @@ async function abrirFichaAluno(alunoId) {
   (notasRes||[]).forEach(n => { mapNotas[n.avaliacao_id] = n; });
 
   // Buscar notas confirmadas dos 3 trimestres para este aluno
-  const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${alunoId}&turma_id=eq.${turmaAtiva.id}&select=trimestre,nota_final`) || [];
   const notasConfAluno = {};
-  confResAluno.forEach(c => { notasConfAluno[c.trimestre] = Number(c.nota_final); });
+  try {
+    const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${alunoId}&select=trimestre,nota_final`) || [];
+    confResAluno.forEach(c => { notasConfAluno[c.trimestre] = Number(c.nota_final); });
+  } catch(e) { console.warn('[Ficha] Erro ao buscar notas confirmadas:', e); }
 
   const totalFaltas = (faltasRes||[]).length;
   const totalAulas = (todasChamadas||[]).length;
@@ -5711,17 +5716,18 @@ async function carregarDadosFechamento(profData, tri) {
 
     const isFundI = (t.nivel || '').trim() === 'Fundamental I';
     const maxPontosTri = tri === 3 ? 40 : 30;
-    const avais = await api(`avaliacoes?turma_id=eq.${t.id}&trimestre=eq.${tri}&tipo=eq.normal&select=id,pontos,disciplina`) || [];
+    const avais = await api(`avaliacoes?turma_id=eq.${t.id}&trimestre=eq.${tri}&tipo=eq.normal&select=id,nome,pontos,disciplina`) || [];
 
     // ── Fundamental II / outros: linha única por turma ───────────────────────
     if (!isFundI) {
       let pontosLancados = 0;
-      if (avais.length > 0 && totalAlunos > 0) {
-        const ids = avais.map(a => a.id).join(',');
+      const avaisNormais = avais.filter(av => !av.nome?.startsWith('__NOTA_FINAL__'));
+      if (avaisNormais.length > 0 && totalAlunos > 0) {
+        const ids = avaisNormais.map(a => a.id).join(',');
         const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
         const contPorAval = {};
         notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
-        avais.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
+        avaisNormais.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
       }
       const temPendNotas = pontosLancados < maxPontosTri;
       // Fundamental II: aulas E notas determinam pendência
@@ -5746,14 +5752,17 @@ async function carregarDadosFechamento(profData, tri) {
 
     // calcular notas por disciplina
     let contPorAval = {};
+    const avaisParaContar = avais.filter(av => !av.nome?.startsWith('__NOTA_FINAL__'));
     if (totalAlunos > 0) {
-      const ids = avais.map(a => a.id).join(',');
-      const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
-      notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
+      const ids = avaisParaContar.map(a => a.id).join(',');
+      if (ids) {
+        const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
+        notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
+      }
     }
 
     return disciplinasAvais.map(disc => {
-      const avaisDisc = avais.filter(av => av.disciplina === disc);
+      const avaisDisc = avaisParaContar.filter(av => av.disciplina === disc);
       let pontosLancados = 0;
       avaisDisc.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
       const temPendNotas = pontosLancados < maxPontosTri;
