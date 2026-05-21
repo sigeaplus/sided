@@ -5009,8 +5009,9 @@ function renderRelatorio(dados, avalTri) {
     return;
   }
   const isFundI = isFundamentalI();
-  document.getElementById('relatorio-body').innerHTML = dados.map(r => `
-    <tr style="cursor:pointer;${r.abaixo ? 'background:#FFF8F8;' : ''}" onclick="abrirFichaAluno('${r.aluno.id}')" title="Ver ficha do aluno">
+  window._relatorioOrdemIds = dados.map(r => r.aluno.id);
+  document.getElementById('relatorio-body').innerHTML = dados.map((r, idx) => `
+    <tr style="cursor:pointer;${r.abaixo ? 'background:#FFF8F8;' : ''}" onclick="abrirFichaAluno('${r.aluno.id}', ${idx})" title="Ver ficha do aluno">
       <td>
         <div style="display:flex;align-items:center;gap:8px;">
           <div style="width:26px;height:26px;border-radius:50%;background:${r.abaixo?'#FEE2E2':'var(--purple-light)'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:${r.abaixo?'#C0392B':'var(--purple)'};flex-shrink:0;">${r.aluno.nome_completo.charAt(0)}</div>
@@ -5042,7 +5043,42 @@ function ordenarRelatorio(modo) {
 }
 
 // FICHA DO ALUNO
-async function abrirFichaAluno(alunoId) {
+// Índice do aluno atualmente visualizado na ordem do relatório
+window._relatorioOrdemIds = window._relatorioOrdemIds || [];
+window._relatorioIdxAtual = null;
+
+function fichaNavegar(delta) {
+  const ids = window._relatorioOrdemIds || [];
+  if (!ids.length || window._relatorioIdxAtual === null) return;
+  const novoIdx = window._relatorioIdxAtual + delta;
+  if (novoIdx < 0 || novoIdx >= ids.length) return;
+  abrirFichaAluno(ids[novoIdx], novoIdx);
+}
+
+function _fichaAtualizarNavBotoes() {
+  const ids = window._relatorioOrdemIds || [];
+  const idx = window._relatorioIdxAtual;
+  const temNav = ids.length > 1 && idx !== null;
+
+  const btnAnterior = document.getElementById('ficha-btn-anterior');
+  const btnProximo  = document.getElementById('ficha-btn-proximo');
+  const contador    = document.getElementById('ficha-nav-contador');
+
+  if (!btnAnterior || !btnProximo || !contador) return;
+
+  if (temNav) {
+    btnAnterior.style.display = idx > 0 ? 'flex' : 'none';
+    btnProximo.style.display  = idx < ids.length - 1 ? 'flex' : 'none';
+    contador.style.display    = 'block';
+    contador.textContent      = (idx + 1) + ' / ' + ids.length;
+  } else {
+    btnAnterior.style.display = 'none';
+    btnProximo.style.display  = 'none';
+    contador.style.display    = 'none';
+  }
+}
+
+async function abrirFichaAluno(alunoId, relatorioIdx) {
   const aluno = alunosTurma.find(a => a.id === alunoId);
   if (!aluno) return;
 
@@ -5230,8 +5266,10 @@ async function abrirFichaAluno(alunoId) {
 
   document.getElementById('modal-ficha-aluno').classList.add('open');
 
-  // Guardar ID do aluno ativo para as abas
+  // Guardar ID e índice do aluno ativo para navegação e abas
   window._fichaAlunoAtualId = alunoId;
+  window._relatorioIdxAtual = (relatorioIdx !== undefined && relatorioIdx !== null) ? relatorioIdx : null;
+  _fichaAtualizarNavBotoes();
 
   // Resetar para aba Notas e limpar painéis das outras abas
   fichaAbaSwitch('notas');
@@ -6301,6 +6339,17 @@ init();
       <button onclick="document.getElementById('modal-ficha-aluno').classList.remove('open')" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text-muted);">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
+
+      <!-- Botão ANTERIOR (aparece se não for o primeiro) -->
+      <button id="ficha-btn-anterior" onclick="fichaNavegar(-1)" style="display:none;position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(255,255,255,0.85);border:1.5px solid rgba(37,99,235,0.2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:none;align-items:center;justify-content:center;color:var(--purple);box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.15s;" onmouseover="this.style.background='#fff';this.style.boxShadow='0 4px 12px rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.85)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+
+      <!-- Botão PRÓXIMO (aparece se não for o último) -->
+      <button id="ficha-btn-proximo" onclick="fichaNavegar(1)" style="display:none;position:absolute;top:50%;right:44px;transform:translateY(-50%);background:rgba(255,255,255,0.85);border:1.5px solid rgba(37,99,235,0.2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:none;align-items:center;justify-content:center;color:var(--purple);box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.15s;" onmouseover="this.style.background='#fff';this.style.boxShadow='0 4px 12px rgba(37,99,235,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.85)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+
       <div style="width:72px;height:72px;border-radius:50%;background:#5A3480;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
         <svg viewBox="0 0 36 36" fill="none" width="36" height="36">
           <circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/>
@@ -6308,6 +6357,9 @@ init();
         </svg>
       </div>
       <div style="font-size:15px;font-weight:700;color:var(--purple);background:var(--white);border-radius:8px;padding:8px 16px;display:inline-block;" id="ficha-aluno-nome">—</div>
+
+      <!-- Indicador de posição (ex: "3 / 28") -->
+      <div id="ficha-nav-contador" style="display:none;margin-top:8px;font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:0.4px;"></div>
     </div>
 
     <!-- Resumo notas + faltas -->
