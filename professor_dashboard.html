@@ -2674,14 +2674,18 @@ async function carregarAulas(forcarReload = false) {
 
 async function sincronizarCachesChamada() {
   if (!aulasTurma.length) return;
-  // Só busca as que ainda não estão em cache
-  const semCache = aulasTurma.filter(a => chamadaCacheGet(a.id) === undefined);
-  if (!semCache.length) return;
-  const ids = semCache.map(a => a.id).join(',');
+  // Busca TODAS as aulas passadas (não futuras) — sempre atualiza ao carregar
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const aulasPassadas = aulasTurma.filter(a => {
+    const d = new Date(dataAulaOnly(a.data) + 'T00:00:00');
+    return d <= hoje;
+  });
+  if (!aulasPassadas.length) return;
+  const ids = aulasPassadas.map(a => a.id).join(',');
   try {
-    const registros = await api(`chamadas?aula_id=in.(${ids})&select=aula_id&limit=1000`) || [];
+    const registros = await api(`chamadas?aula_id=in.(${ids})&select=aula_id&limit=5000`) || [];
     const comChamada = new Set(registros.map(r => r.aula_id));
-    semCache.forEach(a => chamadaCacheSet(a.id, comChamada.has(a.id)));
+    aulasPassadas.forEach(a => chamadaCacheSet(a.id, comChamada.has(a.id)));
   } catch(e) { /* sem cache, não bloqueia */ }
 }
 
@@ -3185,13 +3189,30 @@ function calcularStatusAuto(dataISO, aulaId) {
   const dataAula = new Date(dataAulaOnly(dataISO) + 'T00:00:00');
   if (dataAula > hoje) return 'futura';
   if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
+  // Se o cache ainda não carregou mas a aula tem status lecionada no array local, manter
+  if (aulaId) {
+    const aulaLocal = aulasTurma.find(a => a.id === aulaId);
+    if (aulaLocal && aulaLocal.status === 'lecionada' && chamadaCacheGet(aulaId) === undefined) return 'lecionada';
+  }
   return 'pendente';
 }
 
 function recalcularStatusLocal() {
   let mudou = false;
   aulasTurma.forEach(a => {
-    const s = calcularStatusAuto(a.data, a.id);
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const dataAula = new Date(dataAulaOnly(a.data) + 'T00:00:00');
+    let s;
+    if (dataAula > hoje) {
+      s = 'futura';
+    } else if (chamadaCacheGet(a.id) === true) {
+      s = 'lecionada';
+    } else if (a.status === 'lecionada' && chamadaCacheGet(a.id) === undefined) {
+      // Cache ainda não carregou — manter o status salvo no banco
+      s = 'lecionada';
+    } else {
+      s = 'pendente';
+    }
     if (a.status !== s) { a.status = s; mudou = true; }
   });
   if (mudou && turmaAtiva) cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
