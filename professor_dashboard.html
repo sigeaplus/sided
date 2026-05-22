@@ -1284,6 +1284,23 @@
               <option value="nota">Por nota</option>
               <option value="faltas">Por faltas</option>
             </select>
+            <!-- Toggle Lista/Grade Relatório -->
+            <div style="display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+              <button id="btn-rel-lista" onclick="toggleRelatorioModo('lista')" title="Modo lista" style="padding:6px 11px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Lista
+              </button>
+              <button id="btn-rel-grade" onclick="toggleRelatorioModo('grade')" title="Modo grade" style="padding:6px 11px;border:none;background:var(--white);color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Cards
+              </button>
+            </div>
+            <!-- Botão Alertas -->
+            <button id="btn-alertas" onclick="abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
+              style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #FBBFBF;background:#FEF2F2;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;transition:all 0.15s;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              ⚠ Alertas
+            </button>
             <!-- Toggle heatmap -->
             <button id="btn-heatmap" onclick="toggleHeatmap()" title="Ativar/desativar heatmap de desempenho"
               style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.15s;">
@@ -1301,6 +1318,10 @@
             <thead><tr id="relatorio-thead"><th>Aluno</th><th>Total de Notas</th><th>Total de Faltas</th></tr></thead>
             <tbody id="relatorio-body"><tr><td colspan="3" style="text-align:center;padding:24px;color:var(--text-muted);">Carregando...</td></tr></tbody>
           </table>
+        </div>
+        <!-- Grade view para relatório -->
+        <div id="relatorio-grade-view" style="display:none;padding:16px;display:none;">
+          <div id="relatorio-grade-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;"></div>
         </div>
       </div>
     </div>
@@ -3783,7 +3804,7 @@ function renderListaChamada(faltasPorAluno) {
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:13px;font-weight:400;color:var(--text);">${a.codigo_simade || ''}</span>
-          <span style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;">${a.nome_completo}${tagRemanejado(a)}</span>
+          <span onclick="abrirHistoricoPresenca('${a.id}','${a.nome_completo.replace(/'/g,"\\'")}');event.stopPropagation();" style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;cursor:pointer;">${a.nome_completo}${tagRemanejado(a)}</span>
         </div>
       </div>
       <div style="text-align:center;font-size:13px;font-weight:700;color:${faltas > 0 ? '#E24B4A' : 'var(--text-muted)'};">${faltas}</div>
@@ -5104,6 +5125,132 @@ function ordenarRelatorio(modo) {
   renderRelatorio(sorted, avalTri);
 }
 
+// ── ALERTAS DE RISCO ─────────────────────────────────────────────────────────
+function abrirAlertasRisco() {
+  if (!relatorioCache || !relatorioCache.length) {
+    mostrarToast('Carregue o relatório primeiro.');
+    return;
+  }
+
+  // Calcular total de aulas da turma para % de frequência
+  const totalAulas = aulasTurma ? aulasTurma.length : 0;
+
+  const emRisco = relatorioCache.map(r => {
+    const pctFreq = totalAulas > 0 ? (((totalAulas - r.faltas) / totalAulas) * 100) : 100;
+    const notaAbaixo = r.abaixo;
+    const freqCritica = pctFreq < 75;
+    if (!notaAbaixo && !freqCritica) return null;
+    return { ...r, pctFreq, notaAbaixo, freqCritica };
+  }).filter(Boolean);
+
+  const tri = parseInt(document.getElementById('sel-rel-tri').value);
+  document.getElementById('alertas-subtitulo').textContent =
+    `${emRisco.length} aluno${emRisco.length !== 1 ? 's' : ''} em risco — ${tri}º Trimestre`;
+
+  const lista = document.getElementById('alertas-lista');
+
+  if (!emRisco.length) {
+    lista.innerHTML = `<div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:32px;margin-bottom:12px;">🎉</div>
+      <div style="font-size:14px;font-weight:700;color:var(--success);">Nenhum aluno em risco!</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Todos com nota e frequência adequadas neste trimestre.</div>
+    </div>`;
+  } else {
+    lista.innerHTML = emRisco.map(r => {
+      let badgeLabel, badgeColor, badgeBg;
+      if (r.notaAbaixo && r.freqCritica) {
+        badgeLabel = 'Ambos'; badgeColor = '#7C3AED'; badgeBg = '#F3F0FF';
+      } else if (r.notaAbaixo) {
+        badgeLabel = 'Risco de reprovação'; badgeColor = '#DC2626'; badgeBg = '#FEF2F2';
+      } else {
+        badgeLabel = 'Frequência crítica'; badgeColor = '#D97706'; badgeBg = '#FFFBEB';
+      }
+      const freqColor = r.freqCritica ? '#DC2626' : '#16A34A';
+      const notaColor = r.notaAbaixo ? '#DC2626' : '#16A34A';
+      return `
+      <div style="border:1.5px solid ${r.notaAbaixo && r.freqCritica ? '#DDD6FE' : (r.notaAbaixo ? '#FBBFBF' : '#FDE68A')};border-radius:10px;padding:14px 16px;background:var(--white);cursor:pointer;" onclick="document.getElementById('modal-alertas-risco').classList.remove('open');abrirFichaAluno('${r.aluno.id}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C0392B;flex-shrink:0;">${r.aluno.nome_completo.charAt(0)}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">${r.aluno.nome_completo}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${badgeColor};background:${badgeBg};border:1px solid ${badgeColor}22;border-radius:20px;padding:3px 10px;white-space:nowrap;">${badgeLabel}</span>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:120px;padding:8px 12px;background:#F8FAFF;border-radius:8px;">
+            <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Nota atual</div>
+            <div style="font-size:15px;font-weight:700;color:${notaColor};">${r.total.toFixed(1)}<span style="font-size:11px;font-weight:400;color:var(--text-muted);"> / ${r.totalEsperado}</span></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">Média: ${r.media}</div>
+          </div>
+          <div style="flex:1;min-width:120px;padding:8px 12px;background:#F8FAFF;border-radius:8px;">
+            <div style="font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Frequência</div>
+            <div style="font-size:15px;font-weight:700;color:${freqColor};">${r.pctFreq.toFixed(0)}%</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${r.faltas} falta${r.faltas !== 1 ? 's' : ''} de ${totalAulas} aula${totalAulas !== 1 ? 's' : ''}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('modal-alertas-risco').classList.add('open');
+}
+
+// ── TOGGLE LISTA/GRADE RELATÓRIO ─────────────────────────────────────────────
+let _relatorioModo = 'lista';
+
+function toggleRelatorioModo(modo) {
+  _relatorioModo = modo;
+  const btnLista = document.getElementById('btn-rel-lista');
+  const btnGrade = document.getElementById('btn-rel-grade');
+  const listaView = document.querySelector('.relatorio-wrapper');
+  const gradeView = document.getElementById('relatorio-grade-view');
+
+  if (modo === 'lista') {
+    btnLista.style.background = 'var(--purple)'; btnLista.style.color = '#fff';
+    btnGrade.style.background = 'var(--white)'; btnGrade.style.color = 'var(--text-muted)';
+    if (listaView) listaView.style.display = 'block';
+    if (gradeView) gradeView.style.display = 'none';
+  } else {
+    btnGrade.style.background = 'var(--purple)'; btnGrade.style.color = '#fff';
+    btnLista.style.background = 'var(--white)'; btnLista.style.color = 'var(--text-muted)';
+    if (listaView) listaView.style.display = 'none';
+    if (gradeView) gradeView.style.display = 'block';
+    renderRelatorioGrade(relatorioCache);
+  }
+}
+
+function renderRelatorioGrade(dados) {
+  const el = document.getElementById('relatorio-grade-body');
+  if (!el) return;
+  if (!dados || !dados.length) {
+    el.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Nenhum aluno cadastrado</div>`;
+    return;
+  }
+  el.innerHTML = dados.map(r => {
+    const pctNota = r.totalEsperado > 0 ? Math.round((r.total / r.totalEsperado) * 100) : 0;
+    const statusColor = r.abaixo ? '#DC2626' : '#16A34A';
+    const statusBg = r.abaixo ? '#FEF2F2' : '#F0FDF4';
+    const statusLabel = r.abaixo ? '⚠ Abaixo da média' : '✓ Acima da média';
+    const inicial = r.aluno.nome_completo.charAt(0).toUpperCase();
+    return `
+    <div onclick="abrirFichaAluno('${r.aluno.id}')" style="background:${r.abaixo?'#FFF8F8':'var(--white)'};border:1.5px solid ${r.abaixo?'#FBBFBF':'var(--border)'};border-radius:12px;padding:16px;cursor:pointer;transition:box-shadow 0.15s;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;" onmouseover="this.style.boxShadow='0 4px 14px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+      <div style="width:48px;height:48px;border-radius:50%;background:${r.abaixo?'#FEE2E2':'var(--purple-light)'};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:${r.abaixo?'#C0392B':'var(--purple)'};">${inicial}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.3;word-break:break-word;">${r.aluno.nome_completo}</div>
+      <div style="display:flex;gap:8px;width:100%;justify-content:center;">
+        <div style="flex:1;padding:6px;background:#F8FAFF;border-radius:8px;">
+          <div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Notas</div>
+          <div style="font-size:13px;font-weight:700;color:${statusColor};">${r.total.toFixed(1)}</div>
+        </div>
+        <div style="flex:1;padding:6px;background:#F8FAFF;border-radius:8px;">
+          <div style="font-size:9px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px;">Faltas</div>
+          <div style="font-size:13px;font-weight:700;color:${r.faltas > 0 ? '#DC2626' : 'var(--text-muted)'};">${r.faltas}</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:${statusColor};background:${statusBg};border-radius:20px;padding:3px 10px;width:100%;">${statusLabel}</div>
+    </div>`;
+  }).join('');
+}
+
 // FICHA DO ALUNO
 async function abrirFichaAluno(alunoId) {
   const aluno = alunosTurma.find(a => a.id === alunoId);
@@ -5302,6 +5449,89 @@ async function abrirFichaAluno(alunoId) {
   const elO = document.getElementById('ficha-ocorrencias-lista');
   if (elF) elF.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Clique na aba para carregar.</div>`;
   if (elO) elO.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Clique na aba para carregar.</div>`;
+
+  // ── Gráfico de evolução trimestral ───────────────────────────────────────
+  (function renderGraficoEvolucao() {
+    // Calcular somaTri para cada trimestre usando a mesma lógica
+    const pontos = [1, 2, 3].map(tri => {
+      const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && !_isNotaFinal(a));
+      const notaConfTri = notasConfAluno.hasOwnProperty(tri) ? notasConfAluno[tri] : null;
+      let soma = 0;
+      if (notaConfTri !== null) {
+        soma = notaConfTri;
+      } else if (isFundI) {
+        const discsSet = [...new Set(avNorm.map(a => a.disciplina).filter(Boolean))];
+        discsSet.forEach(d => {
+          const avalsDisc = avNorm.filter(av => av.disciplina === d);
+          let somaDisc = avalsDisc.reduce((s, av) => {
+            const n = mapNotas[av.id];
+            return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0);
+          }, 0);
+          soma += Math.min(somaDisc, 30);
+        });
+      } else {
+        soma = avNorm.reduce((s, av) => {
+          const n = mapNotas[av.id];
+          const nv = (n && !n.nao_realizado && n.nota !== null) ? Number(n.nota) : 0;
+          const rv = (n && !n.nao_realizado && n.recuperacao_paralela != null) ? Number(n.recuperacao_paralela) : 0;
+          return s + nv + rv;
+        }, 0);
+      }
+      return { tri, soma, max: maxPorTri[tri], media: mediaPorTri[tri] };
+    });
+
+    const svgEl = document.getElementById('ficha-svg-evolucao');
+    const graficoEl = document.getElementById('ficha-grafico-evolucao');
+    if (!svgEl || !graficoEl) return;
+
+    const W = 340, H = 140;
+    const padL = 36, padR = 20, padT = 20, padB = 28;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+
+    // Y scale: 0 to max possible (max do maior trimestre)
+    const maxY = Math.max(...pontos.map(p => p.max));
+    const toX = (i) => padL + (i / 2) * chartW;
+    const toY = (v) => padT + chartH - (v / maxY) * chartH;
+
+    // Media mínima média ponderada simplificada (18/30 = 60%)
+    const mediaMinAno = maxY * 0.60;
+    const mediaY = toY(mediaMinAno);
+
+    // Polyline coords
+    const coords = pontos.map((p, i) => `${toX(i)},${toY(p.soma)}`).join(' ');
+
+    svgEl.innerHTML = `
+      <!-- Grid lines -->
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" stroke="#E2E8F0" stroke-width="1"/>
+      <line x1="${padL}" y1="${padT + chartH}" x2="${padL + chartW}" y2="${padT + chartH}" stroke="#E2E8F0" stroke-width="1"/>
+      <!-- Linha de média mínima (tracejada) -->
+      <line x1="${padL}" y1="${mediaY}" x2="${padL + chartW}" y2="${mediaY}" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <text x="${padL - 4}" y="${mediaY + 4}" text-anchor="end" fill="#D97706" font-size="9" font-family="Sora,sans-serif">mín</text>
+      <!-- Área abaixo da linha -->
+      <polygon points="${padL},${padT + chartH} ${coords} ${padL + chartW},${padT + chartH}" fill="rgba(37,99,235,0.07)"/>
+      <!-- Linha de evolução -->
+      <polyline points="${coords}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Pontos e valores -->
+      ${pontos.map((p, i) => {
+        const cx = toX(i), cy = toY(p.soma);
+        const abaixo = p.soma < p.media;
+        const cor = abaixo ? '#EF4444' : '#2563EB';
+        const labelY = cy > padT + 18 ? cy - 8 : cy + 16;
+        return `
+          <circle cx="${cx}" cy="${cy}" r="5" fill="${cor}" stroke="#fff" stroke-width="2"/>
+          <text x="${cx}" y="${labelY}" text-anchor="middle" fill="${cor}" font-size="10" font-family="Sora,sans-serif" font-weight="700">${p.soma.toFixed(1)}</text>
+        `;
+      }).join('')}
+      <!-- Labels eixo X -->
+      ${pontos.map((p, i) => `<text x="${toX(i)}" y="${padT + chartH + 16}" text-anchor="middle" fill="#6E7BA8" font-size="10" font-family="Sora,sans-serif">${p.tri}º Tri</text>`).join('')}
+      <!-- Label eixo Y (máximo) -->
+      <text x="${padL - 4}" y="${padT + 4}" text-anchor="end" fill="#6E7BA8" font-size="9" font-family="Sora,sans-serif">${maxY}</text>
+      <text x="${padL - 4}" y="${padT + chartH + 4}" text-anchor="end" fill="#6E7BA8" font-size="9" font-family="Sora,sans-serif">0</text>
+    `;
+
+    graficoEl.style.display = 'block';
+  })();
 }
 
 function toggleFichaTri(id, header) {
@@ -5330,6 +5560,68 @@ function fichaAbaSwitch(aba) {
   }
   if (aba === 'ocorrencias' && window._fichaAlunoAtualId) {
     renderFichaOcorrencias(window._fichaAlunoAtualId);
+  }
+}
+
+async function abrirHistoricoPresenca(alunoId, nomeAluno) {
+  document.getElementById('hist-presenca-nome').textContent = nomeAluno || '—';
+  const el = document.getElementById('hist-presenca-body');
+  el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>`;
+  document.getElementById('modal-historico-presenca').classList.add('open');
+
+  try {
+    const chamadas = await api(`chamadas?aluno_id=eq.${alunoId}&select=aula_id,presente,aulas(id,data,nome)`) || [];
+    if (!chamadas.length) {
+      el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Nenhuma chamada registrada para este aluno.</div>`;
+      return;
+    }
+
+    const sorted = [...chamadas].sort((a, b) => {
+      const da = a.aulas?.data || '';
+      const db = b.aulas?.data || '';
+      return db.localeCompare(da);
+    });
+
+    const total = sorted.length;
+    const presentes = sorted.filter(c => c.presente).length;
+    const faltas = total - presentes;
+    const pct = total > 0 ? Math.round((presentes / total) * 100) : 100;
+    const pctColor = pct < 75 ? '#DC2626' : pct < 85 ? '#D97706' : '#16A34A';
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="text-align:center;padding:10px;background:#F0FDF4;border-radius:10px;border:1px solid #BBF7D0;">
+          <div style="font-size:18px;font-weight:700;color:#16A34A;">${presentes}</div>
+          <div style="font-size:10px;color:#166534;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Presente</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:#FEF2F2;border-radius:10px;border:1px solid #FBBFBF;">
+          <div style="font-size:18px;font-weight:700;color:#DC2626;">${faltas}</div>
+          <div style="font-size:10px;color:#DC2626;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Faltas</div>
+        </div>
+        <div style="text-align:center;padding:10px;background:#F8FAFF;border-radius:10px;border:1px solid var(--border);">
+          <div style="font-size:18px;font-weight:700;color:${pctColor};">${pct}%</div>
+          <div style="font-size:10px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Frequência</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${sorted.map(c => {
+          const dataISO = c.aulas?.data ? dataAulaOnly(c.aulas.data) : null;
+          const dataFmt = dataISO ? dataISO.split('-').reverse().join('/') : '—';
+          const aulaLabel = c.aulas?.nome || `Aula de ${dataFmt}`;
+          const pres = c.presente !== false;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${pres?'#F0FDF4':'#FEF2F2'};border:1px solid ${pres?'#BBF7D0':'#FBBFBF'};border-radius:8px;">
+            <div style="width:24px;height:24px;border-radius:50%;background:${pres?'#DCFCE7':'#FEE2E2'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${pres
+                ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${pres?'#166534':'#B91C1C'};flex-shrink:0;">${dataFmt}</span>
+            <span style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${aulaLabel}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--danger);font-size:13px;">Erro ao carregar histórico.</div>`;
   }
 }
 
@@ -6402,6 +6694,12 @@ init();
         </button>
       </div>
       <div id="ficha-notas-lista"></div>
+
+      <!-- Gráfico de evolução trimestral -->
+      <div id="ficha-grafico-evolucao" style="margin-top:16px;padding:14px 16px;background:#FAFBFF;border:1.5px solid var(--border);border-radius:10px;display:none;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:12px;">Evolução Trimestral</div>
+        <svg id="ficha-svg-evolucao" viewBox="0 0 340 140" width="100%" style="display:block;overflow:visible;"></svg>
+      </div>
     </div>
 
     <!-- ABA FALTAS -->
@@ -6420,6 +6718,41 @@ init();
       </div>
     </div>
 
+</div>
+
+<!-- MODAL HISTÓRICO DE PRESENÇA DO ALUNO (chamada) -->
+<div class="modal-overlay" id="modal-historico-presenca" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9200;">
+  <div class="modal" style="max-width:440px;max-height:85vh;overflow-y:auto;">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">Histórico de Presença</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="hist-presenca-nome">—</div>
+      </div>
+      <button onclick="document.getElementById('modal-historico-presenca').classList.remove('open')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="hist-presenca-body" style="padding:16px 20px;"></div>
+  </div>
+</div>
+
+<!-- MODAL ALERTAS DE RISCO -->
+<div class="modal-overlay" id="modal-alertas-risco" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9100;">
+  <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#DC2626;display:flex;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Alertas de Risco
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="alertas-subtitulo">Alunos em situação de risco</div>
+      </div>
+      <button onclick="document.getElementById('modal-alertas-risco').classList.remove('open')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="alertas-lista" style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
 </div>
 
 <!-- MODAL COPIAR AULA -->
