@@ -1296,7 +1296,7 @@
               </button>
             </div>
             <!-- Botão Alertas -->
-            <button id="btn-alertas" onclick="event.stopPropagation();abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
+            <button id="btn-alertas" onclick="event.stopPropagation();event.preventDefault();abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
               style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #FBBFBF;background:#FEF2F2;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;transition:all 0.15s;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               ⚠ Alertas
@@ -1330,7 +1330,13 @@
 
       <!-- ── LISTA DE ALUNOS / RELATÓRIOS ── -->
       <div id="rel-lista-view">
-        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px;">Relatórios Individuais</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Relatórios Individuais</div>
+          <button onclick="abrirSeletorAluno(function(id,nome){abrirEditorRelatorio(id);},'Criar relatório para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#F97316;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Criar relatório
+          </button>
+        </div>
         <div id="rel-alunos-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
@@ -1569,10 +1575,35 @@
     </div>
     <div id="pagina-ocorrencias" style="display:none;">
 
-      <!-- Seletor de aluno -->
-      <div class="atalho-card" style="margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Aluno(a)</div>
-        <select id="ocr-select-aluno" style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
+      <!-- ── FEED VIEW ── -->
+      <div id="ocr-feed-view" style="padding:24px 28px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Ocorrências</div>
+          <button onclick="abrirSeletorAluno(function(id,nome){abrirFormOcorrencia(id,nome);},'+ Nova ocorrência para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Nova ocorrência
+          </button>
+        </div>
+        <div id="ocr-feed-list"></div>
+      </div>
+
+      <!-- ── FORM VIEW ── -->
+      <div id="ocr-form-view" style="display:none;padding:24px 28px;">
+        <!-- Header do formulário -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+          <button onclick="fecharFormOcorrencia()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Voltar
+          </button>
+          <div style="flex:1;">
+            <div id="ocr-form-aluno-nome" style="font-size:15px;font-weight:700;color:#B91C1C;"></div>
+            <div style="font-size:11px;color:var(--text-muted);">Nova ocorrência</div>
+          </div>
+        </div>
+
+      <!-- Seletor de aluno (oculto — aluno definido pelo seletor visual) -->
+      <div style="display:none;">
+        <select id="ocr-select-aluno">
           <option value="">Selecione o(a) aluno(a)...</option>
         </select>
       </div>
@@ -1636,6 +1667,8 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Registrar Ocorrência
       </button>
+
+      </div><!-- fim ocr-form-view -->
 
     </div>
 
@@ -2460,31 +2493,72 @@ async function renderRelatorioIndividualMenu() {
   if (!el) return;
   document.getElementById('rel-lista-view').style.display = 'block';
   document.getElementById('rel-editor-view').style.display = 'none';
-  if (!alunosTurma.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Nenhum aluno carregado.</div>'; return; }
 
-  // Busca contagens do banco de uma vez
-  let contagens = {};
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando relatórios...</div>';
+
   try {
-    const res = await api(`relatorios_individuais?turma_id=eq.${turmaAtiva.id}&select=aluno_id`);
-    if (Array.isArray(res)) res.forEach(r => { contagens[r.aluno_id] = (contagens[r.aluno_id] || 0) + 1; });
-  } catch(e) {
-    // fallback: usa local
-    alunosTurma.forEach(a => { contagens[a.id] = _relCarregar(a.id).length; });
-  }
+    const res = await api(`relatorios_individuais?turma_id=eq.${turmaAtiva.id}&select=*,alunos(nome_completo)&order=created_at.desc&limit=200`) || [];
 
-  el.innerHTML = alunosTurma.map(a => {
-    const qtd = contagens[a.id] || 0;
-    const initials = a.nome_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
-    return `
-    <div onclick="abrirEditorRelatorio('${a.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='#F97316';this.style.background='#FFF7ED'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
-      <div style="width:36px;height:36px;border-radius:50%;background:#FFF7ED;color:#F97316;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);">${a.nome_completo}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${qtd === 0 ? 'Nenhum relatório' : qtd === 1 ? '1 relatório' : qtd + ' relatórios'}</div>
-      </div>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-    </div>`;
-  }).join('');
+    if (!res.length) {
+      el.innerHTML = `<div style="text-align:center;padding:48px 20px;">
+        <div style="font-size:32px;margin-bottom:12px;">📝</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">Nenhum relatório criado ainda</div>
+        <div style="font-size:12px;color:var(--text-muted);">Clique em <strong>+ Criar relatório</strong> para começar.</div>
+      </div>`;
+      return;
+    }
+
+    const nomesTri = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
+    el.innerHTML = res.map(r => {
+      const nomeAluno = r.alunos?.nome_completo || '—';
+      const inicial = nomeAluno.charAt(0).toUpperCase();
+      const dataFmt = r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+      const triBadge = r.trimestre ? `<span style="font-size:10px;font-weight:700;color:#F97316;background:#FFF7ED;padding:2px 7px;border-radius:20px;">${nomesTri[r.trimestre]||r.trimestre+'º Tri'}</span>` : '';
+      const trecho = r.observacoes ? r.observacoes.substring(0,90) + (r.observacoes.length>90?'…':'') : '<span style="color:var(--text-muted);font-style:italic;">Sem observações</span>';
+      return `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;border:1.5px solid var(--border);background:#fff;transition:all 0.15s;" onmouseover="this.style.borderColor='#F97316';this.style.background='#FFF7ED'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
+        <div style="width:36px;height:36px;border-radius:50%;background:#FFF7ED;color:#F97316;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" onclick="abrirEditorRelatorio('${r.aluno_id}')">${inicial}</div>
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="abrirEditorRelatorio('${r.aluno_id}')">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+            <span style="font-size:13px;font-weight:700;color:var(--text);">${nomeAluno}</span>
+            ${triBadge}
+            <span style="font-size:11px;color:var(--text-muted);">${dataFmt}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">${trecho}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0;" onclick="event.stopPropagation()">
+          <button onclick="abrirEditorRelatorio('${r.aluno_id}')" title="Editar" style="padding:6px 8px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;color:var(--purple);display:flex;align-items:center;" onmouseover="this.style.background='var(--purple-light)'" onmouseout="this.style.background='#fff'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button onclick="excluirRelatorioFeed('${r.id}', this.closest('div[style]'))" title="Excluir" style="padding:6px 8px;border-radius:7px;border:1.5px solid #FBBFBF;background:#fff;cursor:pointer;color:#DC2626;display:flex;align-items:center;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='#fff'">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/></svg>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    // fallback: mostra lista de alunos se banco falhar
+    if (!alunosTurma.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Nenhum aluno carregado.</div>'; return; }
+    el.innerHTML = alunosTurma.map(a => {
+      const initials = a.nome_completo.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
+      return `<div onclick="abrirEditorRelatorio('${a.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:1.5px solid var(--border);background:#fff;cursor:pointer;" onmouseover="this.style.borderColor='#F97316'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:36px;height:36px;border-radius:50%;background:#FFF7ED;color:#F97316;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;font-size:13px;font-weight:700;color:var(--text);">${a.nome_completo}</div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    }).join('');
+  }
+}
+
+async function excluirRelatorioFeed(relId, cardEl) {
+  if (!confirm('Excluir este relatório? Esta ação não pode ser desfeita.')) return;
+  try {
+    await api(`relatorios_individuais?id=eq.${relId}`, { method: 'DELETE' });
+    if (cardEl) cardEl.style.transition = 'opacity 0.3s'; cardEl.style.opacity = '0';
+    setTimeout(() => { if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl); }, 300);
+    mostrarToast('✓ Relatório excluído.');
+  } catch(e) { mostrarToast('Erro ao excluir relatório.'); }
 }
 
 async function abrirEditorRelatorio(alunoId) {
@@ -2898,12 +2972,11 @@ function renderListaAulas() {
     const tri = trimestreDeAula(a.data);
     const triBadge = tri ? `<span style="font-size:10px;font-weight:700;color:var(--orange);background:#FFF0E6;padding:2px 7px;border-radius:20px;">${nomesTri[tri]}</span>` : '';
     const temChamada = chamadaCacheGet(a.id);
-    // Determinar se tem chamada: SOMENTE pelo cache da tabela chamadas.
+    // Determinar se tem chamada: pelo cache da tabela chamadas OU pelo status da aula.
     // cache === true  → tem registro na tabela chamadas → lançada
     // cache === false → confirmado pelo banco que NÃO tem registro → pendente
-    // cache === undefined → cache ainda não carregou (não deve acontecer após sincronizarCachesChamada)
-    //   → nesse caso, NÃO assumimos lecionada pelo status do banco (evita falso positivo)
-    const temChamadaEfetivo = temChamada === true;
+    // cache === undefined → cache ainda não carregou → usar status da aula como fallback
+    const temChamadaEfetivo = temChamada === true || (temChamada === undefined && a.status === 'lecionada');
     const chamadaTag = a.status === 'futura'
       ? '' // Aulas futuras não mostram tag de chamada
       : temChamadaEfetivo
@@ -7833,7 +7906,78 @@ function iniciarOcorrencias() {
   const dr = document.getElementById('ocr-data-reg');
   if (dr && !dr.value) dr.value = new Date().toISOString().slice(0,10);
   ocrAtualizarResumo();
-  ocrRenderHistorico();
+  // Mostrar feed view ao entrar na página
+  document.getElementById('ocr-feed-view').style.display = 'block';
+  document.getElementById('ocr-form-view').style.display = 'none';
+  ocrRenderFeed();
+}
+
+function abrirFormOcorrencia(alunoId, nomeAluno) {
+  // Selecionar o aluno no select oculto
+  const sel = document.getElementById('ocr-select-aluno');
+  if (sel) sel.value = alunoId || '';
+  // Mostrar nome no header
+  const nomeEl = document.getElementById('ocr-form-aluno-nome');
+  if (nomeEl) nomeEl.textContent = nomeAluno || '';
+  // Limpar formulário
+  document.getElementById('ocr-data-ato').value = '';
+  document.getElementById('ocr-data-reg').value = new Date().toISOString().slice(0,10);
+  document.getElementById('ocr-obs').value = '';
+  _ocrMotivos.forEach(([code]) => { const el = document.getElementById(`m-${code}`); if(el) el.checked = false; ocrCheckChange('m', code, {checked:false}); });
+  _ocrCons.forEach(([code]) => { const el = document.getElementById(`c-${code}`); if(el) el.checked = false; ocrCheckChange('c', code, {checked:false}); });
+  ocrAtualizarResumo();
+  // Trocar views
+  document.getElementById('ocr-feed-view').style.display = 'none';
+  document.getElementById('ocr-form-view').style.display = 'block';
+}
+
+function fecharFormOcorrencia() {
+  document.getElementById('ocr-form-view').style.display = 'none';
+  document.getElementById('ocr-feed-view').style.display = 'block';
+  ocrRenderFeed();
+}
+
+async function ocrRenderFeed() {
+  const el = document.getElementById('ocr-feed-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando ocorrências...</div>';
+  try {
+    const lista = await _ocrCarregarSupabase(null);
+    if (!lista.length) {
+      el.innerHTML = `<div style="text-align:center;padding:48px 20px;">
+        <div style="font-size:32px;margin-bottom:12px;">📋</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">Nenhuma ocorrência registrada</div>
+        <div style="font-size:12px;color:var(--text-muted);">Clique em <strong>+ Nova ocorrência</strong> para registrar.</div>
+      </div>`;
+      return;
+    }
+    const _ocrMotMap = Object.fromEntries((_ocrMotivos||[]).map(([c,l]) => [String(c).padStart(2,'0'), l]));
+    const _ocrConsMap = Object.fromEntries((_ocrCons||[]).map(([c,l]) => [String(c).padStart(2,'0'), l]));
+    el.innerHTML = lista.map(o => {
+      const dataAtoFmt = o.dataAto ? o.dataAto.split('-').reverse().join('/') : '—';
+      const motivoLabel = (o.motivos||[]).map(c => c === '00' ? (o.outroMotivo || 'Outro') : (_ocrMotMap[c] || c)).join(', ');
+      const consLabel = (o.consequencias||[]).map(c => c === '00' ? (o.outraCons || 'Outra') : (_ocrConsMap[c] || c)).join(', ');
+      const obsPreview = o.obs ? o.obs.substring(0,80) + (o.obs.length > 80 ? '…' : '') : '';
+      return `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:12px;border:1.5px solid #FBBFBF;background:#FFF8F8;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='#FFF8F8'">
+        <div style="width:36px;height:36px;border-radius:50%;background:#FEE2E2;color:#B91C1C;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${o.alunoNome ? o.alunoNome.charAt(0) : '?'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+            <span style="font-size:13px;font-weight:700;color:#B91C1C;">${o.alunoNome || '—'}</span>
+            <span style="font-size:11px;color:var(--text-muted);">${dataAtoFmt}</span>
+            ${motivoLabel ? `<span style="font-size:10px;font-weight:700;color:#B91C1C;background:#FEE2E2;padding:2px 7px;border-radius:20px;">${motivoLabel.substring(0,40)}${motivoLabel.length>40?'…':''}</span>` : ''}
+          </div>
+          ${consLabel ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">→ ${consLabel.substring(0,60)}${consLabel.length>60?'…':''}</div>` : ''}
+          ${obsPreview ? `<div style="font-size:12px;color:var(--text-muted);line-height:1.5;">${obsPreview}</div>` : ''}
+        </div>
+        <button onclick="event.stopPropagation();ocrExcluir(${JSON.stringify(o.id)},'${o.alunoId}')" title="Excluir" style="padding:6px 8px;border-radius:7px;border:1.5px solid #FBBFBF;background:#fff;cursor:pointer;color:#DC2626;display:flex;align-items:center;flex-shrink:0;" onmouseover="this.style.background='#FEE2E2'" onmouseout="this.style.background='#fff'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6m4-6v6"/></svg>
+        </button>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:13px;color:#DC2626;text-align:center;padding:32px;">Erro ao carregar ocorrências.</div>`;
+  }
 }
 
 // ══════════════════════════════════════════
