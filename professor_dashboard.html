@@ -1296,7 +1296,7 @@
               </button>
             </div>
             <!-- Botão Alertas -->
-            <button id="btn-alertas" onclick="abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
+            <button id="btn-alertas" onclick="event.stopPropagation();abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
               style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #FBBFBF;background:#FEF2F2;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;transition:all 0.15s;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               ⚠ Alertas
@@ -2129,6 +2129,7 @@ function selecionarDiscAval(disc) {
   carregarAvaliacoes();
 }
 let turmaAtiva = null, avaliacaoAtiva = null, chamadaTemp = {};
+let relatorioCache = [];
 let filtrosAtivos = { ano: null, turno: null };
 const FUNDAMENTAL_I_DISCIPLINAS = ['PORTUGUES','MATEMATICA','CIENCIAS','GEOGRAFIA','HISTORIA','INGLES','ED FISICA','ENS RELIGIOSO','OUTRO'];
 let calState = { 'cal-aula': { ano: new Date().getFullYear(), mes: new Date().getMonth() }, 'cal-chamada': { ano: new Date().getFullYear(), mes: new Date().getMonth() } };
@@ -8039,22 +8040,22 @@ function toggleHeatmap() {
 function _notaParaCor(nota, max) {
   if (nota === null || nota === undefined || isNaN(nota)) return null;
   const pct = Math.min(1, Math.max(0, Number(nota) / Number(max)));
-  // Verde (100%) → Amarelo (60%) → Vermelho (0%)
+  // Vermelho (#EF4444) → Amarelo (#FBBF24) → Verde (#22C55E)
+  let r, g, b;
   if (pct >= 0.6) {
-    // Verde a amarelo
+    // Amarelo → Verde  (t=0 amarelo, t=1 verde)
     const t = (pct - 0.6) / 0.4;
-    const r = Math.round(255 * (1 - t) + 34 * t);
-    const g = Math.round(197 * (1 - t) + 197 * t);
-    const b = Math.round(94 * (1 - t) + 94 * t);
-    return `rgba(${r},${g},${b},0.25)`;
+    r = Math.round(251 - (251 - 34)  * t);   // 251→34
+    g = Math.round(191 + (197 - 191) * t);   // 191→197
+    b = Math.round(36  + (94  - 36)  * t);   // 36→94
   } else {
-    // Amarelo a vermelho
+    // Vermelho → Amarelo  (t=0 vermelho, t=1 amarelo)
     const t = pct / 0.6;
-    const r = Math.round(239 * (1 - t) + 245 * t);
-    const g = Math.round(68 * (1 - t) + 158 * t);
-    const b = Math.round(68 * (1 - t) + 11 * t);
-    return `rgba(${r},${g},${b},0.28)`;
+    r = Math.round(239 + (251 - 239) * t);   // 239→251
+    g = Math.round(68  + (191 - 68)  * t);   // 68→191
+    b = Math.round(68  - (68  - 36)  * t);   // 68→36
   }
+  return `rgba(${r},${g},${b},0.18)`;
 }
 
 function _aplicarHeatmap() {
