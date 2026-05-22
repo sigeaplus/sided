@@ -1296,7 +1296,7 @@
               </button>
             </div>
             <!-- Botão Alertas -->
-            <button id="btn-alertas" onclick="event.stopPropagation();event.preventDefault();abrirAlertasRisco()" title="Ver alunos em risco de reprovação"
+            <button id="btn-alertas" onclick="event.stopPropagation();event.preventDefault();abrirAlertasRisco(event)" title="Ver alunos em risco de reprovação"
               style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #FBBFBF;background:#FEF2F2;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;transition:all 0.15s;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               ⚠ Alertas
@@ -3038,13 +3038,17 @@ function renderListaAulas() {
       diaSem = diasSem[d.getDay()] || '';
     }
 
-    // Badge de status
+    // Badge de status — usa temChamadaEfetivo como fonte de verdade para "pendente" vs "lecionada"
     const badgeCfg = {
       pendente:  { bg:'#FF8C38', label:'Chamada pendente' },
       lecionada: { bg:'#22C55E', label:'Frequência registrada' },
       futura:    { bg:'#3B82F6', label:'Aula futura' },
     };
-    const bc = badgeCfg[a.status] || { bg:'#9A8FC0', label: a.status };
+    // Se o cache confirma que tem chamada mas o status no objeto ainda é 'pendente', corrigir visualmente
+    const statusEfetivo = a.status === 'futura' ? 'futura'
+      : temChamadaEfetivo ? 'lecionada'
+      : (temChamada === false ? 'pendente' : a.status);
+    const bc = badgeCfg[statusEfetivo] || { bg:'#9A8FC0', label: statusEfetivo };
 
     const selecionada = aulasSelecionadas.has(a.id);
     const checkboxHtml = modoSelecaoAulas ? `
@@ -5407,7 +5411,8 @@ function ordenarRelatorio(modo) {
 }
 
 // ── ALERTAS DE RISCO ─────────────────────────────────────────────────────────
-function abrirAlertasRisco() {
+function abrirAlertasRisco(event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   if (!relatorioCache || !relatorioCache.length) {
     mostrarToast('Carregue o relatório primeiro.');
     return;
@@ -5918,11 +5923,19 @@ function filtrarSeletorAluno(busca) {
   _renderSeletorAlunos(filtrado);
 }
 
-function confirmarSeletorAluno() {
+function confirmarSeletorAluno(event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   if (!_seletorAlunoSelecionadoId || !_seletorAlunoCallback) return;
-  const aluno = alunosTurma.find(a => a.id === _seletorAlunoSelecionadoId);
+  // Capturar localmente antes de limpar — evita race condition se callback alterar estado
+  const cb = _seletorAlunoCallback;
+  const idSelecionado = _seletorAlunoSelecionadoId;
+  const aluno = alunosTurma.find(a => a.id === idSelecionado);
+  // Limpar estado do seletor ANTES de chamar callback
+  _seletorAlunoCallback = null;
+  _seletorAlunoSelecionadoId = null;
   document.getElementById('modal-seletor-aluno').classList.remove('open');
-  _seletorAlunoCallback(_seletorAlunoSelecionadoId, aluno?.nome_completo || '');
+  // Pequeno delay para garantir que o modal fechou antes de abrir outro
+  setTimeout(() => cb(idSelecionado, aluno?.nome_completo || ''), 50);
 }
 
 async function abrirHistoricoPresenca(alunoId, nomeAluno) {
@@ -7101,7 +7114,7 @@ init();
     <div id="seletor-aluno-grid" style="flex:1;overflow-y:auto;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
       <button onclick="document.getElementById('modal-seletor-aluno').classList.remove('open')" style="padding:9px 18px;border-radius:9px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;">Cancelar</button>
-      <button id="seletor-aluno-confirmar" onclick="confirmarSeletorAluno()" style="padding:9px 18px;border-radius:9px;border:none;background:var(--purple);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;opacity:0.5;" disabled>Continuar</button>
+      <button id="seletor-aluno-confirmar" onclick="confirmarSeletorAluno(event)" style="padding:9px 18px;border-radius:9px;border:none;background:var(--purple);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;opacity:0.5;" disabled>Continuar</button>
     </div>
   </div>
 </div>
