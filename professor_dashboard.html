@@ -1320,7 +1320,7 @@
           </table>
         </div>
         <!-- Grade view para relatório -->
-        <div id="relatorio-grade-view" style="display:none;padding:16px;display:none;">
+        <div id="relatorio-grade-view" style="display:none;padding:16px;">
           <div id="relatorio-grade-body" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;"></div>
         </div>
       </div>
@@ -5444,6 +5444,12 @@ async function abrirFichaAluno(alunoId) {
   // Guardar ID do aluno ativo para as abas
   window._fichaAlunoAtualId = alunoId;
 
+  // Navegação prev/next — calcular índice na lista atual
+  const _listaNav = (relatorioCache && relatorioCache.length) ? relatorioCache : alunosTurma.map(a => ({ aluno: a }));
+  window._fichaNavLista = _listaNav;
+  window._fichaAlunoIndex = _listaNav.findIndex(r => r.aluno.id === alunoId);
+  _atualizarBotoesNavFicha();
+
   // Resetar para aba Notas e limpar painéis das outras abas
   fichaAbaSwitch('notas');
   const elF = document.getElementById('ficha-faltas-lista');
@@ -5542,6 +5548,26 @@ function toggleFichaTri(id, header) {
   header.style.borderRadius = aberto ? '10px' : '10px 10px 0 0';
 }
 
+function _atualizarBotoesNavFicha() {
+  const lista = window._fichaNavLista || [];
+  const idx = window._fichaAlunoIndex ?? -1;
+  const btnPrev = document.getElementById('ficha-btn-prev');
+  const btnNext = document.getElementById('ficha-btn-next');
+  const contador = document.getElementById('ficha-nav-contador');
+  if (btnPrev) { btnPrev.disabled = idx <= 0; btnPrev.style.opacity = idx <= 0 ? '0.3' : '1'; }
+  if (btnNext) { btnNext.disabled = idx >= lista.length - 1; btnNext.style.opacity = idx >= lista.length - 1 ? '0.3' : '1'; }
+  if (contador && lista.length > 1) contador.textContent = `${idx + 1} de ${lista.length}`;
+  else if (contador) contador.textContent = '';
+}
+
+function navegarFicha(dir) {
+  const lista = window._fichaNavLista || [];
+  const novoIdx = (window._fichaAlunoIndex ?? 0) + dir;
+  if (novoIdx < 0 || novoIdx >= lista.length) return;
+  const novoAluno = lista[novoIdx].aluno;
+  if (novoAluno) abrirFichaAluno(novoAluno.id);
+}
+
 // ── Navegação de abas na Ficha do Aluno ──────────────────────────────────────
 function fichaAbaSwitch(aba) {
   const abas = ['notas', 'faltas', 'ocorrencias'];
@@ -5562,6 +5588,61 @@ function fichaAbaSwitch(aba) {
   if (aba === 'ocorrencias' && window._fichaAlunoAtualId) {
     renderFichaOcorrencias(window._fichaAlunoAtualId);
   }
+}
+
+// ── SELETOR DE ALUNO VISUAL ───────────────────────────────────────────────────
+let _seletorAlunoCallback = null;
+let _seletorAlunoSelecionadoId = null;
+
+function abrirSeletorAluno(callback, titulo) {
+  _seletorAlunoCallback = callback;
+  _seletorAlunoSelecionadoId = null;
+  document.getElementById('seletor-aluno-titulo').textContent = titulo || 'Selecionar aluno';
+  document.getElementById('seletor-aluno-busca').value = '';
+  const confirmar = document.getElementById('seletor-aluno-confirmar');
+  confirmar.disabled = true;
+  confirmar.style.opacity = '0.5';
+  _renderSeletorAlunos(alunosTurma);
+  document.getElementById('modal-seletor-aluno').classList.add('open');
+  setTimeout(() => document.getElementById('seletor-aluno-busca').focus(), 100);
+}
+
+function _renderSeletorAlunos(lista) {
+  const grid = document.getElementById('seletor-aluno-grid');
+  if (!lista.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Nenhum aluno encontrado</div>`;
+    return;
+  }
+  grid.innerHTML = lista.map(a => {
+    const selecionado = a.id === _seletorAlunoSelecionadoId;
+    return `<div id="seletor-card-${a.id}" onclick="selecionarAlunoCard('${a.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid ${selecionado ? 'var(--purple)' : 'var(--border)'};background:${selecionado ? 'var(--purple-light)' : 'var(--white)'};cursor:pointer;transition:all 0.12s;position:relative;" onmouseover="if('${a.id}'!==_seletorAlunoSelecionadoId)this.style.background='#F8FAFF'" onmouseout="if('${a.id}'!==_seletorAlunoSelecionadoId)this.style.background='var(--white)'">
+      <div style="width:36px;height:36px;border-radius:50%;background:${selecionado ? 'var(--purple)' : 'var(--purple-light)'};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${selecionado ? '#fff' : 'var(--purple)'};flex-shrink:0;">${a.nome_completo.charAt(0)}</div>
+      <span style="font-size:12px;font-weight:600;color:${selecionado ? 'var(--purple)' : 'var(--text)'};line-height:1.3;">${a.nome_completo}</span>
+      ${selecionado ? `<div style="position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function selecionarAlunoCard(alunoId) {
+  _seletorAlunoSelecionadoId = alunoId;
+  const busca = document.getElementById('seletor-aluno-busca').value;
+  const filtrado = busca ? alunosTurma.filter(a => a.nome_completo.toLowerCase().includes(busca.toLowerCase())) : alunosTurma;
+  _renderSeletorAlunos(filtrado);
+  const confirmar = document.getElementById('seletor-aluno-confirmar');
+  confirmar.disabled = false;
+  confirmar.style.opacity = '1';
+}
+
+function filtrarSeletorAluno(busca) {
+  const filtrado = busca ? alunosTurma.filter(a => a.nome_completo.toLowerCase().includes(busca.toLowerCase())) : alunosTurma;
+  _renderSeletorAlunos(filtrado);
+}
+
+function confirmarSeletorAluno() {
+  if (!_seletorAlunoSelecionadoId || !_seletorAlunoCallback) return;
+  const aluno = alunosTurma.find(a => a.id === _seletorAlunoSelecionadoId);
+  document.getElementById('modal-seletor-aluno').classList.remove('open');
+  _seletorAlunoCallback(_seletorAlunoSelecionadoId, aluno?.nome_completo || '');
 }
 
 async function abrirHistoricoPresenca(alunoId, nomeAluno) {
@@ -6657,6 +6738,13 @@ init();
       <button onclick="document.getElementById('modal-ficha-aluno').classList.remove('open')" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text-muted);">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
+      <!-- Navegação prev/next -->
+      <button id="ficha-btn-prev" onclick="navegarFicha(-1)" style="position:absolute;top:50%;left:10px;transform:translateY(-50%);background:rgba(255,255,255,0.7);border:1.5px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;" title="Aluno anterior">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button id="ficha-btn-next" onclick="navegarFicha(1)" style="position:absolute;top:50%;right:44px;transform:translateY(-50%);background:rgba(255,255,255,0.7);border:1.5px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;" title="Próximo aluno">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       <div style="width:72px;height:72px;border-radius:50%;background:#5A3480;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
         <svg viewBox="0 0 36 36" fill="none" width="36" height="36">
           <circle cx="18" cy="13" r="7" fill="rgba(255,255,255,0.85)"/>
@@ -6664,6 +6752,7 @@ init();
         </svg>
       </div>
       <div style="font-size:15px;font-weight:700;color:var(--purple);background:var(--white);border-radius:8px;padding:8px 16px;display:inline-block;" id="ficha-aluno-nome">—</div>
+      <div id="ficha-nav-contador" style="font-size:11px;color:var(--text-muted);margin-top:6px;"></div>
     </div>
 
     <!-- Resumo notas + faltas -->
@@ -6719,6 +6808,22 @@ init();
       </div>
     </div>
 
+</div>
+
+<!-- MODAL SELETOR DE ALUNO (visual, cards) -->
+<div class="modal-overlay" id="modal-seletor-aluno" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9300;">
+  <div class="modal" style="max-width:480px;max-height:88vh;display:flex;flex-direction:column;">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:10px;" id="seletor-aluno-titulo">Selecionar aluno</div>
+      <input id="seletor-aluno-busca" type="text" placeholder="Buscar aluno..." oninput="filtrarSeletorAluno(this.value)"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);" />
+    </div>
+    <div id="seletor-aluno-grid" style="flex:1;overflow-y:auto;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;">
+      <button onclick="document.getElementById('modal-seletor-aluno').classList.remove('open')" style="padding:9px 18px;border-radius:9px;border:1.5px solid var(--border);background:var(--white);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;">Cancelar</button>
+      <button id="seletor-aluno-confirmar" onclick="confirmarSeletorAluno()" style="padding:9px 18px;border-radius:9px;border:none;background:var(--purple);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#fff;cursor:pointer;opacity:0.5;" disabled>Continuar</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL HISTÓRICO DE PRESENÇA DO ALUNO (chamada) -->
