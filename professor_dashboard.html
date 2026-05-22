@@ -1978,6 +1978,42 @@
   </div>
 </div>
 
+<!-- MODAL LANÇAMENTO DE NOTAS POR ALUNO -->
+<div class="modal-overlay" id="modal-notas-aluno" onclick="fecharModalOutside(event,'modal-notas-aluno')" style="z-index:9200;">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#FF8C38,#f97316);border-radius:16px 16px 0 0;padding:16px 22px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;width:100%;">
+        <button onclick="navNotasAluno(-1)" style="width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Aluno anterior">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style="flex:1;text-align:center;">
+          <div id="mna-nome" class="modal-title" style="color:#fff;font-size:15px;"></div>
+          <div id="mna-posicao" style="font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px;"></div>
+        </div>
+        <button onclick="navNotasAluno(1)" style="width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;" title="Próximo aluno">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button class="modal-close" onclick="fecharModal('modal-notas-aluno')" style="border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.1);margin-left:6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Dropdown aluno -->
+    <div style="padding:12px 20px 0;background:#fff;flex-shrink:0;">
+      <select id="mna-select-aluno" onchange="irParaAlunoModal(this.value)" style="width:100%;padding:9px 12px;background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;"></select>
+    </div>
+    <!-- Lista de avaliações -->
+    <div id="mna-lista" class="modal-body" style="overflow-y:auto;flex:1;padding:16px 20px;"></div>
+    <div class="modal-footer" style="padding:14px 20px;flex-shrink:0;">
+      <button class="btn-cancel" onclick="fecharModal('modal-notas-aluno')">Fechar</button>
+      <button onclick="salvarNotasAluno(true)" id="mna-btn-salvar" style="padding:10px 22px;border-radius:9px;border:none;background:#FF8C38;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Salvar e avançar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONFIRMAR NOTA TRIMESTRAL -->
 <div class="modal-overlay" id="modal-confirmar-nota-tri" onclick="fecharModalOutside(event,'modal-confirmar-nota-tri')">
   <div class="modal" style="max-width:520px;">
@@ -2009,7 +2045,18 @@
 
       <div class="field">
         <label>Aluno(a)</label>
-        <select id="cnt-aluno" onchange="cnt_atualizarSoma()" style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
+        <!-- Seletor visual de aluno -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="cnt-aluno-display" style="flex:1;padding:10px 14px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;transition:border-color 0.2s;" onclick="abrirSeletorAluno(function(id,nome){cntSelecionarAluno(id,nome);},'Selecionar aluno...')">
+            <span id="cnt-aluno-nome-label">Clique para selecionar aluno...</span>
+          </div>
+          <button type="button" onclick="abrirSeletorAluno(function(id,nome){cntSelecionarAluno(id,nome);},'Selecionar aluno...')" style="padding:10px 14px;border-radius:8px;border:1.5px solid var(--purple);background:var(--purple-light);color:var(--purple);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Buscar
+          </button>
+        </div>
+        <!-- Select oculto mantido para compatibilidade com cnt_atualizarSoma() -->
+        <select id="cnt-aluno" onchange="cnt_atualizarSoma()" style="display:none;">
           <option value="">Selecione o(a) aluno(a)...</option>
         </select>
       </div>
@@ -2555,7 +2602,7 @@ async function excluirRelatorioFeed(relId, cardEl) {
   if (!confirm('Excluir este relatório? Esta ação não pode ser desfeita.')) return;
   try {
     await api(`relatorios_individuais?id=eq.${relId}`, { method: 'DELETE' });
-    if (cardEl) cardEl.style.transition = 'opacity 0.3s'; cardEl.style.opacity = '0';
+    if (cardEl) { cardEl.style.transition = 'opacity 0.3s'; cardEl.style.opacity = '0'; }
     setTimeout(() => { if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl); }, 300);
     mostrarToast('✓ Relatório excluído.');
   } catch(e) { mostrarToast('Erro ao excluir relatório.'); }
@@ -4713,7 +4760,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
           </svg>
         </div>
         <span class="nota-aluno-matricula">${a.codigo_simade || ''}</span>
-        <span class="nota-aluno-nome">${a.nome_completo}${tagRemanejado(a)}</span>
+        <span class="nota-aluno-nome" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;" onclick="abrirNotasAluno('${a.id}')" title="Ver todas as avaliações deste aluno">${a.nome_completo}${tagRemanejado(a)}</span>
         ${isRecup ? `<span style="margin-left:auto;font-size:11px;color:#92400E;background:#FEF3C7;padding:3px 10px;border-radius:20px;font-weight:600;flex-shrink:0;">Nota atual: ${totalNormal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${pct}%)</span>` : ''}
       </div>
 
@@ -4827,6 +4874,166 @@ function configurarNavegacaoNotas() {
 
   registrar(listaNotas);
   registrar(listaRec);
+}
+
+// ── LANÇAMENTO DE NOTAS POR ALUNO (modal individual) ──────────────────────────
+let _mnaAlunoIdx = 0;
+let _mnaAlunoLista = [];
+
+async function abrirNotasAluno(alunoId) {
+  if (!avaliacaoAtiva || !alunosTurma.length) return;
+
+  // Construir lista de alunos visíveis no notas-screen
+  const isRecup = avaliacaoAtiva.tipo === 'recuperacao';
+  const somaTri = window._somaTri || {};
+  const maxTri = isFundamentalI() ? 30 : (avaliacaoAtiva.trimestre === 3 ? 40 : 30);
+  const limiteRecup = maxTri * 0.6;
+  _mnaAlunoLista = isRecup
+    ? alunosTurma.filter(a => (somaTri[a.id] || 0) < limiteRecup)
+    : [...alunosTurma];
+
+  _mnaAlunoIdx = _mnaAlunoLista.findIndex(a => String(a.id) === String(alunoId));
+  if (_mnaAlunoIdx < 0) _mnaAlunoIdx = 0;
+
+  // Popular dropdown
+  const sel = document.getElementById('mna-select-aluno');
+  sel.innerHTML = _mnaAlunoLista.map((a, i) =>
+    `<option value="${i}" ${i === _mnaAlunoIdx ? 'selected' : ''}>${a.nome_completo}</option>`
+  ).join('');
+
+  await renderModalNotasAluno();
+  document.getElementById('modal-notas-aluno').classList.add('open');
+}
+
+function irParaAlunoModal(idx) {
+  _mnaAlunoIdx = parseInt(idx, 10);
+  renderModalNotasAluno();
+}
+
+function navNotasAluno(dir) {
+  const total = _mnaAlunoLista.length;
+  if (!total) return;
+  _mnaAlunoIdx = (_mnaAlunoIdx + dir + total) % total;
+  document.getElementById('mna-select-aluno').value = _mnaAlunoIdx;
+  renderModalNotasAluno();
+}
+
+async function renderModalNotasAluno() {
+  const aluno = _mnaAlunoLista[_mnaAlunoIdx];
+  if (!aluno || !avaliacaoAtiva) return;
+
+  document.getElementById('mna-nome').textContent = aluno.nome_completo;
+  document.getElementById('mna-posicao').textContent =
+    `${_mnaAlunoIdx + 1} de ${_mnaAlunoLista.length}`;
+
+  const el = document.getElementById('mna-lista');
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">Carregando...</div>';
+
+  try {
+    const tri = avaliacaoAtiva.trimestre;
+    let avalisTri = avaliacoesTurma.filter(a =>
+      a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a)
+    );
+    if (isFundamentalI() && avalDiscFiltro)
+      avalisTri = avalisTri.filter(a => a.disciplina === avalDiscFiltro);
+
+    // Buscar notas existentes para este aluno no trimestre
+    const ids = avalisTri.map(a => a.id);
+    let mapNotas = {};
+    if (ids.length) {
+      const notasSalvas = await api(
+        `notas?avaliacao_id=in.(${ids.join(',')})&aluno_id=eq.${aluno.id}&select=*`
+      ) || [];
+      notasSalvas.forEach(n => { mapNotas[n.avaliacao_id] = n; });
+    }
+
+    if (!avalisTri.length) {
+      el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">Nenhuma avaliação neste trimestre.</div>';
+      return;
+    }
+
+    el.innerHTML = avalisTri.map(aval => {
+      const n = mapNotas[aval.id] || {};
+      const valNota = (n.nota !== undefined && n.nota !== null) ? n.nota : '';
+      const isAtiva = String(aval.id) === String(avaliacaoAtiva.id);
+      return `
+      <div style="padding:12px 14px;border-radius:10px;border:1.5px solid ${isAtiva ? '#FF8C38' : 'var(--border)'};background:${isAtiva ? '#FFF7ED' : '#fff'};margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:${isAtiva ? '#FF8C38' : 'var(--text)'};">${_nomeExibicaoAval(aval)}${isAtiva ? ' <span style="font-size:10px;background:#FF8C38;color:#fff;padding:2px 6px;border-radius:10px;vertical-align:middle;">atual</span>' : ''}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${aval.pontos} pts · ${aval.tipo === 'normal' ? 'Normal' : 'Recuperação'}</div>
+          </div>
+          <input id="mna-nota-${aval.id}" type="number" min="0" max="${aval.pontos}" step="0.5"
+            value="${valNota}" placeholder="–"
+            style="width:80px;padding:8px 10px;border:1.5px solid ${isAtiva ? '#FF8C38' : 'var(--border)'};border-radius:8px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:${isAtiva ? '#FF8C38' : 'var(--text)'};text-align:center;outline:none;"
+            onfocus="this.style.borderColor='#FF8C38'"
+            onblur="this.style.borderColor='${isAtiva ? '#FF8C38' : 'var(--border)'}'">
+        </div>
+      </div>`;
+    }).join('');
+
+    // Focar no campo da avaliação ativa
+    setTimeout(() => {
+      const inp = document.getElementById(`mna-nota-${avaliacaoAtiva.id}`);
+      if (inp) { inp.focus(); inp.select(); }
+    }, 80);
+
+  } catch(e) {
+    el.innerHTML = `<div style="color:#DC2626;text-align:center;padding:24px;">Erro ao carregar notas.</div>`;
+  }
+}
+
+async function salvarNotasAluno(avancar = false) {
+  const aluno = _mnaAlunoLista[_mnaAlunoIdx];
+  if (!aluno || !avaliacaoAtiva) return;
+
+  const btn = document.getElementById('mna-btn-salvar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  try {
+    const tri = avaliacaoAtiva.trimestre;
+    let avalisTri = avaliacoesTurma.filter(a =>
+      a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a)
+    );
+    if (isFundamentalI() && avalDiscFiltro)
+      avalisTri = avalisTri.filter(a => a.disciplina === avalDiscFiltro);
+
+    const saves = avalisTri.map(async (aval) => {
+      const inp = document.getElementById(`mna-nota-${aval.id}`);
+      if (!inp) return;
+      const val = inp.value !== '' ? parseFloat(inp.value) : null;
+      const row = {
+        avaliacao_id: aval.id,
+        aluno_id: aluno.id,
+        turma_id: turmaAtiva.id,
+        nota: val,
+        nao_realizado: false,
+        ausente: false
+      };
+      await api('notas', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify(row)
+      });
+      // Sincronizar input na tela principal se existir
+      const mainInp = document.getElementById(`nota-${aluno.id}`);
+      if (mainInp && String(aval.id) === String(avaliacaoAtiva.id))
+        mainInp.value = val !== null ? val : '';
+    });
+
+    await Promise.all(saves);
+    mostrarToast(`✓ Notas de ${aluno.nome_completo.split(' ')[0]} salvas!`);
+
+    if (avancar && _mnaAlunoIdx < _mnaAlunoLista.length - 1) {
+      _mnaAlunoIdx++;
+      document.getElementById('mna-select-aluno').value = _mnaAlunoIdx;
+      await renderModalNotasAluno();
+    }
+  } catch(e) {
+    mostrarToast('Erro ao salvar notas: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar e avançar'; }
+  }
 }
 
 function incluirAlunoRecuperacao() {
@@ -7824,6 +8031,10 @@ async function ocrSalvar() {
   }
   _ocrResetForm();
   ocrRenderHistoricoAluno(alunoId);
+  // Voltar ao feed após salvar
+  if (document.getElementById('ocr-form-view')?.style.display !== 'none') {
+    fecharFormOcorrencia();
+  }
 }
 
 function ocrRenderHistorico() {
@@ -7896,7 +8107,12 @@ async function ocrExcluir(id, alunoId) {
     mostrarToast('❌ Erro ao excluir: ' + e.message);
     console.error('[OCR] Erro ao excluir:', e);
   }
-  ocrRenderHistoricoAluno(alunoId);
+  // Se estiver no feed, recarrega o feed; senão, atualiza o histórico do aluno
+  if (document.getElementById('ocr-feed-view')?.style.display !== 'none') {
+    ocrRenderFeed();
+  } else {
+    ocrRenderHistoricoAluno(alunoId);
+  }
 }
 
 function iniciarOcorrencias() {
@@ -8024,6 +8240,27 @@ async function abrirConfirmarNotaTrimestral() {
   document.getElementById('cnt-btn-remover').style.display = 'none';
 
   document.getElementById('modal-confirmar-nota-tri').classList.add('open');
+}
+
+function cntSelecionarAluno(alunoId, nomeAluno) {
+  // Atualiza o select oculto para compatibilidade com cnt_atualizarSoma()
+  const sel = document.getElementById('cnt-aluno');
+  if (sel) {
+    let opt = sel.querySelector(`option[value="${alunoId}"]`);
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = alunoId;
+      opt.textContent = nomeAluno;
+      sel.appendChild(opt);
+    }
+    sel.value = alunoId;
+    sel.dispatchEvent(new Event('change'));
+  }
+  // Atualiza label visual
+  const lbl = document.getElementById('cnt-aluno-nome-label');
+  if (lbl) { lbl.textContent = nomeAluno; lbl.style.color = 'var(--text)'; lbl.style.fontWeight = '700'; }
+  const disp = document.getElementById('cnt-aluno-display');
+  if (disp) { disp.style.borderColor = 'var(--purple)'; disp.style.background = 'var(--purple-light)'; }
 }
 
 async function cnt_carregarDados() {
