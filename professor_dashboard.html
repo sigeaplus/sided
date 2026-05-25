@@ -2857,10 +2857,20 @@ async function sincronizarCachesChamada() {
     return d <= hoje;
   });
   if (!aulasPassadas.length) return;
-  const ids = aulasPassadas.map(a => a.id).join(',');
+  const ids = aulasPassadas.map(a => a.id);
   try {
-    const registros = await api(`chamadas?aula_id=in.(${ids})&select=aula_id&limit=5000`) || [];
-    const comChamada = new Set(registros.map(r => r.aula_id));
+    // Busca em lotes de 200 aulas para evitar URLs longas
+    // Usa select=aula_id com limit alto (cada aula pode ter N registros de alunos)
+    // Estimativa segura: até 100 alunos × 200 aulas por lote = 20000 registros por lote
+    const comChamada = new Set();
+    const LOTE = 200;
+    for (let i = 0; i < ids.length; i += LOTE) {
+      const chunk = ids.slice(i, i + LOTE).join(',');
+      // Limita a 1 registro por aula usando &limit= = qtd_alunos_max × tamanho_lote
+      // Para garantir: buscamos com limit generoso e deduplicamos no JS
+      const registros = await api(`chamadas?aula_id=in.(${chunk})&select=aula_id&limit=50000`) || [];
+      registros.forEach(r => comChamada.add(r.aula_id));
+    }
     aulasPassadas.forEach(a => chamadaCacheSet(a.id, comChamada.has(a.id)));
   } catch(e) { /* sem cache, não bloqueia */ }
 }
@@ -2995,9 +3005,15 @@ function renderListaAulas() {
   if (aulasTriFiltro && aulasTriFiltro !== 'todos') {
     lista = lista.filter(a => trimestreDeAula(a.data) === parseInt(aulasTriFiltro));
   }
-  // Filtro tipo
+  // Filtro tipo — usa statusEfetivo (cache de chamadas) para não filtrar errado
   if (aulasTipoFiltro && aulasTipoFiltro !== 'todos') {
-    lista = lista.filter(a => a.status === aulasTipoFiltro);
+    lista = lista.filter(a => {
+      const tc = chamadaCacheGet(a.id);
+      const se = a.status === 'futura' ? 'futura'
+        : (tc === true || (tc === undefined && a.status === 'lecionada')) ? 'lecionada'
+        : (tc === false ? 'pendente' : a.status);
+      return se === aulasTipoFiltro;
+    });
   }
   // Filtro disciplina (Fundamental I)
   if (aulasDiscFiltro) {
@@ -3091,8 +3107,16 @@ function renderListaAulas() {
   }
 
   // Agrupar por status na ordem: pendente → lecionada → futura
+  // Usa o statusEfetivo (baseado no cache de chamadas) para evitar agrupamento errado
   const grupos = { pendente: [], lecionada: [], futura: [] };
-  lista.forEach(a => { if (grupos[a.status]) grupos[a.status].push(a); else grupos['futura'].push(a); });
+  lista.forEach(a => {
+    const temChamada = chamadaCacheGet(a.id);
+    const statusEfetivo = a.status === 'futura' ? 'futura'
+      : (temChamada === true || (temChamada === undefined && a.status === 'lecionada')) ? 'lecionada'
+      : (temChamada === false ? 'pendente' : a.status);
+    if (grupos[statusEfetivo]) grupos[statusEfetivo].push(a);
+    else grupos['futura'].push(a);
+  });
 
   const titulosGrupo = { pendente: 'Aulas pendentes', lecionada: 'Aulas lecionadas', futura: 'Aulas futuras' };
   const coresGrupo = { pendente: '#F59E0B', lecionada: '#22C55E', futura: '#3B82F6' };
