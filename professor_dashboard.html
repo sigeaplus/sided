@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#4A2C6E"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="SIDED+"/
+  <meta name="apple-mobile-web-app-title" content="SIDED+"/>
   <link rel="apple-touch-icon" href="sided_logo.png"/>
   <link rel="icon" type="image/png" href="sided_logo.png"/>
   <title>SIDED+ — Professor</title>
@@ -217,7 +217,7 @@
     /* Aplicar --c via atributo data-c */
     .stb[data-c] { --c: attr(data-c); }
 
-  
+    .filtros-card {
       background: var(--white);
       border-radius: 14px; border: 1px solid var(--border);
       padding: 18px 20px; margin-bottom: 24px;
@@ -1579,7 +1579,7 @@
       <div id="ocr-feed-view" style="padding:24px 28px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
           <div style="font-size:16px;font-weight:700;color:var(--text);">Ocorrências</div>
-          <button onclick="abrirSeletorAluno(function(id,nome){abrirFormOcorrencia(id,nome);},'+ Nova ocorrência para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
+          <button onclick="abrirSeletorAluno(function(id,nome){abrirFormOcorrencia(id,nome);},'Nova ocorrência para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             + Nova ocorrência
           </button>
@@ -2395,7 +2395,8 @@ function _setSidebarEstadoTurma(dentroTurma) {
 }
 
 async function abrirTurma(id) {
-  turmaAtiva = todasTurmas.find(t => t.id === id);
+  turmaAtiva = todasTurmas.find(t => String(t.id) === String(id));
+  alunosTurma = [];
   esconderTudo();
   const meta = `${turmaAtiva.ano} · ${turmaAtiva.disciplina || 'Sem disciplina'} · ${turmaAtiva.turno}`;
   atualizarCabecalho({ info: 'Relatórios', titulo: turmaAtiva.nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
@@ -2444,14 +2445,13 @@ async function abrirPagina(pagina) {
     atualizarHeaderMobile('Aulas', nome, true, true);
     await carregarAulas();
     await _inicializarFiltroDiscAulas();
-    // renderListaAulas() já chamado dentro de carregarAulas() — não duplicar
-    atualizarContadorAulas();
   } else if (pagina === 'chamada') {
     document.getElementById('pagina-chamada').style.display = 'block';
     document.getElementById('chamada-turma-titulo').textContent = `${turmaAtiva.codigo} — ${turmaAtiva.nome} — ${turmaAtiva.disciplina || ''} — ${turmaAtiva.turno} — ${turmaAtiva.escolas?.nome || ''}`;
     atualizarCabecalho({ info: 'Chamada do Dia', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#6C4FD4' });
     atualizarHeaderMobile('Chamada do Dia', nome, true, true);
-    carregarChamadaHoje();
+    await garantirAlunosTurma();
+    await carregarChamadaHoje();
   } else if (pagina === 'avaliacoes') {
     document.getElementById('pagina-avaliacoes').style.display = 'block';
     document.getElementById('notas-screen').style.display = 'none';
@@ -2462,17 +2462,19 @@ async function abrirPagina(pagina) {
     atualizarCabecalho({ info: 'Avaliações', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#FF8C38' });
     atualizarHeaderMobile('Avaliações', nome, true, true);
     await _inicializarFiltroDiscAval();
-    carregarAvaliacoes();
+    await carregarAvaliacoes();
   } else if (pagina === 'relatorio-geral') {
     document.getElementById('pagina-relatorio-geral').style.display = 'block';
     atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#16A34A' });
     atualizarHeaderMobile('Relatório Geral', nome, true, true);
-    carregarRelatorio(parseInt(document.getElementById('sel-rel-tri')?.value || '1'));
+    await garantirAlunosTurma();
+    await carregarRelatorio(parseInt(document.getElementById('sel-rel-tri')?.value || '1'));
   } else if (pagina === 'relatorio-individual') {
     document.getElementById('pagina-relatorio-individual').style.display = 'block';
     atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#F97316' });
     atualizarHeaderMobile('Relatório Individual', nome, true, true);
-    renderRelatorioIndividualMenu();
+    await garantirAlunosTurma();
+    await renderRelatorioIndividualMenu();
   } else if (pagina === 'mapeamento-sala') {
     document.getElementById('pagina-mapeamento-sala').style.display = 'block';
     document.getElementById('mapa-lista-view').style.display = 'block';
@@ -2485,24 +2487,24 @@ async function abrirPagina(pagina) {
     document.getElementById('pagina-calendario-escolar').style.display = 'block';
     atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0EA5E9' });
     atualizarHeaderMobile('Calendário Escolar', nome, true, true);
-    iniciarCalendario();
+    await iniciarCalendario();
   } else if (pagina === 'ocorrencias') {
     document.getElementById('pagina-ocorrencias').style.display = 'block';
     atualizarCabecalho({ info: 'Disciplina', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#B91C1C' });
     atualizarHeaderMobile('Ocorrências', nome, true, true);
-    iniciarOcorrencias();
+    await garantirAlunosTurma();
+    await iniciarOcorrencias();
   } else if (pagina === 'plano-curso') {
     document.getElementById('pagina-plano-curso').style.display = 'block';
     atualizarCabecalho({ info: 'Plano de Curso', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
     atualizarHeaderMobile('Plano de Curso', nome, true, true);
-    iniciarPlanoCurso();
+    await iniciarPlanoCurso();
   }
 }
 
 function voltarTurma() {
   esconderTudo();
   const nome = turmaAtiva?.nome || '';
-  const meta = `${turmaAtiva?.ano || ''} · ${turmaAtiva?.turno || ''}`;
   document.getElementById('pagina-relatorio-geral').style.display = 'block';
   atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
   atualizarHeaderMobile('Relatório Geral', nome, true, false);
@@ -2536,6 +2538,7 @@ function _relLabel(campo) {
 }
 
 async function renderRelatorioIndividualMenu() {
+  await garantirAlunosTurma();
   const el = document.getElementById('rel-alunos-list');
   if (!el) return;
   document.getElementById('rel-lista-view').style.display = 'block';
@@ -2609,8 +2612,10 @@ async function excluirRelatorioFeed(relId, cardEl) {
 }
 
 async function abrirEditorRelatorio(alunoId) {
-  _relAlunoAtivo = alunosTurma.find(a => a.id == alunoId);
+  _relAlunoAtivo = await garantirAlunoNoContexto(alunoId);
   if (!_relAlunoAtivo) return;
+  const id = _idAluno(_relAlunoAtivo.id);
+  if (!_paginaEstaVisivel('pagina-relatorio-individual')) await abrirPagina('relatorio-individual');
   document.getElementById('rel-lista-view').style.display = 'none';
   document.getElementById('rel-editor-view').style.display = 'block';
   document.getElementById('rel-editor-nome').textContent = _relAlunoAtivo.nome_completo;
@@ -2619,7 +2624,7 @@ async function abrirEditorRelatorio(alunoId) {
 
   // Carregar do Supabase e sincronizar local
   try {
-    const remoto = await api(`relatorios_individuais?aluno_id=eq.${alunoId}&turma_id=eq.${turmaAtiva.id}&order=data.desc`);
+    const remoto = await api(`relatorios_individuais?aluno_id=eq.${id}&turma_id=eq.${turmaAtiva.id}&order=data.desc`);
     if (Array.isArray(remoto) && remoto.length) {
       // Normaliza para o formato local (guarda o id do banco)
       const lista = remoto.map(r => ({
@@ -2638,7 +2643,7 @@ async function abrirEditorRelatorio(alunoId) {
     }
   } catch(e) { /* usa local se banco falhar */ }
 
-  const lista = _relCarregar(alunoId);
+  const lista = _relCarregar(id);
   if (lista.length) {
     _relAtualIdx = 0;
     _relCarregarForm(lista[0]);
@@ -2647,7 +2652,7 @@ async function abrirEditorRelatorio(alunoId) {
     _relNovoVazio();
   }
   _relRenderChips();
-  ocrRenderHistoricoAluno(alunoId);
+  ocrRenderHistoricoAluno(id);
 }
 
 function _relNovoVazio() {
@@ -2848,46 +2853,32 @@ async function carregarAulas(forcarReload = false) {
   atualizarCalendario('cal-aula');
 }
 
+let _syncChamadaPromise = null;
 async function sincronizarCachesChamada() {
+  if (_syncChamadaPromise) return _syncChamadaPromise;
+  _syncChamadaPromise = _sincronizarCachesChamadaExec().finally(() => { _syncChamadaPromise = null; });
+  return _syncChamadaPromise;
+}
+async function _sincronizarCachesChamadaExec() {
   if (!aulasTurma.length) return;
-  // Busca TODAS as aulas passadas (não futuras) — sempre atualiza ao carregar
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const aulasPassadas = aulasTurma.filter(a => {
     const d = new Date(dataAulaOnly(a.data) + 'T00:00:00');
     return d <= hoje;
   });
   if (!aulasPassadas.length) return;
-
-  // Busca em lotes de 200 aulas para evitar URLs longas e garantir que
-  // todas as aulas sejam consultadas sem depender de limit por linha de aluno.
-  // Usa select=aula_id com Prefer: return=representation para trazer apenas
-  // IDs distintos — independente do tamanho da turma.
-  const LOTE = 200;
-  const comChamada = new Set();
-  let erroNaBusca = false;
-
+  const ids = aulasPassadas.map(a => a.id);
+  const LOTE = 25;
   try {
-    for (let i = 0; i < aulasPassadas.length; i += LOTE) {
-      const lote = aulasPassadas.slice(i, i + LOTE);
-      const ids = lote.map(a => a.id).join(',');
-      // "distinct" via group-by no Supabase: selecionar aula_id agrupado
-      // evita 1 linha por aluno e elimina a dependência do limit=5000
-      const registros = await api(
-        `chamadas?aula_id=in.(${ids})&select=aula_id`
-      ) || [];
-      registros.forEach(r => comChamada.add(r.aula_id));
+    for (let i = 0; i < ids.length; i += LOTE) {
+      const lote = ids.slice(i, i + LOTE).join(',');
+      const registros = await api(`chamadas?aula_id=in.(${lote})&select=aula_id&limit=5000`) || [];
+      const comChamada = new Set(registros.map(r => r.aula_id));
+      aulasPassadas
+        .filter(a => ids.slice(i, i + LOTE).includes(a.id) && comChamada.has(a.id))
+        .forEach(a => chamadaCacheSet(a.id, true));
     }
-  } catch(e) {
-    erroNaBusca = true;
-    /* Em caso de falha total de rede, não sobrescreve cache existente */
-  }
-
-  // Só atualiza o cache se a busca teve sucesso.
-  // NUNCA marca false por ausência parcial: só define false quando a
-  // consulta completou sem erros e o aula_id realmente não apareceu.
-  if (!erroNaBusca) {
-    aulasPassadas.forEach(a => chamadaCacheSet(a.id, comChamada.has(a.id)));
-  }
+  } catch(e) { /* sem cache, não bloqueia */ }
 }
 
 // Filtros ativos nas aulas
@@ -3025,7 +3016,7 @@ function renderListaAulas() {
     lista = lista.filter(a => {
       const tc = chamadaCacheGet(a.id);
       const se = a.status === 'futura' ? 'futura'
-        : (tc === true || (tc === undefined && a.status === 'lecionada')) ? 'lecionada'
+        : (tc === true || a.status === 'lecionada') ? 'lecionada'
         : (tc === false ? 'pendente' : a.status);
       return se === aulasTipoFiltro;
     });
@@ -3054,7 +3045,7 @@ function renderListaAulas() {
     // cache === true  → tem registro na tabela chamadas → lançada
     // cache === false → confirmado pelo banco que NÃO tem registro → pendente
     // cache === undefined → cache ainda não carregou → usar status da aula como fallback
-    const temChamadaEfetivo = temChamada === true || (temChamada === undefined && a.status === 'lecionada');
+    const temChamadaEfetivo = temChamada === true || a.status === 'lecionada';
     const chamadaTag = a.status === 'futura'
       ? '' // Aulas futuras não mostram tag de chamada
       : temChamadaEfetivo
@@ -3127,7 +3118,7 @@ function renderListaAulas() {
   lista.forEach(a => {
     const temChamada = chamadaCacheGet(a.id);
     const statusEfetivo = a.status === 'futura' ? 'futura'
-      : (temChamada === true || (temChamada === undefined && a.status === 'lecionada')) ? 'lecionada'
+      : (temChamada === true || a.status === 'lecionada') ? 'lecionada'
       : (temChamada === false ? 'pendente' : a.status);
     if (grupos[statusEfetivo]) grupos[statusEfetivo].push(a);
     else grupos['futura'].push(a);
@@ -3408,11 +3399,11 @@ async function atualizarContadorAulas() {
   }
 
   const lecionadas = lista.filter(a => {
-    // Usar cache de chamada como fonte primária, status como fallback
     const temChamada = chamadaCacheGet(a.id);
+    if (a.status === 'lecionada') return true;
     if (temChamada === true) return true;
     if (temChamada === false) return false;
-    return a.status === 'lecionada';
+    return false;
   }).length;
   const totalCriadas = lista.length;
   const el = document.getElementById('counter-aulas');
@@ -3426,13 +3417,12 @@ function calcularStatusAuto(dataISO, aulaId) {
   const dataAula = new Date(dataAulaOnly(dataISO) + 'T00:00:00');
   if (dataAula > hoje) return 'futura';
   // Fonte de verdade: tabela chamadas (via cache)
-  if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
-  if (aulaId && chamadaCacheGet(aulaId) === false) return 'pendente';
-  // Cache indefinido (não carregou) → status do banco como último recurso
   if (aulaId) {
     const aulaLocal = aulasTurma.find(a => a.id === aulaId);
     if (aulaLocal && aulaLocal.status === 'lecionada') return 'lecionada';
   }
+  if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
+  if (aulaId && chamadaCacheGet(aulaId) === false) return 'pendente';
   return 'pendente';
 }
 
@@ -3449,9 +3439,7 @@ function recalcularStatusLocal() {
       // Confirmado pelo banco que tem chamada → lecionada
       s = 'lecionada';
     } else if (chamadaCacheGet(a.id) === false) {
-      // Confirmado pelo banco que NÃO tem registro em chamadas → pendente
-      // NÃO usa status do banco como override: evita falso "lecionada" quando PATCH falhou
-      s = 'pendente';
+      s = a.status === 'lecionada' ? 'lecionada' : 'pendente';
     } else {
       // Cache indefinido (não carregou ainda) → usar o status do banco como último recurso
       s = (a.status === 'lecionada' || a.status === 'pendente') ? a.status : 'pendente';
@@ -3473,7 +3461,7 @@ function _atualizarInfoStatusModal() {
     let st, cor, fundo, borda;
     if (dataAula > hoje) {
       st = 'futura'; cor = '#1D4ED8'; fundo = '#DBEAFE'; borda = '#BFDBFE';
-    } else if (editandoAulaId && chamadaCacheGet(editandoAulaId) === true) {
+    } else if (editandoAulaId && (chamadaCacheGet(editandoAulaId) === true || aulasTurma.find(x => x.id === editandoAulaId)?.status === 'lecionada')) {
       st = 'lecionada'; cor = '#166534'; fundo = '#DCFCE7'; borda = '#BBF7D0';
     } else {
       st = 'pendente'; cor = '#92400E'; fundo = '#FEF3C7'; borda = '#FDE68A';
@@ -3731,10 +3719,48 @@ window.confirmarCopiarAula = async function() {
 
 // CHAMADA
 async function carregarAlunos() {
+  if (!turmaAtiva?.id) { alunosTurma = []; return alunosTurma; }
   alunosTurma = await apiCached(
     `alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`,
     turmaAtiva.id, 'alunos', 120000
   );
+  return alunosTurma;
+}
+
+function _idAluno(v) { return v == null || v === '' ? '' : String(v); }
+
+async function garantirAlunosTurma() {
+  if (!turmaAtiva?.id) { alunosTurma = []; return alunosTurma; }
+  const tid = String(turmaAtiva.id);
+  if (alunosTurma.length && String(alunosTurma[0].turma_id) !== tid) alunosTurma = [];
+  if (alunosTurma.length) return alunosTurma;
+  return await carregarAlunos();
+}
+
+function _paginaEstaVisivel(id) {
+  const el = document.getElementById(id);
+  if (!el) return false;
+  return el.style.display !== 'none' && window.getComputedStyle(el).display !== 'none';
+}
+
+async function garantirAlunoNoContexto(alunoId) {
+  const id = _idAluno(alunoId);
+  if (!id) { mostrarToast('Aluno inválido.'); return null; }
+  if (!turmaAtiva?.id) { mostrarToast('Selecione uma turma.'); return null; }
+  let a = alunosTurma.find(x => _idAluno(x.id) === id);
+  if (a) return a;
+  await garantirAlunosTurma();
+  a = alunosTurma.find(x => _idAluno(x.id) === id);
+  if (a) return a;
+  try {
+    const res = await api(`alunos?id=eq.${id}&turma_id=eq.${turmaAtiva.id}&select=*&limit=1`) || [];
+    if (res[0]) {
+      if (!alunosTurma.some(x => _idAluno(x.id) === id)) alunosTurma.push(res[0]);
+      return res[0];
+    }
+  } catch (e) { /* fallback falhou */ }
+  mostrarToast('Aluno não encontrado nesta turma.');
+  return null;
 }
 
 let dataChamadaAtiva = null;
@@ -5310,6 +5336,8 @@ function voltarAvaliacoes() {
 // RELATÓRIO
 async function carregarRelatorio(tri) {
   tri = parseInt(tri) || 1;
+  await garantirAlunosTurma();
+  if (!avaliacoesTurma.length) await carregarAvaliacoes();
   document.getElementById('relatorio-total-alunos').textContent = `Total de alunos: ${alunosTurma.length}`;
 
   const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
@@ -5450,12 +5478,24 @@ function ordenarRelatorio(modo) {
 }
 
 // ── ALERTAS DE RISCO ─────────────────────────────────────────────────────────
-function abrirAlertasRisco(event) {
+async function abrirAlertasRisco(event) {
   if (event) { event.stopPropagation(); event.preventDefault(); }
-  if (!relatorioCache || !relatorioCache.length) {
-    mostrarToast('Carregue o relatório primeiro.');
+  if (!turmaAtiva?.id) { mostrarToast('Selecione uma turma.'); return; }
+  await garantirAlunosTurma();
+  if (!alunosTurma.length) { mostrarToast('Nenhum aluno encontrado nesta turma.'); return; }
+  if (!avaliacoesTurma.length) await carregarAvaliacoes();
+
+  const tri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
+  if (!relatorioCache?.length) {
+    if (!aulasTurma.length) await carregarAulas();
+    await carregarRelatorio(tri);
+  }
+  if (!relatorioCache?.length) {
+    mostrarToast('Nenhum dado de alunos para exibir alertas.');
     return;
   }
+
+  document.getElementById('modal-ficha-aluno')?.classList.remove('open');
 
   // Calcular total de aulas da turma para % de frequência
   const totalAulas = aulasTurma ? aulasTurma.length : 0;
@@ -5468,7 +5508,6 @@ function abrirAlertasRisco(event) {
     return { ...r, pctFreq, notaAbaixo, freqCritica };
   }).filter(Boolean);
 
-  const tri = parseInt(document.getElementById('sel-rel-tri').value);
   document.getElementById('alertas-subtitulo').textContent =
     `${emRisco.length} aluno${emRisco.length !== 1 ? 's' : ''} em risco — ${tri}º Trimestre`;
 
@@ -5493,7 +5532,7 @@ function abrirAlertasRisco(event) {
       const freqColor = r.freqCritica ? '#DC2626' : '#16A34A';
       const notaColor = r.notaAbaixo ? '#DC2626' : '#16A34A';
       return `
-      <div style="border:1.5px solid ${r.notaAbaixo && r.freqCritica ? '#DDD6FE' : (r.notaAbaixo ? '#FBBFBF' : '#FDE68A')};border-radius:10px;padding:14px 16px;background:var(--white);cursor:pointer;" onclick="document.getElementById('modal-alertas-risco').classList.remove('open');abrirFichaAluno('${r.aluno.id}')">
+      <div style="border:1.5px solid ${r.notaAbaixo && r.freqCritica ? '#DDD6FE' : (r.notaAbaixo ? '#FBBFBF' : '#FDE68A')};border-radius:10px;padding:14px 16px;background:var(--white);">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:36px;height:36px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#C0392B;flex-shrink:0;">${r.aluno.nome_completo.charAt(0)}</div>
@@ -5578,8 +5617,9 @@ function renderRelatorioGrade(dados) {
 
 // FICHA DO ALUNO
 async function abrirFichaAluno(alunoId) {
-  const aluno = alunosTurma.find(a => a.id === alunoId);
+  const aluno = await garantirAlunoNoContexto(alunoId);
   if (!aluno) return;
+  const idAluno = aluno.id;
 
   // preencher header da ficha
   document.getElementById('ficha-aluno-nome').textContent = aluno.nome_completo;
@@ -5607,9 +5647,9 @@ async function abrirFichaAluno(alunoId) {
 
   // buscar notas e faltas
   const [notasRes, faltasRes, todasChamadas] = await Promise.all([
-    todasAvals.length ? api(`notas?avaliacao_id=in.(${todasAvals.map(a=>a.id).join(',')})&aluno_id=eq.${alunoId}&select=*`) : Promise.resolve([]),
-    api(`chamadas?aluno_id=eq.${alunoId}&presente=eq.false&select=aula_id`),
-    api(`chamadas?aluno_id=eq.${alunoId}&select=aula_id,presente`)
+    todasAvals.length ? api(`notas?avaliacao_id=in.(${todasAvals.map(a=>a.id).join(',')})&aluno_id=eq.${idAluno}&select=*`) : Promise.resolve([]),
+    api(`chamadas?aluno_id=eq.${idAluno}&presente=eq.false&select=aula_id`),
+    api(`chamadas?aluno_id=eq.${idAluno}&select=aula_id,presente`)
   ]);
 
   const mapNotas = {};
@@ -5618,7 +5658,7 @@ async function abrirFichaAluno(alunoId) {
   // Buscar notas confirmadas dos 3 trimestres para este aluno
   const notasConfAluno = {};
   try {
-    const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${alunoId}&select=trimestre,nota_final`) || [];
+    const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${idAluno}&select=trimestre,nota_final`) || [];
     confResAluno.forEach(c => { notasConfAluno[c.trimestre] = Number(c.nota_final); });
   } catch(e) { console.warn('[Ficha] Erro ao buscar notas confirmadas:', e); }
 
@@ -5765,13 +5805,13 @@ async function abrirFichaAluno(alunoId) {
 
   document.getElementById('modal-ficha-aluno').classList.add('open');
 
-  // Guardar ID do aluno ativo para as abas
-  window._fichaAlunoAtualId = alunoId;
+  // Guardar ID do aluno ativo para navegação entre alunos (abas usam parâmetro explícito)
+  window._fichaAlunoAtualId = aluno.id;
 
   // Navegação prev/next — calcular índice na lista atual
   const _listaNav = (relatorioCache && relatorioCache.length) ? relatorioCache : alunosTurma.map(a => ({ aluno: a }));
   window._fichaNavLista = _listaNav;
-  window._fichaAlunoIndex = _listaNav.findIndex(r => r.aluno.id === alunoId);
+  window._fichaAlunoIndex = _listaNav.findIndex(r => _idAluno(r.aluno.id) === _idAluno(idAluno));
   _atualizarBotoesNavFicha();
 
   // Resetar para aba Notas e limpar painéis das outras abas
@@ -5893,7 +5933,8 @@ function navegarFicha(dir) {
 }
 
 // ── Navegação de abas na Ficha do Aluno ──────────────────────────────────────
-function fichaAbaSwitch(aba) {
+function fichaAbaSwitch(aba, alunoId) {
+  const id = _idAluno(alunoId || window._fichaAlunoAtualId);
   const abas = ['notas', 'faltas', 'ocorrencias'];
   abas.forEach(a => {
     const btn = document.getElementById(`ficha-aba-${a}`);
@@ -5906,19 +5947,16 @@ function fichaAbaSwitch(aba) {
     if (painel) painel.style.display = ativo ? 'block' : 'none';
   });
 
-  if (aba === 'faltas' && window._fichaAlunoAtualId) {
-    renderFichaFaltas(window._fichaAlunoAtualId);
-  }
-  if (aba === 'ocorrencias' && window._fichaAlunoAtualId) {
-    renderFichaOcorrencias(window._fichaAlunoAtualId);
-  }
+  if (aba === 'faltas' && id) renderFichaFaltas(id);
+  if (aba === 'ocorrencias' && id) renderFichaOcorrencias(id);
 }
 
 // ── SELETOR DE ALUNO VISUAL ───────────────────────────────────────────────────
 let _seletorAlunoCallback = null;
 let _seletorAlunoSelecionadoId = null;
 
-function abrirSeletorAluno(callback, titulo) {
+async function abrirSeletorAluno(callback, titulo) {
+  await garantirAlunosTurma();
   _seletorAlunoCallback = callback;
   _seletorAlunoSelecionadoId = null;
   document.getElementById('seletor-aluno-titulo').textContent = titulo || 'Selecionar aluno';
@@ -5938,7 +5976,7 @@ function _renderSeletorAlunos(lista) {
     return;
   }
   grid.innerHTML = lista.map(a => {
-    const selecionado = a.id === _seletorAlunoSelecionadoId;
+    const selecionado = _idAluno(a.id) === _idAluno(_seletorAlunoSelecionadoId);
     return `<div id="seletor-card-${a.id}" onclick="selecionarAlunoCard('${a.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1.5px solid ${selecionado ? 'var(--purple)' : 'var(--border)'};background:${selecionado ? 'var(--purple-light)' : 'var(--white)'};cursor:pointer;transition:all 0.12s;position:relative;" onmouseover="if('${a.id}'!==_seletorAlunoSelecionadoId)this.style.background='#F8FAFF'" onmouseout="if('${a.id}'!==_seletorAlunoSelecionadoId)this.style.background='var(--white)'">
       <div style="width:36px;height:36px;border-radius:50%;background:${selecionado ? 'var(--purple)' : 'var(--purple-light)'};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:${selecionado ? '#fff' : 'var(--purple)'};flex-shrink:0;">${a.nome_completo.charAt(0)}</div>
       <span style="font-size:12px;font-weight:600;color:${selecionado ? 'var(--purple)' : 'var(--text)'};line-height:1.3;">${a.nome_completo}</span>
@@ -5968,7 +6006,7 @@ function confirmarSeletorAluno(event) {
   // Capturar localmente antes de limpar — evita race condition se callback alterar estado
   const cb = _seletorAlunoCallback;
   const idSelecionado = _seletorAlunoSelecionadoId;
-  const aluno = alunosTurma.find(a => a.id === idSelecionado);
+  const aluno = alunosTurma.find(a => _idAluno(a.id) === _idAluno(idSelecionado));
   // Limpar estado do seletor ANTES de chamar callback
   _seletorAlunoCallback = null;
   _seletorAlunoSelecionadoId = null;
@@ -5978,13 +6016,18 @@ function confirmarSeletorAluno(event) {
 }
 
 async function abrirHistoricoPresenca(alunoId, nomeAluno) {
-  document.getElementById('hist-presenca-nome').textContent = nomeAluno || '—';
+  await garantirAlunosTurma();
+  const aluno = await garantirAlunoNoContexto(alunoId);
+  if (!aluno) return;
+  const id = _idAluno(aluno.id);
+  const nome = aluno.nome_completo || nomeAluno || '—';
+  document.getElementById('hist-presenca-nome').textContent = nome;
   const el = document.getElementById('hist-presenca-body');
   el.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>`;
   document.getElementById('modal-historico-presenca').classList.add('open');
 
   try {
-    const chamadas = await api(`chamadas?aluno_id=eq.${alunoId}&select=aula_id,presente,aulas(id,data,nome)`) || [];
+    const chamadas = await api(`chamadas?aluno_id=eq.${id}&select=aula_id,presente,aulas(id,data,nome)`) || [];
     if (!chamadas.length) {
       el.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px;">Nenhuma chamada registrada para este aluno.</div>`;
       return;
@@ -7062,7 +7105,7 @@ function imprimirFichaAluno() {
 init();
 </script>
 <!-- MODAL FICHA DO ALUNO -->
-<div class="modal-overlay" id="modal-ficha-aluno" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;">
+<div class="modal-overlay" id="modal-ficha-aluno" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9050;">
   <div class="modal" style="max-width:500px;max-height:88vh;overflow-y:auto;">
 
     <!-- Header com avatar -->
@@ -7175,7 +7218,7 @@ init();
 </div>
 
 <!-- MODAL ALERTAS DE RISCO -->
-<div class="modal-overlay" id="modal-alertas-risco" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9100;">
+<div class="modal-overlay" id="modal-alertas-risco" onclick="if(event.target===this)this.classList.remove('open')" style="align-items:center;z-index:9150;">
   <div class="modal" style="max-width:520px;max-height:85vh;overflow-y:auto;">
     <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--white);z-index:1;">
       <div>
@@ -8045,7 +8088,8 @@ async function ocrSalvar() {
   if (document.getElementById('ocr-cb-outro-cons')?.checked) sc.push('00');
   if (!sc.length) { mostrarToast('Selecione ao menos uma consequência.'); return; }
 
-  const aluno = (alunosTurma||[]).find(a => String(a.id) === String(alunoId));
+  let aluno = (alunosTurma||[]).find(a => _idAluno(a.id) === _idAluno(alunoId));
+  if (!aluno) aluno = await garantirAlunoNoContexto(alunoId);
   const outroMotivo = document.getElementById('ocr-outro-motivo-txt')?.value.trim() || '';
   const outraCons = document.getElementById('ocr-outro-cons-txt')?.value.trim() || '';
   const obs = document.getElementById('ocr-obs')?.value.trim() || '';
@@ -8167,7 +8211,8 @@ async function ocrExcluir(id, alunoId) {
   }
 }
 
-function iniciarOcorrencias() {
+async function iniciarOcorrencias() {
+  await garantirAlunosTurma();
   _ocrBuildGrid(_ocrMotivos, 'ocr-motivos-grid', 'm');
   _ocrBuildGrid(_ocrCons, 'ocr-cons-grid', 'c');
   _ocrPopularAlunos();
@@ -8180,13 +8225,29 @@ function iniciarOcorrencias() {
   ocrRenderFeed();
 }
 
-function abrirFormOcorrencia(alunoId, nomeAluno) {
+async function abrirFormOcorrencia(alunoId, nomeAluno) {
+  if (!alunoId) { mostrarToast('Selecione um aluno.'); return; }
+  await garantirAlunosTurma();
+  const aluno = await garantirAlunoNoContexto(alunoId);
+  if (!aluno) return;
+  if (!_paginaEstaVisivel('pagina-ocorrencias')) {
+    await abrirPagina('ocorrencias');
+  } else {
+    const gridM = document.getElementById('ocr-motivos-grid');
+    if (!gridM?.innerHTML.trim()) {
+      _ocrBuildGrid(_ocrMotivos, 'ocr-motivos-grid', 'm');
+      _ocrBuildGrid(_ocrCons, 'ocr-cons-grid', 'c');
+    }
+    _ocrPopularAlunos();
+  }
+  const idEfetivo = aluno.id;
+  const nomeEfetivo = aluno.nome_completo || nomeAluno || '';
   // Selecionar o aluno no select oculto
   const sel = document.getElementById('ocr-select-aluno');
-  if (sel) sel.value = alunoId || '';
+  if (sel) sel.value = idEfetivo ? _idAluno(idEfetivo) : '';
   // Mostrar nome no header
   const nomeEl = document.getElementById('ocr-form-aluno-nome');
-  if (nomeEl) nomeEl.textContent = nomeAluno || '';
+  if (nomeEl) nomeEl.textContent = nomeEfetivo || '';
   // Limpar formulário
   document.getElementById('ocr-data-ato').value = '';
   document.getElementById('ocr-data-reg').value = new Date().toISOString().slice(0,10);
@@ -8663,5 +8724,6 @@ renderRelatorio = function(dados, avalTri) {
   if (_heatmapAtivo) _aplicarHeatmap();
 };
 </script>
-</body>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0165550fb88c4ce',t:'MTc3OTczMDkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
