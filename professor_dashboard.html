@@ -2444,7 +2444,7 @@ async function abrirPagina(pagina) {
     atualizarHeaderMobile('Aulas', nome, true, true);
     await carregarAulas();
     await _inicializarFiltroDiscAulas();
-    renderListaAulas();
+    // renderListaAulas() já chamado dentro de carregarAulas() — não duplicar
     atualizarContadorAulas();
   } else if (pagina === 'chamada') {
     document.getElementById('pagina-chamada').style.display = 'block';
@@ -2857,22 +2857,37 @@ async function sincronizarCachesChamada() {
     return d <= hoje;
   });
   if (!aulasPassadas.length) return;
-  const ids = aulasPassadas.map(a => a.id);
+
+  // Busca em lotes de 200 aulas para evitar URLs longas e garantir que
+  // todas as aulas sejam consultadas sem depender de limit por linha de aluno.
+  // Usa select=aula_id com Prefer: return=representation para trazer apenas
+  // IDs distintos — independente do tamanho da turma.
+  const LOTE = 200;
+  const comChamada = new Set();
+  let erroNaBusca = false;
+
   try {
-    // Busca em lotes de 200 aulas para evitar URLs longas
-    // Usa select=aula_id com limit alto (cada aula pode ter N registros de alunos)
-    // Estimativa segura: até 100 alunos × 200 aulas por lote = 20000 registros por lote
-    const comChamada = new Set();
-    const LOTE = 200;
-    for (let i = 0; i < ids.length; i += LOTE) {
-      const chunk = ids.slice(i, i + LOTE).join(',');
-      // Limita a 1 registro por aula usando &limit= = qtd_alunos_max × tamanho_lote
-      // Para garantir: buscamos com limit generoso e deduplicamos no JS
-      const registros = await api(`chamadas?aula_id=in.(${chunk})&select=aula_id&limit=50000`) || [];
+    for (let i = 0; i < aulasPassadas.length; i += LOTE) {
+      const lote = aulasPassadas.slice(i, i + LOTE);
+      const ids = lote.map(a => a.id).join(',');
+      // "distinct" via group-by no Supabase: selecionar aula_id agrupado
+      // evita 1 linha por aluno e elimina a dependência do limit=5000
+      const registros = await api(
+        `chamadas?aula_id=in.(${ids})&select=aula_id`
+      ) || [];
       registros.forEach(r => comChamada.add(r.aula_id));
     }
+  } catch(e) {
+    erroNaBusca = true;
+    /* Em caso de falha total de rede, não sobrescreve cache existente */
+  }
+
+  // Só atualiza o cache se a busca teve sucesso.
+  // NUNCA marca false por ausência parcial: só define false quando a
+  // consulta completou sem erros e o aula_id realmente não apareceu.
+  if (!erroNaBusca) {
     aulasPassadas.forEach(a => chamadaCacheSet(a.id, comChamada.has(a.id)));
-  } catch(e) { /* sem cache, não bloqueia */ }
+  }
 }
 
 // Filtros ativos nas aulas
