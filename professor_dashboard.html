@@ -2396,6 +2396,7 @@ function _setSidebarEstadoTurma(dentroTurma) {
 
 async function abrirTurma(id) {
   turmaAtiva = todasTurmas.find(t => String(t.id) === String(id));
+  relatorioCache = [];
   alunosTurma = [];
   esconderTudo();
   const meta = `${turmaAtiva.ano} · ${turmaAtiva.disciplina || 'Sem disciplina'} · ${turmaAtiva.turno}`;
@@ -2439,6 +2440,7 @@ async function abrirPagina(pagina) {
   esconderTudo();
   const nome = turmaAtiva?.nome || '';
   const meta = `${turmaAtiva?.ano || ''} · ${turmaAtiva?.disciplina || ''} · ${turmaAtiva?.turno || ''}`;
+  if (turmaAtiva?.id) await garantirAlunosTurma();
   if (pagina === 'aulas') {
     document.getElementById('pagina-aulas').style.display = 'block';
     atualizarCabecalho({ info: 'Aulas', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0F766E' });
@@ -2871,12 +2873,15 @@ async function _sincronizarCachesChamadaExec() {
   const LOTE = 25;
   try {
     for (let i = 0; i < ids.length; i += LOTE) {
-      const lote = ids.slice(i, i + LOTE).join(',');
+      const loteIds = ids.slice(i, i + LOTE);
+      const lote = loteIds.join(',');
       const registros = await api(`chamadas?aula_id=in.(${lote})&select=aula_id&limit=5000`) || [];
       const comChamada = new Set(registros.map(r => r.aula_id));
-      aulasPassadas
-        .filter(a => ids.slice(i, i + LOTE).includes(a.id) && comChamada.has(a.id))
-        .forEach(a => chamadaCacheSet(a.id, true));
+      // Marcar true para quem tem chamada, false para quem não tem
+      // Isso evita que cache undefined vire fallback incorreto para o status do banco
+      loteIds.forEach(id => {
+        chamadaCacheSet(id, comChamada.has(id) ? true : false);
+      });
     }
   } catch(e) { /* sem cache, não bloqueia */ }
 }
@@ -3015,9 +3020,13 @@ function renderListaAulas() {
   if (aulasTipoFiltro && aulasTipoFiltro !== 'todos') {
     lista = lista.filter(a => {
       const tc = chamadaCacheGet(a.id);
+      // tc === true  → chamada confirmada no banco → lecionada
+      // tc === false → confirmado sem chamada → pendente
+      // tc === undefined → desconhecido → usar status do banco como fallback neutro
       const se = a.status === 'futura' ? 'futura'
-        : (tc === true || a.status === 'lecionada') ? 'lecionada'
-        : (tc === false ? 'pendente' : a.status);
+        : tc === true ? 'lecionada'
+        : tc === false ? 'pendente'
+        : a.status; // fallback neutro: status vindo do banco
       return se === aulasTipoFiltro;
     });
   }
@@ -3041,11 +3050,11 @@ function renderListaAulas() {
     const tri = trimestreDeAula(a.data);
     const triBadge = tri ? `<span style="font-size:10px;font-weight:700;color:var(--orange);background:#FFF0E6;padding:2px 7px;border-radius:20px;">${nomesTri[tri]}</span>` : '';
     const temChamada = chamadaCacheGet(a.id);
-    // Determinar se tem chamada: pelo cache da tabela chamadas OU pelo status da aula.
-    // cache === true  → tem registro na tabela chamadas → lançada
-    // cache === false → confirmado pelo banco que NÃO tem registro → pendente
-    // cache === undefined → cache ainda não carregou → usar status da aula como fallback
-    const temChamadaEfetivo = temChamada === true || a.status === 'lecionada';
+    // Existência de chamada = APENAS cache da tabela chamadas.
+    // cache === true  → tem registro → chamada lançada
+    // cache === false → confirmado sem registro → chamada pendente
+    // cache === undefined → desconhecido; a.status === 'lecionada' NÃO confirma chamada
+    const temChamadaEfetivo = temChamada === true;
     const chamadaTag = a.status === 'futura'
       ? '' // Aulas futuras não mostram tag de chamada
       : temChamadaEfetivo
@@ -3066,10 +3075,15 @@ function renderListaAulas() {
       lecionada: { bg:'#22C55E', label:'Frequência registrada' },
       futura:    { bg:'#3B82F6', label:'Aula futura' },
     };
-    // Se o cache confirma que tem chamada mas o status no objeto ainda é 'pendente', corrigir visualmente
+    // statusEfetivo para o badge de status (lado direito do card)
+    // Separa: status pedagógico da aula vs existência de chamada registrada
+    // cache === true  → chamada confirmada → lecionada
+    // cache === false → ausência confirmada → pendente
+    // cache === undefined → desconhecido → usar status do banco (neutro, sem inferência)
     const statusEfetivo = a.status === 'futura' ? 'futura'
-      : temChamadaEfetivo ? 'lecionada'
-      : (temChamada === false ? 'pendente' : a.status);
+      : temChamada === true ? 'lecionada'
+      : temChamada === false ? 'pendente'
+      : a.status; // fallback neutro quando cache ainda não carregou
     const bc = badgeCfg[statusEfetivo] || { bg:'#9A8FC0', label: statusEfetivo };
 
     const selecionada = aulasSelecionadas.has(a.id);
@@ -3118,8 +3132,9 @@ function renderListaAulas() {
   lista.forEach(a => {
     const temChamada = chamadaCacheGet(a.id);
     const statusEfetivo = a.status === 'futura' ? 'futura'
-      : (temChamada === true || a.status === 'lecionada') ? 'lecionada'
-      : (temChamada === false ? 'pendente' : a.status);
+      : temChamada === true ? 'lecionada'
+      : temChamada === false ? 'pendente'
+      : a.status; // fallback neutro
     if (grupos[statusEfetivo]) grupos[statusEfetivo].push(a);
     else grupos['futura'].push(a);
   });
@@ -3400,10 +3415,12 @@ async function atualizarContadorAulas() {
 
   const lecionadas = lista.filter(a => {
     const temChamada = chamadaCacheGet(a.id);
-    if (a.status === 'lecionada') return true;
+    // Contar como lecionada APENAS quando cache confirma existência de chamada
+    // a.status === 'lecionada' sozinho NÃO é suficiente — pode não ter chamada registrada
     if (temChamada === true) return true;
     if (temChamada === false) return false;
-    return false;
+    // cache undefined: usar status do banco como estimativa (pode estar desatualizado)
+    return a.status === 'lecionada';
   }).length;
   const totalCriadas = lista.length;
   const el = document.getElementById('counter-aulas');
@@ -3417,12 +3434,14 @@ function calcularStatusAuto(dataISO, aulaId) {
   const dataAula = new Date(dataAulaOnly(dataISO) + 'T00:00:00');
   if (dataAula > hoje) return 'futura';
   // Fonte de verdade: tabela chamadas (via cache)
-  if (aulaId) {
-    const aulaLocal = aulasTurma.find(a => a.id === aulaId);
-    if (aulaLocal && aulaLocal.status === 'lecionada') return 'lecionada';
-  }
+  // a.status do banco NÃO confirma existência de chamada; não usar como inferência
   if (aulaId && chamadaCacheGet(aulaId) === true) return 'lecionada';
   if (aulaId && chamadaCacheGet(aulaId) === false) return 'pendente';
+  // Cache não carregou ainda: usar status do banco como fallback neutro
+  if (aulaId) {
+    const aulaLocal = aulasTurma.find(a => a.id === aulaId);
+    if (aulaLocal && (aulaLocal.status === 'lecionada' || aulaLocal.status === 'pendente')) return aulaLocal.status;
+  }
   return 'pendente';
 }
 
@@ -3439,7 +3458,9 @@ function recalcularStatusLocal() {
       // Confirmado pelo banco que tem chamada → lecionada
       s = 'lecionada';
     } else if (chamadaCacheGet(a.id) === false) {
-      s = a.status === 'lecionada' ? 'lecionada' : 'pendente';
+      // Cache confirma que NÃO há chamada → pendente, independente do status no banco
+      // (status 'lecionada' no banco pode estar stale; o cache é fonte de verdade)
+      s = 'pendente';
     } else {
       // Cache indefinido (não carregou ainda) → usar o status do banco como último recurso
       s = (a.status === 'lecionada' || a.status === 'pendente') ? a.status : 'pendente';
@@ -3461,7 +3482,8 @@ function _atualizarInfoStatusModal() {
     let st, cor, fundo, borda;
     if (dataAula > hoje) {
       st = 'futura'; cor = '#1D4ED8'; fundo = '#DBEAFE'; borda = '#BFDBFE';
-    } else if (editandoAulaId && (chamadaCacheGet(editandoAulaId) === true || aulasTurma.find(x => x.id === editandoAulaId)?.status === 'lecionada')) {
+    } else if (editandoAulaId && chamadaCacheGet(editandoAulaId) === true) {
+      // Chamada confirmada no banco → lecionada
       st = 'lecionada'; cor = '#166534'; fundo = '#DCFCE7'; borda = '#BBF7D0';
     } else {
       st = 'pendente'; cor = '#92400E'; fundo = '#FEF3C7'; borda = '#FDE68A';
