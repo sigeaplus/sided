@@ -103,16 +103,12 @@ async function _ctxCarregarAlunosSeTiver() {
 }
 
 // ── Patch em garantirAlunosTurma ─────────────────────────────
-// Aguarda o contexto estar pronto antes de executar a versão original.
-// Funciona mesmo se garantirAlunosTurma for definida DEPOIS deste arquivo.
 document.addEventListener('DOMContentLoaded', function () {
-  // Esperar um tick para que todos os scripts sejam carregados
   setTimeout(() => {
     if (typeof garantirAlunosTurma === 'function') {
       const _garantirOriginal = garantirAlunosTurma;
 
       garantirAlunosTurma = async function () {
-        // Se turmaAtiva ainda é null, restaurar antes de prosseguir
         if (!turmaAtiva) {
           const ok = await _ctxRestaurarTurmaAtiva();
           if (!ok) {
@@ -128,15 +124,19 @@ document.addEventListener('DOMContentLoaded', function () {
       console.warn('[CTX] garantirAlunosTurma não encontrada. Certifique-se de que api.js/dashboard.js foi carregado antes.');
     }
 
-    // Disparar restauração antecipada para pré-aquecer o contexto
-    _ctxRestaurarTurmaAtiva().catch(() => {});
+    // REMOVIDO: _ctxRestaurarTurmaAtiva() antecipado que causava race condition.
+    //
+    // Quando a URL é uma rota de turma (ex: /turma/.../relatorio), o roteador
+    // precisa carregar a turma ESPECÍFICA da URL. Disparar _ctxRestaurarTurmaAtiva
+    // aqui em paralelo fazia todasTurmas ser preenchido pela turma errada (a da
+    // sessão anterior) antes do roteador terminar, ou deixava _carregarContextoTurma
+    // retornar cedo demais por encontrar todasTurmas vazio num momento intermediário.
+    // O roteador agora busca as turmas por conta própria quando necessário.
 
   }, 0);
 });
 
 // ── Salvar turmaAtiva na sessão sempre que ela mudar ─────────
-// Intercepta atribuições a turmaAtiva via proxy SE o ambiente suportar
-// (fallback: chamar _ctxSalvarTurma() manualmente ao selecionar turma)
 function _ctxSalvarTurma(turma) {
   turmaAtiva = turma;
   if (turma?.id) {
@@ -145,8 +145,6 @@ function _ctxSalvarTurma(turma) {
 }
 
 // ── API pública ──────────────────────────────────────────────
-// Substitui chamadas diretas a garantirAlunosTurma em contextos
-// onde turmaAtiva pode não estar carregada.
 async function garantirContextoCompleto() {
   if (!turmaAtiva) await _ctxRestaurarTurmaAtiva();
   if (!turmaAtiva) return false;
