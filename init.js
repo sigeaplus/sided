@@ -2,14 +2,12 @@
 document.addEventListener('DOMContentLoaded', function () {
   if (typeof init === 'function') init();
 
-  // Pré-aquecer contexto logo ao carregar a página.
-  // Garante que turmaAtiva e alunosTurma estejam prontos
-  // ANTES do usuário clicar em qualquer funcionalidade.
-  setTimeout(async () => {
-    try {
-      await _ctxRestaurarTurmaAtiva();
-    } catch(e) {
-      // Falha silenciosa — o guard vai tentar novamente quando o usuário agir
-    }
-  }, 100); // 100ms: suficiente para api.js e dashboard.js terminarem de carregar
+  // ⚠️ _ctxRestaurarTurmaAtiva foi removido daqui.
+  //
+  // Motivo: quando a URL já contém uma rota de turma (ex: /turma/.../relatorio),
+  // o roteadorRestaurar (chamado dentro de init via roteadorInicializar) já faz
+  // toda a restauração de contexto aguardando a sessão de auth.
+  // Chamar _ctxRestaurarTurmaAtiva em paralelo causava race condition: as duas
+  // funções corriam ao mesmo tempo, a sessão ainda não estava pronta nos primeiros
+  // 100ms, e a página ficava presa em "Carregando..." indefinidamente no F5.
 });

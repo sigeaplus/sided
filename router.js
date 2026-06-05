@@ -235,19 +235,52 @@ async function _executarAbrirPagina(pagina, opts = {}) {
   }
 }
 
+// Aguarda a sessão do Supabase estar pronta (prof_data no sessionStorage)
+// antes de qualquer operação que dependa de auth. Evita o travamento no F5.
+function _aguardarSessao(timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    // Sessão já presente — resolve imediatamente
+    if (sessionStorage.getItem('prof_data')) return resolve();
+
+    const inicio = Date.now();
+    const intervalo = setInterval(() => {
+      if (sessionStorage.getItem('prof_data')) {
+        clearInterval(intervalo);
+        resolve();
+      } else if (Date.now() - inicio > timeoutMs) {
+        clearInterval(intervalo);
+        reject(new Error('[ROUTER] Timeout: sessão não carregou em ' + timeoutMs + 'ms'));
+      }
+    }, 80);
+  });
+}
+
 // Controla a entrada/restauração por URL (Resolve o F5 infinito)
 async function roteadorRestaurar() {
   const { pagina, turmaId, tri } = _parsearUrl(window.location.pathname, window.location.search);
-  
+
   if (!turmaId || pagina === 'dashboard') {
     _executarVoltarDashboard();
     window.history.replaceState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
     return;
   }
 
-  // Espera carregar a listagem global de turmas se ela ainda não existir na memória
+  // ✅ Aguarda a sessão de auth estar pronta ANTES de qualquer fetch.
+  // Sem isso, no F5 o Supabase ainda não restaurou o token e
+  // buscarTodasTurmasDoProfessor falha silenciosamente → todasTurmas vazio
+  // → turmaAtiva null → página trava em "Carregando..." para sempre.
+  try {
+    await _aguardarSessao();
+  } catch (e) {
+    console.warn('[ROUTER] Sessão não disponível, redirecionando para dashboard.', e);
+    _executarVoltarDashboard();
+    window.history.replaceState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
+    return;
+  }
+
+  // Carrega a listagem global de turmas se ainda não estiver na memória
   if (typeof buscarTodasTurmasDoProfessor === 'function' && (!todasTurmas || todasTurmas.length === 0)) {
-    await buscarTodasTurmasDoProfessor(); 
+    await buscarTodasTurmasDoProfessor();
   }
 
   await _carregarContextoTurma(turmaId);
