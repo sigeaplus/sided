@@ -1,0 +1,7 @@
+.chamada-aluno-row.focado {
+  outline: 3px solid #6C4FD4 !important;
+  outline-offset: -2px;
+  background: #EDE8FF !important;
+  position: relative;
+  z-index: 1;
+}
