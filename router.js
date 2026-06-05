@@ -1,44 +1,9 @@
 // ============================================
-// ROUTER.JS — History API
+// ROUTER.JS — History API (Completo)
 // SIDED+ Professor Dashboard
-// ============================================
-//
-// COMO O F5 FUNCIONA AGORA:
-//
-//  1. O servidor (Vercel) deve redirecionar qualquer path para o mesmo HTML.
-//     No vercel.json, adicione:
-//       {
-//         "rewrites": [{ "source": "/(.*)", "destination": "/professor_dashboard.html" }]
-//       }
-//
-//  2. Ao fazer F5 em /turma/42/aulas, o HTML carrega normalmente.
-//     Quando o app inicializa, ele lê window.location.pathname e chama
-//     _roteadorRestaurar(), que reconstrói o estado correto:
-//     autentica → carrega a turma → abre a aba.
-//
-//  3. pushState() é chamado automaticamente toda vez que o usuário
-//     navega (abrirTurma, abrirPagina, voltarDashboard, voltarTurma).
-//
-//  4. O botão Voltar/Avançar do navegador dispara popstate e o router
-//     reage da mesma forma que uma navegação programática.
-//
-// ROTAS SUPORTADAS:
-//   /                          → dashboard
-//   /turma/:id                 → relatório geral da turma (trimestre padrão)
-//   /turma/:id/aulas           → aba Aulas
-//   /turma/:id/chamada         → aba Chamada
-//   /turma/:id/avaliacoes      → aba Avaliações
-//   /turma/:id/relatorio       → Relatório Geral (aceita ?tri=N)
-//   /turma/:id/relatorio-individual → Relatório Individual
-//   /turma/:id/mapeamento      → Mapeamento de Sala
-//   /turma/:id/calendario      → Calendário Escolar
-//   /turma/:id/ocorrencias     → Ocorrências
-//   /turma/:id/plano-curso     → Plano de Curso
-//
 // ============================================
 
 // ── IDs de todas as páginas/abas do app ──────────────────────────────────────
-
 const todasPaginas = [
   'turma-screen', 'pagina-aulas', 'pagina-chamada', 'pagina-avaliacoes',
   'notas-screen', 'pagina-relatorio-geral', 'pagina-relatorio-individual',
@@ -47,7 +12,6 @@ const todasPaginas = [
 ];
 
 // ── Mapeamento aba → segmento de URL ─────────────────────────────────────────
-
 const _abaParaSegmento = {
   'aulas':                'aulas',
   'chamada':              'chamada',
@@ -64,35 +28,54 @@ const _segmentoParaAba = Object.fromEntries(
   Object.entries(_abaParaSegmento).map(([k, v]) => [v, k])
 );
 
-// ── Helpers de URL ────────────────────────────────────────────────────────────
-
+// ── Helpers de URL (Suporta Turma, Abas e Ficha de Aluno) ────────────────────
 function _construirUrl(pagina, turmaId, opts = {}) {
   if (!turmaId || pagina === 'dashboard') return '/';
+  
+  // Tratamento da Ficha Individual do Aluno e suas subrotas
+  if (opts.alunoId) {
+    let subRotaAluno = '';
+    if (opts.abaAluno) subRotaAluno = `/${opts.abaAluno}`; // /frequencia, /avaliacoes, etc.
+    return `/turma/${turmaId}/aluno/${opts.alunoId}${subRotaAluno}`;
+  }
+
   if (pagina === 'relatorio-geral') {
     const tri = opts.tri || document.getElementById('sel-rel-tri')?.value || '1';
     return `/turma/${turmaId}/relatorio?tri=${tri}`;
   }
+  
   const seg = _abaParaSegmento[pagina];
   if (seg) return `/turma/${turmaId}/${seg}`;
   return `/turma/${turmaId}`;
 }
 
 function _parsearUrl(pathname, search) {
-  // /  →  { pagina: 'dashboard' }
-  // /turma/42  →  { pagina: 'relatorio-geral', turmaId: '42' }
-  // /turma/42/aulas  →  { pagina: 'aulas', turmaId: '42' }
+  // 1. Verifica padrão de Aluno: /turma/:id/aluno/:alunoId ou /turma/:id/aluno/:alunoId/:aba
+  const matchAluno = pathname.match(/^\/turma\/(\d+)\/aluno\/([^\/]+)(?:\/([^\/]+))?/);
+  if (matchAluno) {
+    return {
+      pagina: 'relatorio-individual',
+      turmaId: matchAluno[1],
+      alunoId: matchAluno[2],
+      abaAluno: matchAluno[3] || 'visao-geral',
+      tri: 1
+    };
+  }
+
+  // 2. Verifica padrão de Rotas Gerais de Turma
   const match = pathname.match(/^\/turma\/(\d+)\/?([^/?]*)?/);
-  if (!match) return { pagina: 'dashboard', turmaId: null };
+  if (!match) return { pagina: 'dashboard', turmaId: null, alunoId: null, abaAluno: null };
+  
   const turmaId = match[1];
   const seg = match[2] || '';
   const pagina = seg ? (_segmentoParaAba[seg] || 'relatorio-geral') : 'relatorio-geral';
   const params = new URLSearchParams(search || '');
   const tri = parseInt(params.get('tri') || '1');
-  return { pagina, turmaId, tri };
+  
+  return { pagina, turmaId, tri, alunoId: null, abaAluno: null };
 }
 
 // ── pushState / replaceState ──────────────────────────────────────────────────
-
 function _pushRota(pagina, turmaId, opts = {}) {
   const url = _construirUrl(pagina, turmaId, opts);
   const state = { pagina, turmaId: turmaId ? String(turmaId) : null, opts };
@@ -105,13 +88,11 @@ function _replaceRota(pagina, turmaId, opts = {}) {
   window.history.replaceState(state, '', url);
 }
 
-// ── popstate — botão Voltar/Avançar do navegador ──────────────────────────────
-
+// ── popstate — Botão Voltar/Avançar do Navegador ──────────────────────────────
 window.addEventListener('popstate', async (e) => {
   try {
     const state = e.state;
     if (!state) {
-      // Sem state: interpretar a URL atual
       await _roteadorRestaurar(window.location.pathname, window.location.search, false);
       return;
     }
@@ -120,7 +101,6 @@ window.addEventListener('popstate', async (e) => {
       _executarVoltarDashboard(false);
       return;
     }
-    // Garantir turma carregada
     if (turmaId && (!turmaAtiva || String(turmaAtiva.id) !== String(turmaId))) {
       await _carregarContextoTurma(turmaId);
     }
@@ -131,16 +111,14 @@ window.addEventListener('popstate', async (e) => {
   }
 });
 
-// ── Restauração por URL (F5 / link direto) ────────────────────────────────────
-
+// ── Restauração por URL (F5 / Link Direto) ────────────────────────────────────
 async function _roteadorRestaurar(pathname, search, substituirState = true) {
   try {
-    const { pagina, turmaId, tri } = _parsearUrl(pathname, search);
+    const { pagina, turmaId, tri, alunoId, abaAluno } = _parsearUrl(pathname, search);
     if (pagina === 'dashboard' || !turmaId) {
       if (substituirState) _replaceRota('dashboard', null);
-      return; // O app já vai abrir no dashboard normalmente
+      return;
     }
-    // Carregar turma se necessário
     if (!turmaAtiva || String(turmaAtiva.id) !== String(turmaId)) {
       await _carregarContextoTurma(turmaId);
     }
@@ -148,20 +126,19 @@ async function _roteadorRestaurar(pathname, search, substituirState = true) {
       if (substituirState) _replaceRota('dashboard', null);
       return;
     }
-    const opts = pagina === 'relatorio-geral' ? { tri } : {};
+    
+    const opts = alunoId ? { alunoId, abaAluno } : (pagina === 'relatorio-geral' ? { tri } : {});
     if (substituirState) _replaceRota(pagina, turmaId, opts);
+    
     await _executarAbrirPagina(pagina, opts, false);
   } catch (e) {
     console.error('[ROUTER] _roteadorRestaurar erro:', e);
   }
 }
 
-// Chame isso no final do fluxo de autenticação, depois que todasTurmas estiver populada:
-//   await roteadorInicializar();
 async function roteadorInicializar() {
   const pathname = window.location.pathname;
   const search   = window.location.search;
-  // Se a URL for só "/" não precisa fazer nada especial — o dashboard vai abrir normalmente
   if (pathname === '/' || pathname === '') {
     _replaceRota('dashboard', null);
     return;
@@ -170,7 +147,6 @@ async function roteadorInicializar() {
 }
 
 // ── Carregar contexto da turma sem renderizar UI ainda ────────────────────────
-
 async function _carregarContextoTurma(id) {
   if (!todasTurmas || todasTurmas.length === 0) return;
   turmaAtiva = todasTurmas.find(t => String(t.id) === String(id)) || null;
@@ -181,7 +157,6 @@ async function _carregarContextoTurma(id) {
 }
 
 // ── Helpers visuais ───────────────────────────────────────────────────────────
-
 function _setSidebarEstadoTurma(dentroTurma) {
   const normal  = document.getElementById('sidebar-estado-normal');
   const menu    = document.getElementById('sidebar-turma-menu');
@@ -208,7 +183,6 @@ function _paginaEstaVisivel(id) {
 }
 
 // ── Execução pura de navegação (sem mexer no histórico) ───────────────────────
-
 async function _executarAbrirTurma(id) {
   turmaAtiva    = todasTurmas.find(t => String(t.id) === String(id));
   relatorioCache = [];
@@ -234,10 +208,10 @@ function _executarVoltarDashboard(comPush = true) {
   turmaAtiva = null;
   _setSidebarEstadoTurma(false);
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  const escola  = profData.escolas?.nome || '';
+  const school  = profData.escolas?.nome || '';
   const codigo  = profData.escolas?.codigo_escola ? `Código: ${profData.escolas.codigo_escola}` : '';
-  atualizarCabecalho({ info: codigo, titulo: escola, detalhe: `Bem-vindo(a), ${(profData.nome || '').split(' ')[0]}!`, cor: 'var(--purple-dark)' });
-  atualizarHeaderMobile('SIDED+', escola, false, false);
+  atualizarCabecalho({ info: codigo, titulo: school, detalhe: `Bem-vindo(a), ${(profData.nome || '').split(' ')[0]}!`, cor: 'var(--purple-dark)' });
+  atualizarHeaderMobile('SIDED+', school, false, false);
   if (comPush) _pushRota('dashboard', null);
 }
 
@@ -294,7 +268,13 @@ async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
       atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#F97316' });
       atualizarHeaderMobile('Relatório Individual', nome, true, true);
       await garantirAlunosTurma();
+      
       if (typeof renderRelatorioIndividualMenu === 'function') await renderRelatorioIndividualMenu();
+      
+      // Se houver um aluno ativo na URL (F5), restaura a ficha/aba dele diretamente
+      if (opts.alunoId && typeof abrirFichaAlunoInterna === 'function') {
+        await abrirFichaAlunoInterna(opts.alunoId, opts.abaAluno || 'visao-geral');
+      }
       break;
 
     case 'mapeamento-sala':
@@ -331,7 +311,7 @@ async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
 
     default:
       console.warn('[ROUTER] Página desconhecida:', pagina);
-      return; // não faz pushState
+      return;
   }
 
   if (comPush && turmaAtiva?.id) {
@@ -339,8 +319,7 @@ async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
   }
 }
 
-// ── API pública (substitui as chamadas existentes) ────────────────────────────
-
+// ── API pública (Substitui as chamadas existentes) ────────────────────────────
 async function abrirTurma(id) {
   try {
     await _executarAbrirTurma(id);
@@ -369,6 +348,16 @@ async function abrirPagina(pagina, opts = {}) {
   }
 }
 
+// Nova função global para acionar a rota do aluno por cliques nos cards/linhas de UI
+async function abrirCaminhoAluno(alunoId, abaAluno = 'visao-geral') {
+  try {
+    if (!turmaAtiva?.id) return;
+    await _executarAbrirPagina('relatorio-individual', { alunoId, abaAluno }, true);
+  } catch (e) {
+    console.error('[ROUTER] Erro em abrirCaminhoAluno:', e);
+  }
+}
+
 async function voltarTurma() {
   try {
     esconderTudo();
@@ -393,5 +382,4 @@ async function abrirRelatorioUI(tri) {
   }
 }
 
-// Compatibilidade com chamadas antigas
 function trocarTab(tab) { abrirPagina(tab); }
