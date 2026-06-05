@@ -1585,6 +1585,9 @@
       <span id="btn-txt">Entrar</span>
     </button>
     <div class="divider"><span>ou</span></div>
+    <button id="btn-passkey" onclick="loginPasskey()" style="display:none;width:100%;padding:13px;border-radius:12px;border:1.5px solid #DBE4FF;background:#F5F8FF;color:#1B2550;font-family:'Sora',sans-serif;font-size:14px;font-weight:600;cursor:pointer;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
+      🔑 Entrar com chave de acesso
+    </button>
     <button class="btn-google" onclick="loginGoogle()">
       <svg viewBox="0 0 48 48">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -1867,6 +1870,7 @@
   function abrirLogin() {
     document.getElementById('overlay').classList.add('active');
     document.body.style.overflow = 'hidden';
+    _pkAtualizarBotao();
     setTimeout(() => document.getElementById('inp-login').focus(), 300);
   }
 
@@ -1957,6 +1961,7 @@
         if (!authError && authData?.session) {
           // Auth OK — segue normalmente
           sessionStorage.setItem('ded_user', JSON.stringify(user));
+          await _pkOferecer(user);
           window.location.href = ROTAS[user.role] || DASH;
           return;
         }
@@ -1993,6 +1998,7 @@
         const { data: authData, error: loginError } = await sbClient.auth.signInWithPassword({ email: user.email, password: senha });
         if (authData?.session) {
           sessionStorage.setItem('ded_user', JSON.stringify(user));
+          await _pkOferecer(user);
           window.location.href = ROTAS[user.role] || DASH;
           return;
         }
@@ -2005,6 +2011,7 @@
     } catch(e) { console.error('[Auth migrar]', e); }
     // Fallback: entra sem auth (temporário)
     sessionStorage.setItem('ded_user', JSON.stringify(user));
+    await _pkOferecer(user);
     window.location.href = ROTAS[user.role] || DASH;
   }
 
@@ -2138,6 +2145,120 @@
       errEl.style.display = 'block';
       setTimeout(() => { errEl.style.display = 'none'; errEl.style.color = ''; }, 4000);
     }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════
+  // PASSKEY (WebAuthn) — login biométrico sem senha
+  // Chave armazenada no sessionStorage como 'sided_passkey_user'
+  // ═══════════════════════════════════════════════════════════
+
+  const _PK_KEY = 'sided_passkey_cred'; // credentialId salvo
+
+  function _pkDisponivel() {
+    return !!(window.PublicKeyCredential && navigator.credentials?.create);
+  }
+
+  // Converte base64url ↔ ArrayBuffer
+  function _b64ToBuffer(b64) {
+    const s = atob(b64.replace(/-/g,'+').replace(/_/g,'/'));
+    return Uint8Array.from(s, c => c.charCodeAt(0)).buffer;
+  }
+  function _bufferToB64(buf) {
+    return btoa(String.fromCharCode(...new Uint8Array(buf)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+
+  // Registrar passkey após login bem-sucedido
+  async function _pkRegistrar(user) {
+    if (!_pkDisponivel()) return;
+    try {
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: { name: 'SIDED+', id: location.hostname },
+          user: {
+            id: new TextEncoder().encode(String(user.id)),
+            name: user.login || user.email || String(user.id),
+            displayName: user.nome || user.login || 'Professor'
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7  },  // ES256
+            { type: 'public-key', alg: -257 }  // RS256
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required',
+            residentKey: 'preferred'
+          },
+          timeout: 60000
+        }
+      });
+      // Salva o credentialId e o user associado
+      const pkData = {
+        credId: _bufferToB64(cred.rawId),
+        user: { id: user.id, login: user.login, role: user.role, nome: user.nome, email: user.email }
+      };
+      localStorage.setItem(_PK_KEY, JSON.stringify(pkData));
+      console.info('[PASSKEY] Registrada com sucesso para', user.login);
+    } catch(e) {
+      // Usuário cancelou ou dispositivo não suporta — silencioso
+      console.warn('[PASSKEY] Registro cancelado:', e.message);
+    }
+  }
+
+  // Autenticar via passkey
+  async function loginPasskey() {
+    if (!_pkDisponivel()) {
+      mostrarErro('Este dispositivo não suporta chaves de acesso.');
+      return;
+    }
+    const pkData = JSON.parse(localStorage.getItem(_PK_KEY) || 'null');
+    if (!pkData) {
+      mostrarErro('Nenhuma chave de acesso cadastrada. Faça login com senha primeiro.');
+      return;
+    }
+    const btn = document.getElementById('btn-passkey');
+    if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+    try {
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          allowCredentials: [{ type: 'public-key', id: _b64ToBuffer(pkData.credId) }],
+          userVerification: 'required',
+          timeout: 60000
+        }
+      });
+      // Autenticação WebAuthn OK — restaura sessão
+      sessionStorage.setItem('ded_user', JSON.stringify(pkData.user));
+      window.location.href = ROTAS[pkData.user.role] || DASH;
+    } catch(e) {
+      if (e.name !== 'NotAllowedError') {
+        mostrarErro('Falha na verificação. Tente com login e senha.');
+      }
+      console.warn('[PASSKEY] Autenticação falhou:', e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🔑 Entrar com chave de acesso'; }
+    }
+  }
+
+  // Pergunta se quer cadastrar passkey após login bem-sucedido
+  async function _pkOferecer(user) {
+    if (!_pkDisponivel()) return;
+    const jaTemChave = localStorage.getItem(_PK_KEY);
+    if (jaTemChave) return; // já cadastrou, não perguntar de novo
+    const aceito = confirm('Deseja cadastrar uma chave de acesso (biometria/PIN) para entrar mais rápido na próxima vez?');
+    if (aceito) await _pkRegistrar(user);
+  }
+
+  // Mostrar/ocultar botão de passkey conforme disponibilidade
+  function _pkAtualizarBotao() {
+    const btn = document.getElementById('btn-passkey');
+    if (!btn) return;
+    const temChave = !!localStorage.getItem(_PK_KEY);
+    btn.style.display = (_pkDisponivel() && temChave) ? 'flex' : 'none';
   }
 
   document.getElementById('inp-senha').addEventListener('keydown', e => {
