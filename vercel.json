@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/turma/(.*)", "destination": "/professor_dashboard.html" },
+    { "source": "/dashboard", "destination": "/professor_dashboard.html" }
+  ]
+}

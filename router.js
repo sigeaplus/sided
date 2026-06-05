@@ -1,170 +1,81 @@
 // ============================================
-// ROUTER.JS — History API (Completo)
-// SIDED+ Professor Dashboard
+// ROUTER.JS - Sistema de Rotas com History API
 // ============================================
 
-// ── IDs de todas as páginas/abas do app ──────────────────────────────────────
 const todasPaginas = [
-  'turma-screen', 'pagina-aulas', 'pagina-chamada', 'pagina-avaliacoes',
-  'notas-screen', 'pagina-relatorio-geral', 'pagina-relatorio-individual',
-  'pagina-mapeamento-sala', 'pagina-calendario-escolar', 'pagina-ocorrencias',
-  'pagina-comunicacao', 'pagina-plano-curso'
+  'turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen',
+  'pagina-relatorio-geral','pagina-relatorio-individual','pagina-mapeamento-sala',
+  'pagina-calendario-escolar','pagina-ocorrencias','pagina-comunicacao','pagina-plano-curso'
 ];
 
-// ── Mapeamento aba → segmento de URL ─────────────────────────────────────────
 const _abaParaSegmento = {
-  'aulas':                'aulas',
-  'chamada':              'chamada',
-  'avaliacoes':           'avaliacoes',
-  'relatorio-geral':      'relatorio',
+  'aulas': 'aulas',
+  'chamada': 'chamada',
+  'avaliacoes': 'avaliacoes',
+  'relatorio-geral': 'relatorio',
   'relatorio-individual': 'relatorio-individual',
-  'mapeamento-sala':      'mapeamento',
-  'calendario-escolar':   'calendario',
-  'ocorrencias':          'ocorrencias',
-  'plano-curso':          'plano-curso'
+  'mapeamento-sala': 'mapeamento',
+  'calendario-escolar': 'calendario',
+  'ocorrencias': 'ocorrencias',
+  'plano-curso': 'plano-curso'
 };
 
 const _segmentoParaAba = Object.fromEntries(
   Object.entries(_abaParaSegmento).map(([k, v]) => [v, k])
 );
 
-// ── Helpers de URL (Suporta Turma, Abas e Ficha de Aluno) ────────────────────
-function _construirUrl(pagina, turmaId, opts = {}) {
-  if (!turmaId || pagina === 'dashboard') return '/';
+// Auxiliar para transformar o nome da turma em texto limpo para a URL
+function _gerarSlug(texto) {
+  if (!texto) return '';
+  return texto.toString().toLowerCase().trim()
+    .replace(/[\s_]+/g, '-') 
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
+}
+
+// Reconstrói a URL combinando Nome Resumido + ID
+function _construirUrl(pagina, turmaObj, opts = {}) {
+  if (!turmaObj || pagina === 'dashboard') return '/dashboard';
   
-  // Tratamento da Ficha Individual do Aluno e suas subrotas
-  if (opts.alunoId) {
-    let subRotaAluno = '';
-    if (opts.abaAluno) subRotaAluno = `/${opts.abaAluno}`; // /frequencia, /avaliacoes, etc.
-    return `/turma/${turmaId}/aluno/${opts.alunoId}${subRotaAluno}`;
-  }
+  const id = turmaObj.id;
+  const slugNome = _gerarSlug(turmaObj.nome);
+  const identificador = slugNome ? `${slugNome}-${id}` : id;
 
   if (pagina === 'relatorio-geral') {
     const tri = opts.tri || document.getElementById('sel-rel-tri')?.value || '1';
-    return `/turma/${turmaId}/relatorio?tri=${tri}`;
+    return `/turma/${identificador}/relatorio?tri=${tri}`;
   }
-  
   const seg = _abaParaSegmento[pagina];
-  if (seg) return `/turma/${turmaId}/${seg}`;
-  return `/turma/${turmaId}`;
+  return seg ? `/turma/${identificador}/${seg}` : `/turma/${identificador}`;
 }
 
+// Extrai o ID real do final do segmento da URL
 function _parsearUrl(pathname, search) {
-  // 1. Verifica padrão de Aluno: /turma/:id/aluno/:alunoId ou /turma/:id/aluno/:alunoId/:aba
-  const matchAluno = pathname.match(/^\/turma\/(\d+)\/aluno\/([^\/]+)(?:\/([^\/]+))?/);
-  if (matchAluno) {
-    return {
-      pagina: 'relatorio-individual',
-      turmaId: matchAluno[1],
-      alunoId: matchAluno[2],
-      abaAluno: matchAluno[3] || 'visao-geral',
-      tri: 1
-    };
-  }
+  const match = pathname.match(/^\/turma\/([^\/]+)\/?([^/?]*)?/);
+  if (!match) return { pagina: 'dashboard', turmaId: null };
 
-  // 2. Verifica padrão de Rotas Gerais de Turma
-  const match = pathname.match(/^\/turma\/(\d+)\/?([^/?]*)?/);
-  if (!match) return { pagina: 'dashboard', turmaId: null, alunoId: null, abaAluno: null };
-  
-  const turmaId = match[1];
-  const seg = match[2] || '';
-  const pagina = seg ? (_segmentoParaAba[seg] || 'relatorio-geral') : 'relatorio-geral';
+  const segmentoCompleto = match[1]; 
+  const segAba = match[2] || '';
+
+  // Captura o UUID de 36 caracteres no final do segmento
+  const uuidMatch = segmentoCompleto.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i);
+  const turmaId = uuidMatch ? uuidMatch[1] : segmentoCompleto;
+
+  const pagina = segAba ? (_segmentoParaAba[segAba] || 'relatorio-geral') : 'relatorio-geral';
   const params = new URLSearchParams(search || '');
   const tri = parseInt(params.get('tri') || '1');
-  
-  return { pagina, turmaId, tri, alunoId: null, abaAluno: null };
+
+  return { pagina, turmaId, tri };
 }
 
-// ── pushState / replaceState ──────────────────────────────────────────────────
-function _pushRota(pagina, turmaId, opts = {}) {
-  const url = _construirUrl(pagina, turmaId, opts);
-  const state = { pagina, turmaId: turmaId ? String(turmaId) : null, opts };
-  window.history.pushState(state, '', url);
-}
-
-function _replaceRota(pagina, turmaId, opts = {}) {
-  const url = _construirUrl(pagina, turmaId, opts);
-  const state = { pagina, turmaId: turmaId ? String(turmaId) : null, opts };
-  window.history.replaceState(state, '', url);
-}
-
-// ── popstate — Botão Voltar/Avançar do Navegador ──────────────────────────────
-window.addEventListener('popstate', async (e) => {
-  try {
-    const state = e.state;
-    if (!state) {
-      await _roteadorRestaurar(window.location.pathname, window.location.search, false);
-      return;
-    }
-    const { pagina, turmaId, opts } = state;
-    if (!pagina || pagina === 'dashboard') {
-      _executarVoltarDashboard(false);
-      return;
-    }
-    if (turmaId && (!turmaAtiva || String(turmaAtiva.id) !== String(turmaId))) {
-      await _carregarContextoTurma(turmaId);
-    }
-    if (!turmaAtiva) { _executarVoltarDashboard(false); return; }
-    await _executarAbrirPagina(pagina, opts || {}, false);
-  } catch (e) {
-    console.error('[ROUTER] popstate erro:', e);
-  }
-});
-
-// ── Restauração por URL (F5 / Link Direto) ────────────────────────────────────
-async function _roteadorRestaurar(pathname, search, substituirState = true) {
-  try {
-    const { pagina, turmaId, tri, alunoId, abaAluno } = _parsearUrl(pathname, search);
-    if (pagina === 'dashboard' || !turmaId) {
-      if (substituirState) _replaceRota('dashboard', null);
-      return;
-    }
-    if (!turmaAtiva || String(turmaAtiva.id) !== String(turmaId)) {
-      await _carregarContextoTurma(turmaId);
-    }
-    if (!turmaAtiva) {
-      if (substituirState) _replaceRota('dashboard', null);
-      return;
-    }
-    
-    const opts = alunoId ? { alunoId, abaAluno } : (pagina === 'relatorio-geral' ? { tri } : {});
-    if (substituirState) _replaceRota(pagina, turmaId, opts);
-    
-    await _executarAbrirPagina(pagina, opts, false);
-  } catch (e) {
-    console.error('[ROUTER] _roteadorRestaurar erro:', e);
-  }
-}
-
-async function roteadorInicializar() {
-  const pathname = window.location.pathname;
-  const search   = window.location.search;
-  if (pathname === '/' || pathname === '') {
-    _replaceRota('dashboard', null);
-    return;
-  }
-  await _roteadorRestaurar(pathname, search, true);
-}
-
-// ── Carregar contexto da turma sem renderizar UI ainda ────────────────────────
-async function _carregarContextoTurma(id) {
-  if (!todasTurmas || todasTurmas.length === 0) return;
-  turmaAtiva = todasTurmas.find(t => String(t.id) === String(id)) || null;
-  if (!turmaAtiva) return;
-  relatorioCache = [];
-  alunosTurma   = [];
-  await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
-}
-
-// ── Helpers visuais ───────────────────────────────────────────────────────────
 function _setSidebarEstadoTurma(dentroTurma) {
-  const normal  = document.getElementById('sidebar-estado-normal');
-  const menu    = document.getElementById('sidebar-turma-menu');
-  const mini    = document.getElementById('btn-perfil-mini');
+  const normal = document.getElementById('sidebar-estado-normal');
+  const menu   = document.getElementById('sidebar-turma-menu');
+  const mini   = document.getElementById('btn-perfil-mini');
   const mobMenu = document.getElementById('mob-turma-menu');
-  if (normal)  normal.style.display  = dentroTurma ? 'none' : 'flex';
-  if (menu)    menu.style.display    = dentroTurma ? 'flex' : 'none';
-  if (mini)    mini.style.display    = dentroTurma ? 'flex' : 'none';
+  if (normal) normal.style.display = dentroTurma ? 'none' : 'flex';
+  if (menu)   menu.style.display = dentroTurma ? 'flex' : 'none';
+  if (mini)   mini.style.display = dentroTurma ? 'flex' : 'none';
   if (mobMenu) mobMenu.style.display = dentroTurma ? 'flex' : 'none';
 }
 
@@ -177,16 +88,28 @@ function esconderTudo() {
   if (dash) dash.style.display = 'none';
 }
 
-function _paginaEstaVisivel(id) {
-  const el = document.getElementById(id);
-  return !!(el && el.style.display && el.style.display !== 'none');
+// Limpa caches de visualização antigos para evitar duplicação de dados ao trocar de aba
+function _limparCachesVisuais() {
+  const containers = ['cards-aulas-container', 'lista-avaliacoes-container', 'chamada-alunos-corpo'];
+  containers.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
 }
 
-// ── Execução pura de navegação (sem mexer no histórico) ───────────────────────
-async function _executarAbrirTurma(id) {
-  turmaAtiva    = todasTurmas.find(t => String(t.id) === String(id));
+async function _carregarContextoTurma(id) {
+  if (!todasTurmas || todasTurmas.length === 0) return;
+  turmaAtiva = todasTurmas.find(t => String(t.id) === String(id)) || null;
+  if (!turmaAtiva) return;
   relatorioCache = [];
-  alunosTurma   = [];
+  alunosTurma = [];
+  _limparCachesVisuais();
+  await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
+}
+
+async function _executarAbrirTurma(id) {
+  await _carregarContextoTurma(id);
+  if (!turmaAtiva) return;
   esconderTudo();
 
   const nome = turmaAtiva?.nome || '';
@@ -194,29 +117,27 @@ async function _executarAbrirTurma(id) {
   atualizarHeaderMobile('Relatório Geral', nome, true, false);
   _setSidebarEstadoTurma(true);
 
-  await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
-
   const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
   document.getElementById('pagina-relatorio-geral').style.display = 'block';
   await carregarRelatorio(selTri);
 }
 
-function _executarVoltarDashboard(comPush = true) {
+function _executarVoltarDashboard() {
   esconderTudo();
   const dash = document.getElementById('dashboard-screen');
   if (dash) dash.style.display = 'block';
   turmaAtiva = null;
   _setSidebarEstadoTurma(false);
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  const school  = profData.escolas?.nome || '';
-  const codigo  = profData.escolas?.codigo_escola ? `Código: ${profData.escolas.codigo_escola}` : '';
-  atualizarCabecalho({ info: codigo, titulo: school, detalhe: `Bem-vindo(a), ${(profData.nome || '').split(' ')[0]}!`, cor: 'var(--purple-dark)' });
-  atualizarHeaderMobile('SIDED+', school, false, false);
-  if (comPush) _pushRota('dashboard', null);
+  const escola = profData.escolas?.nome || '';
+  const codigo = profData.escolas?.codigo_escola ? `Código: ${profData.escolas.codigo_escola}` : '';
+  atualizarCabecalho({ info: codigo, titulo: escola, detalhe: `Bem-vindo(a), ${(profData.nome || '').split(' ')[0]}!`, cor: 'var(--purple-dark)' });
+  atualizarHeaderMobile('SIDED+', escola, false, false);
 }
 
-async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
+async function _executarAbrirPagina(pagina, opts = {}) {
   esconderTudo();
+  _limparCachesVisuais();
   const nome = turmaAtiva?.nome || '';
 
   if (turmaAtiva?.id) await garantirAlunosTurma();
@@ -268,13 +189,7 @@ async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
       atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#F97316' });
       atualizarHeaderMobile('Relatório Individual', nome, true, true);
       await garantirAlunosTurma();
-      
       if (typeof renderRelatorioIndividualMenu === 'function') await renderRelatorioIndividualMenu();
-      
-      // Se houver um aluno ativo na URL (F5), restaura a ficha/aba dele diretamente
-      if (opts.alunoId && typeof abrirFichaAlunoInterna === 'function') {
-        await abrirFichaAlunoInterna(opts.alunoId, opts.abaAluno || 'visao-geral');
-      }
       break;
 
     case 'mapeamento-sala':
@@ -311,75 +226,85 @@ async function _executarAbrirPagina(pagina, opts = {}, comPush = true) {
 
     default:
       console.warn('[ROUTER] Página desconhecida:', pagina);
-      return;
-  }
-
-  if (comPush && turmaAtiva?.id) {
-    _pushRota(pagina, turmaAtiva.id, opts);
+      break;
   }
 }
 
-// ── API pública (Substitui as chamadas existentes) ────────────────────────────
+// Entrada da aplicação controlada por URL (Resolve o F5)
+async function roteadorRestaurar() {
+  const { pagina, turmaId, tri } = _parsearUrl(window.location.pathname, window.location.search);
+  
+  if (!turmaId || pagina === 'dashboard') {
+    _executarVoltarDashboard();
+    window.history.replaceState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
+    return;
+  }
+
+  await _carregarContextoTurma(turmaId);
+  if (!turmaAtiva) {
+    _executarVoltarDashboard();
+    return;
+  }
+
+  const opts = pagina === 'relatorio-geral' ? { tri } : {};
+  window.history.replaceState({ pagina, turmaId, opts }, '', _construirUrl(pagina, turmaAtiva, opts));
+  await _executarAbrirPagina(pagina, opts);
+}
+
+// Executado logo após os dados do professor carregarem no fluxo de login inicial do sistema
+async function roteadorInicializar() {
+  window.addEventListener('popstate', async (e) => {
+    if (e.state) {
+      const { pagina, turmaId, opts } = e.state;
+      if (pagina === 'dashboard' || !turmaId) {
+        _executarVoltarDashboard();
+      } else {
+        if (!turmaAtiva || String(turmaAtiva.id) !== String(turmaId)) {
+          await _carregarContextoTurma(turmaId);
+        }
+        await _executarAbrirPagina(pagina, opts || {});
+      }
+    } else {
+      await roteadorRestaurar();
+    }
+  });
+  await roteadorRestaurar();
+}
+
+// APIs Públicas que substituem as chamadas do sistema antigo
 async function abrirTurma(id) {
   try {
     await _executarAbrirTurma(id);
+    if (!turmaAtiva) return;
     const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
-    _pushRota('relatorio-geral', id, { tri: selTri });
+    const url = _construirUrl('relatorio-geral', turmaAtiva, { tri: selTri });
+    window.history.pushState({ pagina: 'relatorio-geral', turmaId: String(id), opts: { tri: selTri } }, '', url);
   } catch (e) {
-    console.error('[ROUTER] Erro em abrirTurma:', e);
-    mostrarToast('Erro ao abrir turma. Veja o console para detalhes.');
+    console.error(e);
   }
 }
 
 function voltarDashboard() {
-  try {
-    _executarVoltarDashboard(true);
-  } catch (e) {
-    console.error('[ROUTER] Erro em voltarDashboard:', e);
-  }
+  _executarVoltarDashboard();
+  window.history.pushState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
 }
 
 async function abrirPagina(pagina, opts = {}) {
-  try {
-    await _executarAbrirPagina(pagina, opts, true);
-  } catch (e) {
-    console.error('[ROUTER] Erro em abrirPagina:', e);
-    mostrarToast('Erro ao abrir aba. Veja o console para detalhes.');
-  }
-}
-
-// Nova função global para acionar a rota do aluno por cliques nos cards/linhas de UI
-async function abrirCaminhoAluno(alunoId, abaAluno = 'visao-geral') {
-  try {
-    if (!turmaAtiva?.id) return;
-    await _executarAbrirPagina('relatorio-individual', { alunoId, abaAluno }, true);
-  } catch (e) {
-    console.error('[ROUTER] Erro em abrirCaminhoAluno:', e);
-  }
+  if (!turmaAtiva) return;
+  await _executarAbrirPagina(pagina, opts);
+  const url = _construirUrl(pagina, turmaAtiva, opts);
+  window.history.pushState({ pagina, turmaId: String(turmaAtiva.id), opts }, '', url);
 }
 
 async function voltarTurma() {
-  try {
-    esconderTudo();
-    const nome = turmaAtiva?.nome || '';
-    document.getElementById('pagina-relatorio-geral').style.display = 'block';
-    atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
-    atualizarHeaderMobile('Relatório Geral', nome, true, false);
-    const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
-    await carregarRelatorio(selTri);
-    _pushRota('relatorio-geral', turmaAtiva?.id, { tri: selTri });
-  } catch (e) {
-    console.error('[ROUTER] Erro em voltarTurma:', e);
-  }
-}
-
-async function abrirRelatorioUI(tri) {
-  try {
-    if (typeof fecharSidebar === 'function') fecharSidebar();
-    await abrirPagina('relatorio-geral', { tri });
-  } catch (e) {
-    console.error('[ROUTER] Erro em abrirRelatorioUI:', e);
-  }
+  if (!turmaAtiva) return;
+  const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
+  await abrirPagina('relatorio-geral', { tri: selTri });
 }
 
 function trocarTab(tab) { abrirPagina(tab); }
+
+async function abrirRelatorioUI(tri) {
+  if (typeof fecharSidebar === 'function') fecharSidebar();
+  await abrirPagina('relatorio-geral', { tri });
+}
