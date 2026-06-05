@@ -521,6 +521,33 @@ function _aplicarLayoutGradeAulas() {
 // RESTAURADO DO professor_dashboard.html
 // ══════════════════════════════════════════
 
+function _atualizarInfoStatusModal() {
+  const infoEl = document.getElementById('aula-status-info');
+  const statusEl = document.getElementById('aula-status');
+  const dataStr = document.getElementById('aula-data')?.value || '';
+  const dataISO = parseDateBR(dataStr);
+  const status = calcularStatusAuto(dataISO, editandoAulaId);
+
+  if (statusEl) statusEl.value = status;
+  if (!infoEl) return;
+
+  const configs = {
+    futura:   { bg: '#EFF6FF', border: '#BFDBFE', color: '#1E40AF', icone: '📅', texto: 'Aula <b>futura</b> — a data ainda não chegou.' },
+    pendente: { bg: '#FFFBEB', border: '#FDE68A', color: '#92400E', icone: '⏳', texto: 'Aula <b>pendente</b> — data passada sem chamada lançada.' },
+    lecionada:{ bg: '#F0FDF4', border: '#BBF7D0', color: '#166534', icone: '✅', texto: 'Aula <b>lecionada</b> — chamada já registrada.' },
+  };
+
+  if (!dataISO) {
+    infoEl.style.cssText = 'background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;line-height:1.6;margin-bottom:4px;';
+    infoEl.innerHTML = '<strong>Classificação automática:</strong><br>• <b>Futura</b> — data após hoje<br>• <b>Pendente</b> — já passou, sem chamada lançada<br>• <b>Lecionada</b> — chamada lançada';
+    return;
+  }
+
+  const c = configs[status] || configs.futura;
+  infoEl.style.cssText = `background:${c.bg};border:1px solid ${c.border};border-radius:8px;padding:10px 14px;font-size:12px;color:${c.color};line-height:1.6;margin-bottom:4px;`;
+  infoEl.innerHTML = `${c.icone} ${c.texto}`;
+}
+
 function abrirModalAula(data) {
   editandoAulaId = data?.id || null;
   document.getElementById('modal-aula-title').textContent = editandoAulaId ? 'Editar aula' : 'Nova aula';
