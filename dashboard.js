@@ -19,6 +19,7 @@ async function init() {
   atualizarHeaderMobile('SIDED+', p.escolas?.nome || 'Sistema Inteligente de Diário Escolar Digital', false, false);
   await carregarTurmas(p.id);
 
+  // Suporte a ?turma_id=...&aba=... (links diretos via query string)
   const _params = new URLSearchParams(window.location.search);
   const _turmaId = _params.get('turma_id');
   const _aba     = _params.get('aba');
@@ -28,7 +29,15 @@ async function init() {
       await abrirTurma(_t.id);
       if (_aba) await abrirPagina(_aba);
       window.history.replaceState({}, '', window.location.pathname);
+      return; // roteadorInicializar não precisa rodar, já navegamos
     }
+  }
+
+  // Inicializa o roteador APÓS as turmas estarem carregadas.
+  // Isso garante que F5 em /turma/.../relatorio restaure a página corretamente,
+  // pois _carregarContextoTurma já encontra todasTurmas preenchido.
+  if (typeof roteadorInicializar === 'function') {
+    await roteadorInicializar();
   }
 }
 
