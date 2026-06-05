@@ -1,5 +1,6 @@
 // ============================================
 // ROUTER.JS - Sistema de Rotas com History API
+// SIDED+ Professor Dashboard
 // ============================================
 
 const todasPaginas = [
@@ -88,13 +89,17 @@ function esconderTudo() {
   if (dash) dash.style.display = 'none';
 }
 
-// Limpa caches de visualização antigos para evitar duplicação de dados ao trocar de aba
 function _limparCachesVisuais() {
   const containers = ['cards-aulas-container', 'lista-avaliacoes-container', 'chamada-alunos-corpo'];
   containers.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '';
   });
+}
+
+function _paginaEstaVisivel(id) {
+  const el = document.getElementById(id);
+  return !!(el && el.style.display && el.style.display !== 'none');
 }
 
 async function _carregarContextoTurma(id) {
@@ -230,7 +235,7 @@ async function _executarAbrirPagina(pagina, opts = {}) {
   }
 }
 
-// Entrada da aplicação controlada por URL (Resolve o F5)
+// Controla a entrada/restauração por URL (Resolve o F5 infinito)
 async function roteadorRestaurar() {
   const { pagina, turmaId, tri } = _parsearUrl(window.location.pathname, window.location.search);
   
@@ -238,6 +243,11 @@ async function roteadorRestaurar() {
     _executarVoltarDashboard();
     window.history.replaceState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
     return;
+  }
+
+  // Espera carregar a listagem global de turmas se ela ainda não existir na memória
+  if (typeof buscarTodasTurmasDoProfessor === 'function' && (!todasTurmas || todasTurmas.length === 0)) {
+    await buscarTodasTurmasDoProfessor(); 
   }
 
   await _carregarContextoTurma(turmaId);
@@ -251,7 +261,7 @@ async function roteadorRestaurar() {
   await _executarAbrirPagina(pagina, opts);
 }
 
-// Executado logo após os dados do professor carregarem no fluxo de login inicial do sistema
+// Inicializa os escutadores do History API
 async function roteadorInicializar() {
   window.addEventListener('popstate', async (e) => {
     if (e.state) {
@@ -271,7 +281,7 @@ async function roteadorInicializar() {
   await roteadorRestaurar();
 }
 
-// APIs Públicas que substituem as chamadas do sistema antigo
+// APIs Públicas do sistema
 async function abrirTurma(id) {
   try {
     await _executarAbrirTurma(id);
