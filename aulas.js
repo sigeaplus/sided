@@ -548,7 +548,7 @@ function _atualizarInfoStatusModal() {
   infoEl.innerHTML = `${c.icone} ${c.texto}`;
 }
 
-function abrirModalAula(data) {
+window.abrirModalAula = function(data) {
   editandoAulaId = data?.id || null;
   document.getElementById('modal-aula-title').textContent = editandoAulaId ? 'Editar aula' : 'Nova aula';
   document.getElementById('aula-data').value = data ? formatarData(data.data) : '';
@@ -556,6 +556,11 @@ function abrirModalAula(data) {
   document.getElementById('aula-desc').value = data?.descricao || '';
   document.getElementById('aula-status').value = data ? calcularStatusAuto(data.data, data.id) : 'futura';
   document.getElementById('aula-alert').style.display = 'none';
+
+  // Campo BNCC
+  const bnccInput = document.getElementById('aula-bncc');
+  if (bnccInput) bnccInput.value = data?.habilidade_bncc || '';
+  _limparBnccResultado();
 
   const campoDisc = document.getElementById('aula-campo-disciplina');
   const selDisc = document.getElementById('aula-disciplina');
@@ -571,29 +576,62 @@ function abrirModalAula(data) {
 
   _atualizarInfoStatusModal();
   const inp = document.getElementById('aula-data');
-  if (inp) inp.oninput = function() { _atualizarInfoStatusModal(); if(typeof onDateInput==='function') onDateInput(this,'cal-aula'); };
+  if (inp) inp.oninput = function() {
+    _atualizarInfoStatusModal();
+    if (typeof onDateInput === 'function') onDateInput(this, 'cal-aula');
+  };
   document.getElementById('modal-aula').classList.add('open');
   atualizarCalendario('cal-aula');
-}
+};
 
 function editarAula(id) { abrirModalAula(aulasTurma.find(a => a.id === id)); }
 
-async function salvarAula() {
+window.salvarAula = async function() {
   const tri = detectarTrimestreAtual().tri;
   if (await verificarBloqueio(tri)) return;
   const btn = document.getElementById('btn-salvar-aula');
   btn.disabled = true;
   const alEl = document.getElementById('aula-alert');
   alEl.style.display = 'none';
+
   const dataStr = document.getElementById('aula-data').value;
-  const nome = document.getElementById('aula-nome').value.trim();
-  if (!dataStr || !nome) { alEl.textContent = 'Data e nome são obrigatórios.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  const nome = document.getElementById('aula-nome').value.trim(); // TEMA → salvo como nome
+  if (!dataStr || !nome) {
+    alEl.textContent = 'Data e tema são obrigatórios.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
+  const descricao = document.getElementById('aula-desc').value.trim(); // DESCRIÇÃO → salvo como descricao
+  if (!descricao) {
+    alEl.textContent = 'A descrição é obrigatória.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
   const dataISO = parseDateBR(dataStr);
-  if (!dataISO) { alEl.textContent = 'Data inválida. Use DD/MM/AAAA.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (!dataISO) {
+    alEl.textContent = 'Data inválida. Use DD/MM/AAAA.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const statusAuto = calcularStatusAuto(dataISO, editandoAulaId);
   const discVal = isFundamentalI() ? (document.getElementById('aula-disciplina')?.value || null) : null;
-  const body = { data: dataISO, nome, descricao: document.getElementById('aula-desc').value.trim(), status: statusAuto, turma_id: turmaAtiva.id, professor_id: profData.id, ...(discVal ? { disciplina: discVal } : {}) };
+  const bnccVal = document.getElementById('aula-bncc')?.value.trim() || null;
+
+  const body = {
+    data: dataISO,
+    nome,
+    descricao,
+    status: statusAuto,
+    turma_id: turmaAtiva.id,
+    professor_id: profData.id,
+    ...(discVal ? { disciplina: discVal } : {}),
+    ...(bnccVal ? { habilidade_bncc: bnccVal } : { habilidade_bncc: null }),
+  };
+
   try {
     if (editandoAulaId) {
       await api(`aulas?id=eq.${editandoAulaId}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -610,9 +648,12 @@ async function salvarAula() {
     renderListaAulas();
     atualizarContadorAulas();
     atualizarCalendario('cal-aula');
-  } catch(e) { alEl.textContent = 'Erro ao salvar.'; alEl.style.display = 'block'; }
+  } catch (e) {
+    alEl.textContent = 'Erro ao salvar.';
+    alEl.style.display = 'block';
+  }
   btn.disabled = false;
-}
+};
 
 async function criarAulaParaData() {
   const dataISO = dataChamadaAtiva;
@@ -780,3 +821,320 @@ async function _sincronizarCachesChamadaExec() {
     }
   } catch(e) { /* sem cache, não bloqueia */ }
 }
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH aulas.js  — Multi Aulas + Renomear campos (TEMA / DESCRIÇÃO / BNCC)
+// Aplique este bloco ao final do seu aulas.js (ou substitua as funções indicadas)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── 1. PATCH: abrirModalAula — renomeia labels e adiciona campo BNCC ───────
+//  Substitua a função abrirModalAula original por esta:
+window.abrirModalAula = function(data) {
+  editandoAulaId = data?.id || null;
+  document.getElementById('modal-aula-title').textContent = editandoAulaId ? 'Editar aula' : 'Nova aula';
+  document.getElementById('aula-data').value = data ? formatarData(data.data) : '';
+  document.getElementById('aula-nome').value = data?.nome || '';
+  document.getElementById('aula-desc').value = data?.descricao || '';
+  document.getElementById('aula-status').value = data ? calcularStatusAuto(data.data, data.id) : 'futura';
+  document.getElementById('aula-alert').style.display = 'none';
+
+  // Campo BNCC
+  const bnccInput = document.getElementById('aula-bncc');
+  if (bnccInput) bnccInput.value = data?.habilidade_bncc || '';
+  _limparBnccResultado();
+
+  const campoDisc = document.getElementById('aula-campo-disciplina');
+  const selDisc = document.getElementById('aula-disciplina');
+  if (isFundamentalI() && campoDisc && selDisc) {
+    campoDisc.style.display = 'block';
+    const discs = _disciplinasAulasFundI || [];
+    selDisc.innerHTML = '<option value="">Selecione a disciplina...</option>' +
+      discs.map(d => `<option value="${d}"${data?.disciplina === d ? ' selected' : ''}>${d}</option>`).join('');
+    if (!data && aulasDiscFiltro) selDisc.value = aulasDiscFiltro;
+  } else if (campoDisc) {
+    campoDisc.style.display = 'none';
+  }
+
+  _atualizarInfoStatusModal();
+  const inp = document.getElementById('aula-data');
+  if (inp) inp.oninput = function() {
+    _atualizarInfoStatusModal();
+    if (typeof onDateInput === 'function') onDateInput(this, 'cal-aula');
+  };
+  document.getElementById('modal-aula').classList.add('open');
+  atualizarCalendario('cal-aula');
+};
+
+// ─── 2. PATCH: salvarAula — inclui habilidade_bncc no body ─────────────────
+//  Substitua a função salvarAula original por esta:
+window.salvarAula = async function() {
+  const tri = detectarTrimestreAtual().tri;
+  if (await verificarBloqueio(tri)) return;
+  const btn = document.getElementById('btn-salvar-aula');
+  btn.disabled = true;
+  const alEl = document.getElementById('aula-alert');
+  alEl.style.display = 'none';
+
+  const dataStr = document.getElementById('aula-data').value;
+  const nome = document.getElementById('aula-nome').value.trim(); // TEMA → salvo como nome
+  if (!dataStr || !nome) {
+    alEl.textContent = 'Data e tema são obrigatórios.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
+  const descricao = document.getElementById('aula-desc').value.trim(); // DESCRIÇÃO → salvo como descricao
+  if (!descricao) {
+    alEl.textContent = 'A descrição é obrigatória.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
+  const dataISO = parseDateBR(dataStr);
+  if (!dataISO) {
+    alEl.textContent = 'Data inválida. Use DD/MM/AAAA.';
+    alEl.style.display = 'block';
+    btn.disabled = false;
+    return;
+  }
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const statusAuto = calcularStatusAuto(dataISO, editandoAulaId);
+  const discVal = isFundamentalI() ? (document.getElementById('aula-disciplina')?.value || null) : null;
+  const bnccVal = document.getElementById('aula-bncc')?.value.trim() || null;
+
+  const body = {
+    data: dataISO,
+    nome,
+    descricao,
+    status: statusAuto,
+    turma_id: turmaAtiva.id,
+    professor_id: profData.id,
+    ...(discVal ? { disciplina: discVal } : {}),
+    ...(bnccVal ? { habilidade_bncc: bnccVal } : { habilidade_bncc: null }),
+  };
+
+  try {
+    if (editandoAulaId) {
+      await api(`aulas?id=eq.${editandoAulaId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      const idx = aulasTurma.findIndex(a => a.id === editandoAulaId);
+      if (idx !== -1) aulasTurma[idx] = { ...aulasTurma[idx], ...body };
+    } else {
+      const res = await api('aulas', { method: 'POST', body: JSON.stringify(body) });
+      const nova = (res && res[0]) ? res[0] : { ...body, id: Date.now() };
+      aulasTurma.push(nova);
+      chamadaCacheSet(nova.id, false);
+    }
+    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    fecharModal('modal-aula');
+    renderListaAulas();
+    atualizarContadorAulas();
+    atualizarCalendario('cal-aula');
+  } catch (e) {
+    alEl.textContent = 'Erro ao salvar.';
+    alEl.style.display = 'block';
+  }
+  btn.disabled = false;
+};
+
+// ─── 3. BNCC helpers ────────────────────────────────────────────────────────
+function _limparBnccResultado() {
+  const el = document.getElementById('bncc-resultado');
+  if (el) el.style.display = 'none';
+}
+
+window.buscarBNCC = async function() {
+  const query = (document.getElementById('aula-bncc')?.value || '').trim();
+  if (!query) return;
+
+  const resultEl = document.getElementById('bncc-resultado');
+  const loadEl = document.getElementById('bncc-loading');
+  if (resultEl) resultEl.style.display = 'none';
+  if (loadEl) { loadEl.style.display = 'flex'; }
+
+  // 1º: tenta no plano de aula indexado
+  let encontrado = null;
+  try {
+    const planoBNCC = await api(`plano_bncc?codigo=ilike.*${encodeURIComponent(query)}*&limit=1`);
+    if (planoBNCC && planoBNCC[0]) {
+      encontrado = { codigo: planoBNCC[0].codigo, descricao: planoBNCC[0].descricao, fonte: 'Plano de curso' };
+    }
+  } catch (_) { /* fallback */ }
+
+  // 2º: fallback Google (iframe/link)
+  if (!encontrado) {
+    encontrado = {
+      codigo: query,
+      descricao: null,
+      fonte: 'Google',
+      url: `https://www.google.com/search?q=BNCC+habilidade+${encodeURIComponent(query)}`,
+    };
+  }
+
+  if (loadEl) loadEl.style.display = 'none';
+
+  if (resultEl) {
+    resultEl.style.display = 'block';
+    if (encontrado.fonte === 'Plano de curso') {
+      resultEl.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:4px;">📄 Encontrado no plano de curso</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${encontrado.codigo}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.5;">${encontrado.descricao}</div>
+        <button onclick="document.getElementById('aula-bncc').value='${encontrado.codigo.replace(/'/g,"\\'")}'" 
+          style="margin-top:8px;padding:5px 12px;border-radius:6px;border:1.5px solid #22C55E;background:#F0FDF4;color:#166534;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">
+          Usar esta habilidade
+        </button>`;
+    } else {
+      resultEl.innerHTML = `
+        <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:4px;">🔎 Não encontrado no plano — buscando no Google</div>
+        <a href="${encontrado.url}" target="_blank" style="font-size:12px;color:var(--purple);font-weight:600;text-decoration:underline;">
+          Pesquisar "${query}" na BNCC via Google →
+        </a>`;
+    }
+  }
+};
+
+// ─── 4. MULTI AULAS ─────────────────────────────────────────────────────────
+window.abrirMultiAulas = function() {
+  _fecharMenuPontinhos('aulas');
+  const modal = document.getElementById('modal-multi-aulas');
+  if (!modal) return;
+  // Resetar
+  document.getElementById('multi-aulas-tema').value = '';
+  document.getElementById('multi-aulas-desc').value = '';
+  document.getElementById('multi-aulas-bncc').value = '';
+  document.getElementById('multi-aulas-datas').innerHTML = '';
+  document.getElementById('multi-aulas-alert').style.display = 'none';
+  _adicionarLinhaDataMulti(); // começa com 1 linha
+  modal.classList.add('open');
+};
+
+window._adicionarLinhaDataMulti = function() {
+  const container = document.getElementById('multi-aulas-datas');
+  if (!container) return;
+
+  // Verificar limite: contar linhas existentes vs dias do mês atual
+  const linhas = container.querySelectorAll('.multi-data-row');
+  const hoje = new Date();
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  if (linhas.length >= diasNoMes) {
+    if (typeof mostrarToast === 'function') mostrarToast(`Limite de ${diasNoMes} datas por mês atingido.`);
+    return;
+  }
+
+  const idx = Date.now();
+  const row = document.createElement('div');
+  row.className = 'multi-data-row';
+  row.dataset.id = idx;
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  row.innerHTML = `
+    <input type="text" placeholder="DD/MM/AAAA" maxlength="10"
+      oninput="this.value=this.value.replace(/[^0-9\/]/g,'');if(this.value.length===2&&!this.value.includes('/'))this.value+='/';if(this.value.length===5&&this.value.split('/').length<3)this.value+='/';"
+      style="flex:1;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
+      onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"/>
+    <button onclick="this.closest('.multi-data-row').remove()"
+      style="width:30px;height:30px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+      title="Remover">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>`;
+  container.appendChild(row);
+};
+
+window.salvarMultiAulas = async function() {
+  const alEl = document.getElementById('multi-aulas-alert');
+  alEl.style.display = 'none';
+
+  const tema = document.getElementById('multi-aulas-tema').value.trim();
+  const desc = document.getElementById('multi-aulas-desc').value.trim();
+  const bncc = document.getElementById('multi-aulas-bncc').value.trim() || null;
+
+  if (!tema) { alEl.textContent = 'O tema é obrigatório.'; alEl.style.display = 'block'; return; }
+  if (!desc) { alEl.textContent = 'A descrição é obrigatória.'; alEl.style.display = 'block'; return; }
+
+  const inputs = document.querySelectorAll('#multi-aulas-datas .multi-data-row input');
+  const datasISO = [];
+  const meses = new Set();
+  for (const inp of inputs) {
+    const iso = parseDateBR(inp.value.trim());
+    if (!iso) { alEl.textContent = `Data inválida: "${inp.value}". Use DD/MM/AAAA.`; alEl.style.display = 'block'; return; }
+    const mes = iso.slice(0, 7); // AAAA-MM
+    meses.add(mes);
+    datasISO.push(iso);
+  }
+  if (datasISO.length === 0) { alEl.textContent = 'Adicione pelo menos uma data.'; alEl.style.display = 'block'; return; }
+
+  // Verificar limite por mês
+  for (const mes of meses) {
+    const [ano, m] = mes.split('-').map(Number);
+    const diasNoMes = new Date(ano, m, 0).getDate();
+    const qtdNesteMes = datasISO.filter(d => d.startsWith(mes)).length;
+    if (qtdNesteMes > diasNoMes) {
+      alEl.textContent = `Limite de ${diasNoMes} aulas em ${mes} excedido (${qtdNesteMes} informadas).`;
+      alEl.style.display = 'block';
+      return;
+    }
+  }
+
+  const btn = document.getElementById('btn-salvar-multi-aulas');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const aulas = datasISO.map(dataISO => ({
+    data: dataISO,
+    nome: tema,
+    descricao: desc,
+    status: calcularStatusAuto(dataISO, null),
+    turma_id: turmaAtiva.id,
+    professor_id: profData.id,
+    ...(bncc ? { habilidade_bncc: bncc } : {}),
+  }));
+
+  try {
+    const res = await api('aulas', { method: 'POST', body: JSON.stringify(aulas) });
+    const criadas = Array.isArray(res) ? res : aulas.map((a, i) => ({ ...a, id: Date.now() + i }));
+    criadas.forEach(a => { aulasTurma.push(a); chamadaCacheSet(a.id, false); });
+    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    fecharModal('modal-multi-aulas');
+    renderListaAulas();
+    atualizarContadorAulas();
+    atualizarCalendario('cal-aula');
+    if (typeof mostrarToast === 'function') mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} criada${criadas.length > 1 ? 's' : ''}!`);
+  } catch (e) {
+    alEl.textContent = 'Erro ao salvar as aulas: ' + e.message;
+    alEl.style.display = 'block';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Criar aulas';
+};
+
+// ─── 5. MENU ⋯ (três pontinhos) ─────────────────────────────────────────────
+window.toggleMenuPontinhos = function(secao, btn) {
+  const menuId = `menu-pontinhos-${secao}`;
+  let menu = document.getElementById(menuId);
+  if (!menu) return;
+  const aberto = menu.style.display === 'block';
+  // Fechar todos
+  document.querySelectorAll('[id^="menu-pontinhos-"]').forEach(m => m.style.display = 'none');
+  if (!aberto) {
+    menu.style.display = 'block';
+    // posicionar abaixo do botão
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    menu.style.left = (rect.left + window.scrollX - menu.offsetWidth + btn.offsetWidth) + 'px';
+  }
+};
+
+window._fecharMenuPontinhos = function(secao) {
+  const menu = document.getElementById(`menu-pontinhos-${secao}`);
+  if (menu) menu.style.display = 'none';
+};
+
+// Fechar menus ao clicar fora
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('[id^="menu-pontinhos-"]').forEach(menu => {
+    const btnId = menu.dataset.btnId;
+    const btn = btnId ? document.getElementById(btnId) : null;
+    if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+      menu.style.display = 'none';
+    }
+  });
+});

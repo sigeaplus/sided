@@ -403,3 +403,203 @@ async function abrirChamadaDeAula(aulaId) {
   if (btnSel) selecionarAulaChamada(aulaId);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PATCH chamada.js  — Multi Chamada
+// Aplique este bloco ao final do seu chamada.js
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ─── Abrir modal de multi chamada ───────────────────────────────────────────
+window.abrirMultiChamada = function() {
+  _fecharMenuPontinhos('chamada');
+  const modal = document.getElementById('modal-multi-chamada');
+  if (!modal) return;
+
+  // Limpar estado
+  document.getElementById('multi-chamada-nomes').value = '';
+  document.getElementById('multi-chamada-alert').style.display = 'none';
+  document.getElementById('multi-chamada-preview').innerHTML = '';
+  document.getElementById('multi-chamada-preview-wrap').style.display = 'none';
+  document.getElementById('multi-chamada-etapa-1').style.display = 'block';
+  document.getElementById('multi-chamada-etapa-2').style.display = 'none';
+
+  // Preencher select de aulas disponíveis
+  _preencherSelectsAulaMultiChamada();
+
+  modal.classList.add('open');
+};
+
+function _preencherSelectsAulaMultiChamada() {
+  // Será chamado de novo ao gerar preview
+  // Retorna HTML do select de aulas para uma linha
+}
+
+function _htmlSelectAula(selectedId) {
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const opcoes = aulasTurma
+    .filter(a => {
+      const d = new Date(dataAulaOnly(a.data) + 'T00:00:00');
+      return d <= hoje; // apenas passadas/hoje
+    })
+    .sort((a, b) => dataAulaOnly(b.data).localeCompare(dataAulaOnly(a.data))) // mais recente primeiro
+    .map(a => {
+      const label = `${formatarData(a.data)} — ${a.nome}`;
+      const sel = a.id == selectedId ? ' selected' : '';
+      return `<option value="${a.id}"${sel}>${label}</option>`;
+    })
+    .join('');
+  return `<select style="width:100%;padding:7px 10px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:7px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;">
+    <option value="">Selecionar aula...</option>
+    ${opcoes}
+  </select>`;
+}
+
+// ─── Gerar preview com linhas de aluno + seletor de aula ────────────────────
+window.gerarPreviewMultiChamada = function() {
+  const textarea = document.getElementById('multi-chamada-nomes');
+  const alEl = document.getElementById('multi-chamada-alert');
+  alEl.style.display = 'none';
+
+  const linhas = (textarea.value || '').split('\n').map(l => l.trim()).filter(Boolean);
+  if (linhas.length === 0) {
+    alEl.textContent = 'Cole ou digite ao menos um nome.';
+    alEl.style.display = 'block';
+    return;
+  }
+
+  // Aula padrão: mais recente com chamada pendente, ou a primeira disponível
+  const aulaDefault = aulasTurma
+    .filter(a => chamadaCacheGet(a.id) === false)
+    .sort((a, b) => dataAulaOnly(b.data).localeCompare(dataAulaOnly(a.data)))[0]
+    || aulasTurma[0];
+
+  const preview = document.getElementById('multi-chamada-preview');
+  preview.innerHTML = linhas.map((nome, i) => `
+    <div class="mc-linha" data-idx="${i}" style="background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);flex:1;">${nome}</div>
+        <div style="display:flex;gap:6px;">
+          <button onclick="mcTogglePresenca(this,'presente')"
+            style="padding:5px 12px;border-radius:6px;border:1.5px solid #22C55E;background:#DCFCE7;color:#166534;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;"
+            data-status="presente">✓ Presente</button>
+          <button onclick="mcTogglePresenca(this,'falta')"
+            style="padding:5px 12px;border-radius:6px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;"
+            data-status="falta">✗ Falta</button>
+        </div>
+      </div>
+      <div class="mc-select-aula">
+        ${_htmlSelectAula(aulaDefault?.id || '')}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('multi-chamada-preview-wrap').style.display = 'block';
+  document.getElementById('multi-chamada-etapa-1').style.display = 'none';
+  document.getElementById('multi-chamada-etapa-2').style.display = 'block';
+};
+
+window.mcTogglePresenca = function(btn, status) {
+  const linha = btn.closest('.mc-linha');
+  const btnPresente = linha.querySelector('[data-status="presente"]');
+  const btnFalta = linha.querySelector('[data-status="falta"]');
+
+  // Reset
+  btnPresente.style.background = 'none';
+  btnPresente.style.borderColor = 'var(--border)';
+  btnPresente.style.color = 'var(--text-muted)';
+  btnFalta.style.background = 'none';
+  btnFalta.style.borderColor = 'var(--border)';
+  btnFalta.style.color = 'var(--text-muted)';
+
+  if (status === 'presente') {
+    btnPresente.style.background = '#DCFCE7';
+    btnPresente.style.borderColor = '#22C55E';
+    btnPresente.style.color = '#166534';
+    linha.style.borderColor = '#BBF7D0';
+    linha.dataset.presenca = 'presente';
+  } else {
+    btnFalta.style.background = '#FEE2E2';
+    btnFalta.style.borderColor = '#EF4444';
+    btnFalta.style.color = '#DC2626';
+    linha.style.borderColor = '#FBBFBF';
+    linha.dataset.presenca = 'falta';
+  }
+};
+
+window.marcarTodosPresente = function() {
+  document.querySelectorAll('.mc-linha').forEach(linha => {
+    mcTogglePresenca(linha.querySelector('[data-status="presente"]'), 'presente');
+  });
+};
+
+window.salvarMultiChamada = async function() {
+  const alEl = document.getElementById('multi-chamada-alert');
+  alEl.style.display = 'none';
+
+  const linhas = document.querySelectorAll('.mc-linha');
+  if (linhas.length === 0) {
+    alEl.textContent = 'Nenhum aluno para salvar.';
+    alEl.style.display = 'block';
+    return;
+  }
+
+  // Coletar dados de cada linha
+  const registros = [];
+  for (const linha of linhas) {
+    const nomeEl = linha.querySelector('div[style*="font-weight:600"]');
+    const nome = nomeEl ? nomeEl.textContent.trim() : '';
+    const presenca = linha.dataset.presenca || 'presente'; // default presente
+    const aulaId = linha.querySelector('select')?.value || '';
+
+    if (!aulaId) {
+      alEl.textContent = `Selecione a aula para o aluno "${nome}".`;
+      alEl.style.display = 'block';
+      return;
+    }
+    // Buscar aluno pelo nome na turma
+    const aluno = (typeof alunosTurma !== 'undefined' ? alunosTurma : [])
+      .find(a => (a.nome || '').toLowerCase() === nome.toLowerCase());
+
+    registros.push({
+      aula_id: aulaId,
+      aluno_nome: nome,
+      aluno_id: aluno?.id || null,
+      presente: presenca === 'presente',
+    });
+  }
+
+  const btn = document.getElementById('btn-salvar-multi-chamada');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    // Agrupar por aula para fazer POST em lote
+    const porAula = {};
+    registros.forEach(r => {
+      if (!porAula[r.aula_id]) porAula[r.aula_id] = [];
+      porAula[r.aula_id].push(r);
+    });
+
+    for (const [aulaId, regs] of Object.entries(porAula)) {
+      const payload = regs.map(r => ({
+        aula_id: aulaId,
+        aluno_id: r.aluno_id,
+        aluno_nome: r.aluno_nome,
+        presente: r.presente,
+      }));
+      await api('chamadas', { method: 'POST', body: JSON.stringify(payload) });
+      chamadaCacheSet(aulaId, true);
+    }
+
+    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    fecharModal('modal-multi-chamada');
+    if (typeof renderListaAulas === 'function') renderListaAulas();
+    if (typeof mostrarToast === 'function') {
+      mostrarToast(`✓ Chamada registrada para ${registros.length} aluno${registros.length > 1 ? 's' : ''}!`);
+    }
+  } catch (e) {
+    alEl.textContent = 'Erro ao salvar: ' + e.message;
+    alEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Salvar chamadas';
+};
