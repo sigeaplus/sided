@@ -196,7 +196,7 @@ function _blobToBase64(blob) {
   });
 }
 
-// ── Chamar Gemini API com o PDF ──────────────────────────────────────────────
+// ── Chamar Anthropic API com o PDF ───────────────────────────────────────────
 async function _analisarComAnthropic(base64, mimeType) {
   const PROMPT = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG - Currículo Referência de Minas Gerais).
 Analise o plano de curso fornecido e extraia todas as informações relevantes.
@@ -222,41 +222,39 @@ Instruções:
 
 Analise o documento anexo e retorne o JSON conforme instruído.`;
 
-  const key = typeof GEMINI_KEY !== 'undefined' ? GEMINI_KEY : '';
-  if (!key) throw new Error('GEMINI_KEY não definida');
+  // Monta o conteúdo: PDF ou imagem como documento/imagem inline
+  const isImage = mimeType.startsWith('image/');
+  const mediaBlock = isImage
+    ? { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } }
+    : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
 
-  const MODELOS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-  ];
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      messages: [{
+        role: 'user',
+        content: [
+          mediaBlock,
+          { type: 'text', text: PROMPT }
+        ]
+      }]
+    })
+  });
 
-  let data = null;
-  let ultimoErro = '';
-  for (const modelo of MODELOS) {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: mimeType, data: base64 } },
-              { text: PROMPT }
-            ]
-          }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
-        })
-      }
-    );
-    if (resp.ok) { data = await resp.json(); break; }
-    ultimoErro = `Gemini API ${resp.status} (${modelo}): ${(await resp.text()).slice(0, 150)}`;
-    console.warn('[PLANO IA]', ultimoErro);
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    throw new Error(`Anthropic API ${resp.status}: ${errText.slice(0, 200)}`);
   }
-  if (!data) throw new Error(ultimoErro);
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const data = await resp.json();
+  const text = data.content?.find(b => b.type === 'text')?.text || '';
 
   const clean = _geminiExtrairJSON(text);
   if (!clean) throw new Error('Resposta da IA não é JSON válido');
