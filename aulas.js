@@ -1007,35 +1007,45 @@ window.buscarBNCC = async function() {
   }
 };
 
-// ── Busca semântica via Anthropic ─────────────────────────────────────────────
+// ── Busca semântica via Gemini ────────────────────────────────────────────────
 async function _bnccBuscarComIA(query, habilidades) {
+  const key = typeof GEMINI_KEY !== 'undefined' ? GEMINI_KEY : '';
+  if (!key) return null;
+
   const lista = habilidades.map(h => `${h.codigo}: ${h.descricao}`).join('\n');
-  const response = await fetch('/api/anthropic', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
-      system: `Você é um assistente de busca de habilidades BNCC.
+  const prompt = `Você é um assistente de busca de habilidades BNCC.
 Dado um termo de busca e uma lista de habilidades, retorne as 1-2 habilidades mais relevantes.
 Retorne SOMENTE JSON válido, sem markdown:
 [{"codigo":"EFxxMAxx","descricao":"...","contexto":"por que é relevante em 1 frase"}]
-Se nenhuma for relevante, retorne [].`,
-      messages: [{
-        role: 'user',
-        content: `Termo buscado: "${query}"\n\nHabilidades disponíveis no plano:\n${lista}\n\nRetorne as mais relevantes.`
-      }]
-    })
-  });
+Se nenhuma for relevante, retorne [].
+
+Termo buscado: "${query}"
+
+Habilidades disponíveis no plano:
+${lista}
+
+Retorne as mais relevantes.`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
+      })
+    }
+  );
   if (!response.ok) return null;
   const data = await response.json();
-  const text = (data.content || []).map(c => c.text || '').join('');
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   try {
     const parsed = JSON.parse(clean);
     return Array.isArray(parsed) && parsed.length ? parsed : null;
   } catch {
-    const match = clean.match(/\[\s\S]*\]/);
+    const match = clean.match(/\[[\s\S]*\]/);
     if (match) return JSON.parse(match[0]);
     return null;
   }

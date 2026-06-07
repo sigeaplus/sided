@@ -176,9 +176,9 @@ function _blobToBase64(blob) {
   });
 }
 
-// ── Chamar API Anthropic com o PDF ───────────────────────────────────────────
+// ── Chamar Gemini API com o PDF ──────────────────────────────────────────────
 async function _analisarComAnthropic(base64, mimeType) {
-  const SYSTEM = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG - Currículo Referência de Minas Gerais).
+  const PROMPT = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG - Currículo Referência de Minas Gerais).
 Analise o plano de curso fornecido e extraia todas as informações relevantes.
 
 Retorne SOMENTE um JSON válido, sem markdown, sem explicações, exatamente neste formato:
@@ -198,45 +198,42 @@ Instruções:
 - Extraia TODOS os códigos de habilidades (formato EFxxMAxx, EFxxLPxx, EFxxCIxx, etc.)
 - Se não houver código explícito mas houver descrição de habilidade, crie um item sem código
 - objetivos: liste os principais conteúdos/objetivos de aprendizagem do plano
-- resumo: síntese do plano (disciplina, ano, período, foco principal)`;
+- resumo: síntese do plano (disciplina, ano, período, foco principal)
 
-  const response = await fetch('/api/anthropic', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: SYSTEM,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'document',
-            source: { type: 'base64', media_type: mimeType, data: base64 }
-          },
-          {
-            type: 'text',
-            text: 'Analise este plano de curso e retorne o JSON conforme instruído.'
-          }
-        ]
-      }]
-    })
-  });
+Analise o documento anexo e retorne o JSON conforme instruído.`;
+
+  const key = typeof GEMINI_KEY !== 'undefined' ? GEMINI_KEY : '';
+  if (!key) throw new Error('GEMINI_KEY não definida');
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mimeType, data: base64 } },
+            { text: PROMPT }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
+      })
+    }
+  );
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Anthropic API ${response.status}: ${err.slice(0, 200)}`);
+    throw new Error(`Gemini API ${response.status}: ${err.slice(0, 200)}`);
   }
 
   const data = await response.json();
-  const text = data.content?.map(c => c.text || '').join('') || '';
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-  // Limpar e parsear JSON
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   try {
     return JSON.parse(clean);
   } catch {
-    // Tenta extrair JSON do texto
     const match = clean.match(/\{[\s\S]*\}/);
     if (match) return JSON.parse(match[0]);
     throw new Error('Resposta da IA não é JSON válido');
