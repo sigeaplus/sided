@@ -205,29 +205,39 @@ Analise o documento anexo e retorne o JSON conforme instruído.`;
   const key = typeof GEMINI_KEY !== 'undefined' ? GEMINI_KEY : '';
   if (!key) throw new Error('GEMINI_KEY não definida');
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mimeType, data: base64 } },
-            { text: PROMPT }
-          ]
-        }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
-      })
-    }
-  );
+  const MODELOS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-8b',
+  ];
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Gemini API ${response.status}: ${err.slice(0, 200)}`);
+  let data = null;
+  let ultimoErro = '';
+  for (const modelo of MODELOS) {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mimeType, data: base64 } },
+              { text: PROMPT }
+            ]
+          }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
+        })
+      }
+    );
+    if (resp.ok) { data = await resp.json(); break; }
+    ultimoErro = `Gemini API ${resp.status} (${modelo}): ${(await resp.text()).slice(0, 150)}`;
+    console.warn('[PLANO IA]', ultimoErro);
   }
+  if (!data) throw new Error(ultimoErro);
 
-  const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
   const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
