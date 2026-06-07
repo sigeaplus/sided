@@ -1074,7 +1074,7 @@ document.addEventListener('click', function(e) {
 
 // ─── 4. MULTI AULAS ─────────────────────────────────────────────────────────
 window.abrirMultiAulas = function() {
-  _fecharMenuPontinhos('aulas');
+  if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('aulas');
   const modal = document.getElementById('modal-multi-aulas');
   if (!modal) return;
   // Resetar

@@ -410,7 +410,7 @@ async function abrirChamadaDeAula(aulaId) {
 
 // ─── Abrir modal de multi chamada ───────────────────────────────────────────
 window.abrirMultiChamada = function() {
-  _fecharMenuPontinhos('chamada');
+  if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('chamada');
   const modal = document.getElementById('modal-multi-chamada');
   if (!modal) return;
 
