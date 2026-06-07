@@ -216,9 +216,9 @@ async function cnt_salvar() {
   };
 
   try {
-    await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
+    await api('notas_confirmadas', {
       method : 'POST',
-      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      headers: { 'Prefer': 'return=representation' },
       body   : JSON.stringify(payload)
     });
     mostrarToast(`✓ Nota ${nota} confirmada para ${aluno?.nome_completo?.split(' ')[0] || 'aluno(a)'} no ${tri}º trimestre.`);
@@ -1452,3 +1452,4 @@ renderAvaliacoes = function(lista, contPorAval, totalAlunos) {
 
 // ═══════════════════════════════════════════════════════
 // HEATMAP NO RELATÓRIO GERAL2
+
