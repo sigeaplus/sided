@@ -196,7 +196,7 @@ function _blobToBase64(blob) {
   });
 }
 
-// ── Chamar Anthropic API com o PDF ───────────────────────────────────────────
+// ── Chamar Groq API com o texto extraído do PDF ──────────────────────────────
 async function _analisarComAnthropic(base64, mimeType) {
   const PROMPT = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG - Currículo Referência de Minas Gerais).
 Analise o plano de curso fornecido e extraia todas as informações relevantes.
@@ -220,41 +220,61 @@ Instruções:
 - objetivos: liste os principais conteúdos/objetivos de aprendizagem do plano
 - resumo: síntese do plano (disciplina, ano, período, foco principal)
 
-Analise o documento anexo e retorne o JSON conforme instruído.`;
+Analise o documento a seguir e retorne o JSON conforme instruído.`;
 
-  // Monta o conteúdo: PDF ou imagem como documento/imagem inline
-  const isImage = mimeType.startsWith('image/');
-  const mediaBlock = isImage
-    ? { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } }
-    : { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } };
+  const key = typeof GROQ_KEY !== 'undefined' ? GROQ_KEY : '';
+  if (!key) throw new Error('GROQ_KEY não definida');
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      messages: [{
-        role: 'user',
-        content: [
-          mediaBlock,
-          { type: 'text', text: PROMPT }
-        ]
-      }]
-    })
-  });
-
-  if (!resp.ok) {
-    const errText = await resp.text().catch(() => '');
-    throw new Error(`Anthropic API ${resp.status}: ${errText.slice(0, 200)}`);
+  // Groq não aceita PDF/imagem diretamente — extrai o texto do base64 primeiro
+  // Para PDF: decodifica bytes e extrai texto legível (funciona para PDFs gerados digitalmente)
+  let textoDocumento = '';
+  try {
+    const bytes = atob(base64);
+    // Extrai strings legíveis do binário (heurística para PDFs digitais)
+    textoDocumento = bytes
+      .split('')
+      .map(c => c.charCodeAt(0) < 128 ? c : ' ')
+      .join('')
+      .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+      .replace(/\s{3,}/g, '\n')
+      .slice(0, 12000); // Groq tem limite de tokens
+  } catch (_) {
+    textoDocumento = '[Não foi possível extrair o texto do documento]';
   }
 
-  const data = await resp.json();
-  const text = data.content?.find(b => b.type === 'text')?.text || '';
+  const MODELOS = [
+    'meta-llama/llama-4-scout-17b-16e-instruct',
+    'llama-3.3-70b-versatile',
+    'llama3-70b-8192',
+  ];
+
+  let data = null;
+  let ultimoErro = '';
+  for (const modelo of MODELOS) {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`
+      },
+      body: JSON.stringify({
+        model: modelo,
+        temperature: 0.1,
+        max_tokens: 4000,
+        messages: [
+          { role: 'system', content: PROMPT },
+          { role: 'user', content: `Documento:\n\n${textoDocumento}` }
+        ]
+      })
+    });
+
+    if (resp.ok) { data = await resp.json(); break; }
+    ultimoErro = `Groq API ${resp.status} (${modelo}): ${(await resp.text()).slice(0, 150)}`;
+    console.warn('[PLANO IA]', ultimoErro);
+  }
+  if (!data) throw new Error(ultimoErro);
+
+  const text = data.choices?.[0]?.message?.content || '';
 
   const clean = _geminiExtrairJSON(text);
   if (!clean) throw new Error('Resposta da IA não é JSON válido');
