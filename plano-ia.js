@@ -270,7 +270,7 @@ Instruções CRÍTICAS:
   }
 
   // ── Passo 2: envia cada página para Groq Vision e acumula habilidades ────────
-  const MODELO_VISION = 'meta-llama/llama-4-maverick-17b-128e-instruct-fp8';
+  const MODELO_VISION = 'meta-llama/llama-4-scout-17b-16e-instruct';
   const todasHabilidades = [];
   let ultimoErroVision = '';
   let resumoGeral = '';
