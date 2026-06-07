@@ -4,6 +4,26 @@
 // Depende de: supabase (api/SUPABASE_URL/SUPABASE_KEY), calendário_plano.js
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── Helper: extrai JSON robusto da resposta do Gemini ────────────────────────
+window._geminiExtrairJSON = function(text, preferArray = false) {
+  if (!text) return null;
+  // 1. Remove blocos de código markdown
+  let s = text
+    .replace(/^```(?:json)?\s*/im, '')
+    .replace(/```\s*$/im, '')
+    .trim();
+  // 2. Tenta parsear direto
+  try { JSON.parse(s); return s; } catch (_) {}
+  // 3. Busca o primeiro objeto ou array no texto
+  const pattern = preferArray ? /(\[[\s\S]*\])/ : /(\{[\s\S]*\})/;
+  const altPattern = preferArray ? /(\{[\s\S]*\})/ : /(\[[\s\S]*\])/;
+  for (const p of [pattern, altPattern]) {
+    const m = s.match(p);
+    if (m) { try { JSON.parse(m[1]); return m[1]; } catch (_) {} }
+  }
+  return null;
+};
+
 // ── Estado local ─────────────────────────────────────────────────────────────
 let _planoAnalise = null;
 
@@ -238,14 +258,9 @@ Analise o documento anexo e retorne o JSON conforme instruído.`;
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-  try {
-    return JSON.parse(clean);
-  } catch {
-    const match = clean.match(/\{[\s\S]*\}/);
-    if (match) return JSON.parse(match[0]);
-    throw new Error('Resposta da IA não é JSON válido');
-  }
+  const clean = _geminiExtrairJSON(text);
+  if (!clean) throw new Error('Resposta da IA não é JSON válido');
+  return JSON.parse(clean);
 }
 
 // ── Salvar análise no Supabase (tabela plano_bncc) ───────────────────────────

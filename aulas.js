@@ -1050,15 +1050,10 @@ Retorne as mais relevantes.`;
   }
   if (!data) return null;
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-  try {
-    const parsed = JSON.parse(clean);
-    return Array.isArray(parsed) && parsed.length ? parsed : null;
-  } catch {
-    const match = clean.match(/\[[\s\S]*\]/);
-    if (match) return JSON.parse(match[0]);
-    return null;
-  }
+  const clean = _geminiExtrairJSON(text, true);
+  if (!clean) return null;
+  const parsed = JSON.parse(clean);
+  return Array.isArray(parsed) && parsed.length ? parsed : null;
 }
 
 // ── Fechar dropdown ao clicar fora ────────────────────────────────────────────
