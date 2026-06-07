@@ -832,58 +832,230 @@ window.salvarAula = async function() {
 function _limparBnccResultado() {
   const el = document.getElementById('bncc-resultado');
   if (el) el.style.display = 'none';
+  _bnccFecharDropdown();
 }
 
+// ── Cache local das habilidades do plano ──────────────────────────────────────
+let _bnccCache = null;
+let _bnccCacheTurma = null;
+
+async function _bnccCarregarCache() {
+  if (_bnccCache && _bnccCacheTurma === turmaAtiva?.id) return _bnccCache;
+  try {
+    const rows = await api(`plano_bncc?turma_id=eq.${turmaAtiva?.id}&order=codigo.asc&limit=100`);
+    _bnccCache = rows || [];
+    _bnccCacheTurma = turmaAtiva?.id;
+  } catch (_) {
+    _bnccCache = [];
+  }
+  return _bnccCache;
+}
+
+window._bnccInvalidarCache = function() {
+  _bnccCache = null;
+  _bnccCacheTurma = null;
+};
+
+// ── Autocomplete dropdown ─────────────────────────────────────────────────────
+let _bnccDropdownEl = null;
+
+function _bnccCriarDropdown() {
+  if (_bnccDropdownEl) return _bnccDropdownEl;
+  const inp = document.getElementById('aula-bncc');
+  if (!inp) return null;
+  const d = document.createElement('div');
+  d.id = 'bncc-autocomplete-dropdown';
+  d.style.cssText = `
+    position:absolute;z-index:9999;background:var(--white);
+    border:1.5px solid var(--border);border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+    max-height:220px;overflow-y:auto;min-width:100%;
+    top:calc(100% + 4px);left:0;
+  `;
+  const wrap = inp.parentElement;
+  if (wrap && getComputedStyle(wrap).position === 'static') {
+    wrap.style.position = 'relative';
+  }
+  wrap?.appendChild(d);
+  _bnccDropdownEl = d;
+  return d;
+}
+
+window._bnccFecharDropdown = function() {
+  if (_bnccDropdownEl) {
+    _bnccDropdownEl.remove();
+    _bnccDropdownEl = null;
+  }
+};
+
+function _bnccRenderDropdown(itens) {
+  const d = _bnccCriarDropdown();
+  if (!d) return;
+  if (!itens.length) { _bnccFecharDropdown(); return; }
+  d.innerHTML = itens.map(h => `
+    <div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"
+      onmouseenter="this.style.background='#F0F4FF'"
+      onmouseleave="this.style.background=''"
+      onclick="(function(){
+        var inp=document.getElementById('aula-bncc');
+        if(inp){inp.value='${(h.codigo||'').replace(/'/g,"\'")}';inp.dispatchEvent(new Event('input'));}
+        _bnccFecharDropdown();
+        buscarBNCC();
+      })()">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="padding:2px 8px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;">${h.codigo||'—'}</span>
+        <span style="font-size:12px;color:var(--text);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${(h.descricao||'').replace(/</g,'&lt;')}</span>
+      </div>
+    </div>`).join('');
+}
+
+function _bnccFiltrarLocal(habs, query) {
+  const q = query.toLowerCase();
+  return habs.filter(h =>
+    (h.codigo||'').toLowerCase().includes(q) ||
+    (h.descricao||'').toLowerCase().includes(q)
+  ).slice(0, 8);
+}
+
+// ── Debounce autocomplete ─────────────────────────────────────────────────────
+let _bnccDebounce = null;
+
+window.onBnccInput = async function() {
+  clearTimeout(_bnccDebounce);
+  const query = (document.getElementById('aula-bncc')?.value || '').trim();
+  if (query.length < 2) { _bnccFecharDropdown(); return; }
+  _bnccDebounce = setTimeout(async () => {
+    const habs = await _bnccCarregarCache();
+    const filtrados = _bnccFiltrarLocal(habs, query);
+    _bnccRenderDropdown(filtrados);
+  }, 300);
+};
+
+// ── buscarBNCC principal ──────────────────────────────────────────────────────
 window.buscarBNCC = async function() {
   const query = (document.getElementById('aula-bncc')?.value || '').trim();
   if (!query) return;
 
+  _bnccFecharDropdown();
   const resultEl = document.getElementById('bncc-resultado');
-  const loadEl = document.getElementById('bncc-loading');
+  const loadEl   = document.getElementById('bncc-loading');
+  const loadMsg  = document.getElementById('bncc-loading-msg');
   if (resultEl) resultEl.style.display = 'none';
-  if (loadEl) { loadEl.style.display = 'flex'; }
+  if (loadEl)   loadEl.style.display = 'flex';
+  if (loadMsg)  loadMsg.textContent = 'Buscando no plano...';
 
-  // 1º: tenta no plano de aula indexado
   let encontrado = null;
-  try {
-    const planoBNCC = await api(`plano_bncc?codigo=ilike.*${encodeURIComponent(query)}*&limit=1`);
-    if (planoBNCC && planoBNCC[0]) {
-      encontrado = { codigo: planoBNCC[0].codigo, descricao: planoBNCC[0].descricao, fonte: 'Plano de curso' };
-    }
-  } catch (_) { /* fallback */ }
 
-  // 2º: fallback Google (iframe/link)
+  // 1º — busca por código OU descrição (texto livre)
+  try {
+    const q = encodeURIComponent(query);
+    const rows = await api(
+      `plano_bncc?turma_id=eq.${turmaAtiva?.id}&or=(codigo.ilike.*${q}*,descricao.ilike.*${q}*)&limit=3`
+    );
+    if (rows?.length) {
+      encontrado = rows.map(r => ({ codigo: r.codigo, descricao: r.descricao, contexto: r.contexto, fonte: 'plano' }));
+    }
+  } catch (_) {}
+
+  // 2º — busca semântica via IA
   if (!encontrado) {
-    encontrado = {
-      codigo: query,
-      descricao: null,
-      fonte: 'Google',
-      url: `https://www.google.com/search?q=BNCC+habilidade+${encodeURIComponent(query)}`,
-    };
+    try {
+      const habs = await _bnccCarregarCache();
+      if (habs.length) {
+        if (loadMsg) loadMsg.textContent = 'Buscando com IA...';
+        const resultado = await _bnccBuscarComIA(query, habs);
+        if (resultado?.length) {
+          encontrado = resultado.map(r => ({ ...r, fonte: 'ia' }));
+        }
+      }
+    } catch (_) {}
   }
 
   if (loadEl) loadEl.style.display = 'none';
+  if (!resultEl) return;
+  resultEl.style.display = 'block';
 
-  if (resultEl) {
-    resultEl.style.display = 'block';
-    if (encontrado.fonte === 'Plano de curso') {
-      resultEl.innerHTML = `
-        <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:4px;">📄 Encontrado no plano de curso</div>
-        <div style="font-size:12px;font-weight:700;color:var(--text);">${encontrado.codigo}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.5;">${encontrado.descricao}</div>
-        <button onclick="document.getElementById('aula-bncc').value='${encontrado.codigo.replace(/'/g,"\\'")}'" 
-          style="margin-top:8px;padding:5px 12px;border-radius:6px;border:1.5px solid #22C55E;background:#F0FDF4;color:#166534;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;">
-          Usar esta habilidade
-        </button>`;
-    } else {
-      resultEl.innerHTML = `
-        <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:4px;">🔎 Não encontrado no plano — buscando no Google</div>
-        <a href="${encontrado.url}" target="_blank" style="font-size:12px;color:var(--purple);font-weight:600;text-decoration:underline;">
-          Pesquisar "${query}" na BNCC via Google →
-        </a>`;
-    }
+  if (encontrado?.length) {
+    const isIA = encontrado[0].fonte === 'ia';
+    resultEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:${isIA ? '#5B21B6' : '#166534'};margin-bottom:8px;">
+        ${isIA ? '✨ Sugestão da IA a partir do plano de curso' : '📄 Encontrado no plano de curso'}
+      </div>
+      ${encontrado.map(h => `
+        <div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--white);margin-bottom:6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+              <span style="padding:2px 8px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;">${h.codigo||'—'}</span>
+              <span style="font-size:12px;color:var(--text);line-height:1.4;">${(h.descricao||'—').replace(/</g,'&lt;')}</span>
+            </div>
+            <button onclick="document.getElementById('aula-bncc').value='${(h.codigo||'').replace(/'/g,"\'")}';document.getElementById('bncc-resultado').style.display='none';"
+              style="padding:4px 11px;border-radius:6px;border:1.5px solid #22C55E;background:#F0FDF4;color:#166534;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;"
+              onmouseover="this.style.background='#22C55E';this.style.color='#fff'"
+              onmouseout="this.style.background='#F0FDF4';this.style.color='#166534'">
+              Usar
+            </button>
+          </div>
+          ${h.contexto ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;border-left:2px solid var(--border);padding-left:8px;line-height:1.5;font-style:italic;">${String(h.contexto).replace(/</g,'&lt;')}</div>` : ''}
+        </div>`).join('')}`;
+  } else {
+    resultEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:4px;">🔎 Não encontrado no plano</div>
+      <a href="https://www.google.com/search?q=BNCC+habilidade+${encodeURIComponent(query)}" target="_blank"
+        style="font-size:12px;color:var(--purple);font-weight:600;text-decoration:underline;">
+        Pesquisar "${query}" na BNCC via Google →
+      </a>`;
   }
 };
+
+// ── Busca semântica via Anthropic ─────────────────────────────────────────────
+async function _bnccBuscarComIA(query, habilidades) {
+  const lista = habilidades.map(h => `${h.codigo}: ${h.descricao}`).join('\n');
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: `Você é um assistente de busca de habilidades BNCC.
+Dado um termo de busca e uma lista de habilidades, retorne as 1-2 habilidades mais relevantes.
+Retorne SOMENTE JSON válido, sem markdown:
+[{"codigo":"EFxxMAxx","descricao":"...","contexto":"por que é relevante em 1 frase"}]
+Se nenhuma for relevante, retorne [].`,
+      messages: [{
+        role: 'user',
+        content: `Termo buscado: "${query}"\n\nHabilidades disponíveis no plano:\n${lista}\n\nRetorne as mais relevantes.`
+      }]
+    })
+  });
+  if (!response.ok) return null;
+  const data = await response.json();
+  const text = (data.content || []).map(c => c.text || '').join('');
+  const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  try {
+    const parsed = JSON.parse(clean);
+    return Array.isArray(parsed) && parsed.length ? parsed : null;
+  } catch {
+    const match = clean.match(/\[\s\S]*\]/);
+    if (match) return JSON.parse(match[0]);
+    return null;
+  }
+}
+
+// ── Fechar dropdown ao clicar fora ────────────────────────────────────────────
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#aula-bncc') && !e.target.closest('#bncc-autocomplete-dropdown')) {
+    _bnccFecharDropdown();
+  }
+}, true);
+
+// ── Hook: invalida cache ao reprocessar plano ─────────────────────────────────
+(function() {
+  const origReprocessar = window.reprocessarPlanoIA;
+  window.reprocessarPlanoIA = async function(...args) {
+    window._bnccInvalidarCache();
+    if (origReprocessar) return origReprocessar.apply(this, args);
+  };
+})();
 
 // ─── 4. MULTI AULAS ─────────────────────────────────────────────────────────
 window.abrirMultiAulas = function() {

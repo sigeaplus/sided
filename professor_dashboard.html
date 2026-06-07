@@ -1938,10 +1938,11 @@
           <span>Habilidade BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional)</span></span>
         </label>
         <div style="display:flex;gap:6px;">
-          <input id="aula-bncc" placeholder="Ex: EF06MA01"
+          <input id="aula-bncc" placeholder="Ex: EF06MA01 ou palavra-chave"
             style="flex:1;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
             onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();buscarBNCC();}"/>
+            oninput="onBnccInput()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();buscarBNCC();}if(event.key==='Escape'){_bnccFecharDropdown();}"/>
           <button onclick="buscarBNCC()"
             style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--purple);background:var(--purple-light);color:var(--purple);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0;"
             onmouseover="this.style.background='var(--purple)';this.style.color='#fff'"
@@ -1952,7 +1953,7 @@
         </div>
         <div id="bncc-loading" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text-muted);">
           <div style="width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;"></div>
-          Buscando...
+          <span id="bncc-loading-msg">Buscando...</span>
         </div>
         <div id="bncc-resultado" style="display:none;margin-top:8px;padding:10px 12px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:8px;font-size:12px;color:var(--text);line-height:1.5;"></div>
       </div>
