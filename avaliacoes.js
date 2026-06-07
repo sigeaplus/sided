@@ -216,6 +216,7 @@ async function cnt_salvar() {
   };
 
   try {
+    console.log('[CNT payload]', JSON.stringify(payload));
     await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
       method : 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
