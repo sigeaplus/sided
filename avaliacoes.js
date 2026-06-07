@@ -216,9 +216,9 @@ async function cnt_salvar() {
   };
 
   try {
-    await api('notas_confirmadas', {
+    await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
       method : 'POST',
-      headers: { 'Prefer': 'return=representation' },
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body   : JSON.stringify(payload)
     });
     mostrarToast(`✓ Nota ${nota} confirmada para ${aluno?.nome_completo?.split(' ')[0] || 'aluno(a)'} no ${tri}º trimestre.`);
