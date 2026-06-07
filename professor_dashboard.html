@@ -1558,7 +1558,7 @@
           Enviar calendário (PDF ou imagem)
           <input type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="calHandleFile(this)" />
         </label>
-        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · máx. 4 MB</div>
+        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · máx. 50 MB</div>
       </div>
 
       <!-- Visualizador -->
@@ -1679,11 +1679,17 @@
           <div style="font-size:16px;font-weight:700;color:var(--text);">Plano de Curso</div>
           <div id="plano-turma-label" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
         </div>
-        <label id="plano-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#BE185D';this.style.color='#BE185D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Trocar arquivo
-          <input id="plano-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="planoHandleFile(this)" />
-        </label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <label id="plano-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#BE185D';this.style.color='#BE185D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Adicionar mais arquivos
+            <input id="plano-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planoHandleFile(this)" />
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px solid #E0E7FF;background:#F0F4FF;cursor:pointer;font-size:12px;font-weight:600;color:#3B4FE4;transition:all 0.2s;">
+            <input id="plano-process-ai" type="checkbox" style="accent-color:#3B4FE4;cursor:pointer;width:16px;height:16px;" checked />
+            Processar com IA
+          </label>
+        </div>
       </div>
 
       <div id="plano-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;border:2px dashed var(--border);border-radius:16px;gap:14px;background:#F8FAFF;">
@@ -1691,10 +1697,10 @@
         <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Nenhum plano de curso enviado ainda</div>
         <label style="display:flex;align-items:center;gap:7px;padding:11px 22px;border-radius:10px;border:none;background:#BE185D;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Enviar plano de curso (PDF ou imagem)
-          <input type="file" accept="application/pdf,image/png,image/jpeg" style="display:none;" onchange="planoHandleFile(this)" />
+          Enviar um ou mais planos de curso (PDF ou imagem)
+          <input type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planoHandleFile(this)" />
         </label>
-        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · máx. 4 MB</div>
+        <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · selecione vários arquivos de uma vez · máx. 50 MB cada</div>
       </div>
 
       <div id="plano-viewer" style="display:none;">
@@ -1706,6 +1712,24 @@
         </div>
         <iframe id="plano-iframe" style="width:100%;height:72vh;min-height:400px;border:1.5px solid var(--border);border-radius:12px;background:#fff;" title="Plano de Curso"></iframe>
         <img id="plano-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Plano de Curso" />
+        <div id="plano-arquivos-lista" style="display:none;margin-top:18px;gap:10px;flex-wrap:wrap;"></div>
+
+        <!-- ── Pesquisador de Habilidades BNCC ── -->
+        <div style="margin-top:28px;border-top:1.5px solid var(--border);padding-top:22px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B4FE4" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span style="font-size:13px;font-weight:700;color:var(--text);">Pesquisar habilidade do plano</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input id="pesq-bncc-input" type="text" placeholder="Buscar por código ou palavra-chave (ex: EF06MA, frações, texto...)"
+              style="flex:1;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
+              oninput="pesquisarHabilidadesPlano()"
+              onkeydown="if(event.key==='Enter') pesquisarHabilidadesPlano()" />
+          </div>
+          <div id="pesq-bncc-resultado"></div>
+        </div>
+
       </div>
     </div>
 
@@ -1853,7 +1877,7 @@
 
 <!-- MODAL AULA -->
 <div class="modal-overlay" id="modal-aula" onclick="fecharModalOutside(event,'modal-aula')">
-  <div class="modal">
+  <div class="modal" style="max-width:500px;">
     <div class="modal-header">
       <div class="modal-title" id="modal-aula-title">Nova aula</div>
       <button class="modal-close" onclick="fecharModal('modal-aula')">
@@ -1862,10 +1886,13 @@
     </div>
     <div class="modal-body">
       <div id="aula-alert" style="display:none;" class="alert-box error"></div>
+
+      <!-- Data -->
       <div class="field">
         <label>Data</label>
         <div class="date-picker-wrap">
-          <input id="aula-data" placeholder="DD/MM/AAAA" autocomplete="off" oninput="onDateInput(this,'cal-aula')" onfocus="abrirCal('cal-aula')"/>
+          <input id="aula-data" placeholder="DD/MM/AAAA" autocomplete="off"
+            oninput="onDateInput(this,'cal-aula')" onfocus="abrirCal('cal-aula')"/>
           <div class="cal-popup" id="cal-aula">
             <div class="cal-header">
               <button class="cal-nav" onclick="mesAnterior('cal-aula')">‹</button>
@@ -1882,19 +1909,60 @@
           </div>
         </div>
       </div>
+
+      <!-- Disciplina (Fund I) -->
       <div id="aula-campo-disciplina" style="display:none;" class="field">
         <label>Disciplina</label>
         <select id="aula-disciplina">
           <option value="">Selecione a disciplina...</option>
         </select>
       </div>
-      <div class="field"><label>Nome da aula</label><input id="aula-nome" placeholder="Ex: Introdução ao tema"/></div>
-      <div class="field"><label>Descrição (opcional)</label><input id="aula-desc" placeholder="Conteúdo abordado..."/></div>
+
+      <!-- TEMA (antes: Nome da aula) -->
+      <div class="field">
+        <label>Tema <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
+        <input id="aula-nome" placeholder="Ex: Frações no cotidiano"/>
+      </div>
+
+      <!-- DESCRIÇÃO (antes: Conteúdo — agora obrigatória e textarea) -->
+      <div class="field">
+        <label>Descrição <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
+        <textarea id="aula-desc" rows="4" placeholder="Descreva os conteúdos abordados, estratégias didáticas, recursos utilizados..."
+          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+
+      <!-- Habilidade BNCC (opcional) -->
+      <div class="field">
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Habilidade BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional)</span></span>
+        </label>
+        <div style="display:flex;gap:6px;">
+          <input id="aula-bncc" placeholder="Ex: EF06MA01"
+            style="flex:1;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
+            onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();buscarBNCC();}"/>
+          <button onclick="buscarBNCC()"
+            style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--purple);background:var(--purple-light);color:var(--purple);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0;"
+            onmouseover="this.style.background='var(--purple)';this.style.color='#fff'"
+            onmouseout="this.style.background='var(--purple-light)';this.style.color='var(--purple)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:3px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Buscar
+          </button>
+        </div>
+        <div id="bncc-loading" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text-muted);">
+          <div style="width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+          Buscando...
+        </div>
+        <div id="bncc-resultado" style="display:none;margin-top:8px;padding:10px 12px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:8px;font-size:12px;color:var(--text);line-height:1.5;"></div>
+      </div>
+
+      <!-- Status info -->
       <div id="aula-status-info" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;font-size:12px;color:#166534;line-height:1.6;margin-bottom:4px;">
         <strong>Classificação automática:</strong><br>
         • <b>Futura</b> — data após hoje<br>
         • <b>Pendente</b> — já passou, sem chamada lançada<br>
-        • <b>Lecionada</b> — chamada lançada
+        • <b>Lecionada</b> — chamada já registrada
       </div>
       <select id="aula-status" style="display:none;">
         <option value="futura">Aula futura</option>
@@ -2482,7 +2550,137 @@
   </div>
 </div>
 <link rel="stylesheet" href="/chamada.css">
+<script src="/server/google-ai-client.js"></script>
 <script src="/calendario_plano.js"></script>
+<script src="/plano-ia.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0165550fb88c4ce',t:'MTc3OTczMDkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0165550fb88c4ce',t:'MTc3OTczMDkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+
+<div class="modal-overlay" id="modal-multi-aulas" onclick="fecharModalOutside(event,'modal-multi-aulas')">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#0F766E,#0D9488);border-radius:16px 16px 0 0;padding:18px 22px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#fff;">Multi Aulas</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);">Crie várias aulas de uma vez com tema e datas</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-multi-aulas')" style="border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.1);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="multi-aulas-alert" style="display:none;" class="alert-box error"></div>
+
+      <div class="field">
+        <label>Tema <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
+        <input id="multi-aulas-tema" placeholder="Ex: Revolução Industrial"/>
+      </div>
+
+      <div class="field">
+        <label>Descrição <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
+        <textarea id="multi-aulas-desc" rows="3" placeholder="Conteúdos, estratégias, recursos..."
+          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Habilidade BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional — aplicada a todas)</span></label>
+        <input id="multi-aulas-bncc" placeholder="Ex: EF07HI03"
+          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;"/>
+      </div>
+
+      <div class="field">
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Datas <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></span>
+          <span style="font-size:10px;color:var(--text-muted);font-weight:400;">Limite: dias corridos do mês</span>
+        </label>
+        <div id="multi-aulas-datas" style="max-height:220px;overflow-y:auto;padding-right:2px;"></div>
+        <button onclick="_adicionarLinhaDataMulti()"
+          style="width:100%;margin-top:4px;padding:8px;border-radius:8px;border:1.5px dashed var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:6px;"
+          onmouseover="this.style.borderColor='var(--purple)';this.style.color='var(--purple)'"
+          onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar data
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-multi-aulas')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-multi-aulas" onclick="salvarMultiAulas()"
+        style="background:#0F766E;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Criar aulas
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-multi-chamada" onclick="fecharModalOutside(event,'modal-multi-chamada')">
+  <div class="modal" style="max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div class="modal-header" style="background:linear-gradient(135deg,#6C4FD4,#4F46E5);border-radius:16px 16px 0 0;padding:18px 22px;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#fff;">Multi Chamada</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.7);">Registre chamada para vários alunos de uma vez</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="fecharModal('modal-multi-chamada')" style="border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.1);">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;">
+      <div class="modal-body">
+        <div id="multi-chamada-alert" style="display:none;" class="alert-box error"></div>
+
+        <div id="multi-chamada-etapa-1">
+          <div class="field">
+            <label>Lista de alunos <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
+            <textarea id="multi-chamada-nomes" rows="8"
+              placeholder="Cole ou digite um nome por linha:&#10;João da Silva&#10;Maria Oliveira&#10;Pedro Santos"
+              style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.8;transition:border-color 0.2s;"
+              onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Um nome por linha. Cada aluno terá seu próprio seletor de aula.</div>
+          </div>
+          <button onclick="gerarPreviewMultiChamada()"
+            style="width:100%;padding:11px;border-radius:9px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity 0.15s;"
+            onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            Avançar
+          </button>
+        </div>
+
+        <div id="multi-chamada-etapa-2" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <button onclick="document.getElementById('multi-chamada-etapa-1').style.display='block';document.getElementById('multi-chamada-etapa-2').style.display='none';"
+              style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              Voltar
+            </button>
+            <button onclick="marcarTodosPresente()"
+              style="padding:6px 12px;border-radius:7px;border:1.5px solid #22C55E;background:#DCFCE7;color:#166534;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+              ✓ Todos presentes
+            </button>
+          </div>
+
+          <div id="multi-chamada-preview-wrap">
+            <div id="multi-chamada-preview"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharModal('modal-multi-chamada')">Cancelar</button>
+      <button class="btn-save" id="btn-salvar-multi-chamada" onclick="salvarMultiChamada()">Salvar chamadas</button>
+    </div>
+  </div>
+</div>
+</body>
 </html>
