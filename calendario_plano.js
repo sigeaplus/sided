@@ -105,9 +105,19 @@ function _planoStorageDir() {
   return `planos/${turmaAtiva?.id || 'turma'}_${ano}`;
 }
 
+function _sanitizarNomeArquivo(nome) {
+  return nome
+    .replace(/\//g, '-')
+    .replace(/\\/g, '-')
+    .replace(/[<>:"|?*]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .trim();
+}
+
 function _planoStoragePath(fileName) {
   if (!fileName) return _planoStorageDir();
-  return `${_planoStorageDir()}/${fileName}`;
+  return `${_planoStorageDir()}/${_sanitizarNomeArquivo(fileName)}`;
 }
 
 async function _storageList(bucket, prefix) {
