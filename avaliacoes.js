@@ -1237,8 +1237,11 @@ async function salvarTodasNotas() {
           nao_realizado: false,
           lancado_em: new Date().toISOString()
         }));
-        await api(`notas?avaliacao_id=eq.${sub.id}`, { method: 'DELETE' });
-        if (rowsSub.length) await api('notas', { method: 'POST', body: JSON.stringify(rowsSub) });
+        if (rowsSub.length) await api('notas', {
+          method : 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body   : JSON.stringify(rowsSub)
+        });
       }
       const chaveAval = turmaAtiva.id + '::avaliacoes';
       Object.keys(_cache).forEach(k => { if (k === chaveAval) delete _cache[k]; });
@@ -1280,8 +1283,11 @@ async function salvarTodasNotas() {
         body   : JSON.stringify(upserts)
       });
     } else {
-      await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
-      if (rows.length) await api('notas', { method: 'POST', body: JSON.stringify(rows) });
+      if (rows.length) await api('notas', {
+        method : 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body   : JSON.stringify(rows)
+      });
     }
 
     // Invalida só o cache de avaliações (notas mudaram, mas aulas/alunos permanecem válidos)
@@ -1383,8 +1389,11 @@ async function salvarNotas() {
     nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
     lancado_em: new Date().toISOString()
   }));
-  await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
-  await api('notas', { method: 'POST', body: JSON.stringify(rows) });
+  await api('notas', {
+    method : 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body   : JSON.stringify(rows)
+  });
   voltarAvaliacoes();
   await carregarAvaliacoes();
 }
