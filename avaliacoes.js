@@ -202,11 +202,12 @@ async function cnt_salvar() {
 
   const aluno = (alunosTurma || []).find(a => String(a.id) === String(alunoId));
   const tipo = document.getElementById('cnt-tipo')?.value || 'trimestral';
+  const _profData = (typeof profData !== 'undefined' && profData?.id) ? profData : JSON.parse(sessionStorage.getItem('prof_data') || '{}');
 
   const payload = {
     turma_id       : turmaAtiva.id,
     aluno_id       : parseInt(alunoId),
-    professor_id   : profData.id,
+    professor_id   : _profData.id,
     trimestre      : parseInt(tri),
     nota_final     : nota,
     soma_original  : _cntSomaAtual,
@@ -363,7 +364,7 @@ async function carregarAvaliacoes() {
     `avaliacoes?turma_id=eq.${turmaAtiva.id}&select=*&order=created_at`,
     turmaAtiva.id, 'avaliacoes', 30000
   );
-  
+
   // garantir que alunos estão carregados
   if (!alunosTurma.length) {
     alunosTurma = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
@@ -621,7 +622,7 @@ async function salvarAvaliacao() {
   if (isFundI && disciplina && !_isGrupoTipo(tipo)) {
     const triAtual = parseInt(document.getElementById('aval-tri').value);
     let totalPontosDisc = 0;
-    
+
     avaliacoesTurma.forEach(aval => {
       // Contar apenas avaliações normais (não recuperação) do mesmo trimestre e disciplina
       if (aval.tipo !== 'recuperacao' && !_isNotaFinal(aval) && 
@@ -631,7 +632,7 @@ async function salvarAvaliacao() {
         totalPontosDisc += Number(aval.pontos || 0);
       }
     });
-    
+
     if (totalPontosDisc + pontos > 30) {
       alEl.textContent = `Erro: a disciplina "${disciplina}" já tem ${totalPontosDisc} pts. Máximo por disciplina é 30 pts.`;
       alEl.style.display = 'block'; 
@@ -1369,7 +1370,7 @@ function aplicarNotaPadrao() {
       inputNota.dispatchEvent(event);
     }
   });
-  
+
   // Limpar campo de nota padrão após aplicar
   document.getElementById('nota-padrao').value = '';
 }
@@ -1450,4 +1451,5 @@ renderAvaliacoes = function(lista, contPorAval, totalAlunos) {
 };
 
 // ═══════════════════════════════════════════════════════
-// HEATMAP NO RELATÓRIO GERAL
+// HEATMAP NO RELATÓRIO GERAL2
+
