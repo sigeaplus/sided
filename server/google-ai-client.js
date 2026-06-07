@@ -1,1 +1,1 @@
-const GEMINI_KEY = 'AIzaSyCMYTjTrY63ZIZfXiF8itjLQHYixHgVr7c';
+const GROQ_KEY = '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';
