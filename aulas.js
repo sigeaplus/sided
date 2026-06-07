@@ -1010,7 +1010,7 @@ window.buscarBNCC = async function() {
 // ── Busca semântica via Anthropic ─────────────────────────────────────────────
 async function _bnccBuscarComIA(query, habilidades) {
   const lista = habilidades.map(h => `${h.codigo}: ${h.descricao}`).join('\n');
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/anthropic', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
