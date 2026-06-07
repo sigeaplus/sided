@@ -206,7 +206,7 @@ async function cnt_salvar() {
 
   const payload = {
     turma_id       : turmaAtiva.id,
-    aluno_id       : parseInt(alunoId),
+    aluno_id       : alunoId,
     professor_id   : _profData.id,
     trimestre      : parseInt(tri),
     nota_final     : nota,
