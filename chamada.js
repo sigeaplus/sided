@@ -409,23 +409,35 @@ async function abrirChamadaDeAula(aulaId) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ─── Abrir modal de multi chamada ───────────────────────────────────────────
-window.abrirMultiChamada = function() {
-  if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('chamada');
-  const modal = document.getElementById('modal-multi-chamada');
-  if (!modal) return;
-
-  // Limpar estado
-  document.getElementById('multi-chamada-nomes').value = '';
-  document.getElementById('multi-chamada-alert').style.display = 'none';
-  document.getElementById('multi-chamada-preview').innerHTML = '';
-  document.getElementById('multi-chamada-preview-wrap').style.display = 'none';
-  document.getElementById('multi-chamada-etapa-1').style.display = 'block';
-  document.getElementById('multi-chamada-etapa-2').style.display = 'none';
-
-  // Preencher select de aulas disponíveis
-  _preencherSelectsAulaMultiChamada();
-
-  modal.classList.add('open');
+window.abrirMultiChamada = async function() {
+  try {
+    if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('chamada');
+    if (!turmaAtiva) {
+      if (typeof mostrarToast === 'function') mostrarToast('Selecione uma turma primeiro.');
+      return;
+    }
+    // Garantir aulasTurma populado (pode estar vazio se veio direto pelo menu ⋮)
+    if (!aulasTurma || aulasTurma.length === 0) {
+      if (typeof mostrarToast === 'function') mostrarToast('Carregando aulas...');
+      await carregarAulas();
+    }
+    // Garantir alunosTurma populado
+    if (!alunosTurma || alunosTurma.length === 0) {
+      if (typeof garantirAlunosTurma === 'function') await garantirAlunosTurma();
+    }
+    const modal = document.getElementById('modal-multi-chamada');
+    if (!modal) return;
+    document.getElementById('multi-chamada-nomes').value = '';
+    document.getElementById('multi-chamada-alert').style.display = 'none';
+    document.getElementById('multi-chamada-preview').innerHTML = '';
+    document.getElementById('multi-chamada-preview-wrap').style.display = 'none';
+    document.getElementById('multi-chamada-etapa-1').style.display = 'block';
+    document.getElementById('multi-chamada-etapa-2').style.display = 'none';
+    modal.classList.add('open');
+  } catch(e) {
+    console.error('[MultiChamada] abrirMultiChamada:', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao abrir multi chamada: ' + e.message);
+  }
 };
 
 function _preencherSelectsAulaMultiChamada() {
@@ -532,46 +544,45 @@ window.marcarTodosPresente = function() {
 
 window.salvarMultiChamada = async function() {
   const alEl = document.getElementById('multi-chamada-alert');
+  if (!alEl) return;
   alEl.style.display = 'none';
 
-  const linhas = document.querySelectorAll('.mc-linha');
-  if (linhas.length === 0) {
-    alEl.textContent = 'Nenhum aluno para salvar.';
-    alEl.style.display = 'block';
-    return;
-  }
-
-  // Coletar dados de cada linha
-  const registros = [];
-  for (const linha of linhas) {
-    const nomeEl = linha.querySelector('div[style*="font-weight:600"]');
-    const nome = nomeEl ? nomeEl.textContent.trim() : '';
-    const presenca = linha.dataset.presenca || 'presente'; // default presente
-    const aulaId = linha.querySelector('select')?.value || '';
-
-    if (!aulaId) {
-      alEl.textContent = `Selecione a aula para o aluno "${nome}".`;
-      alEl.style.display = 'block';
-      return;
-    }
-    // Buscar aluno pelo nome na turma
-    const aluno = (typeof alunosTurma !== 'undefined' ? alunosTurma : [])
-      .find(a => (a.nome || '').toLowerCase() === nome.toLowerCase());
-
-    registros.push({
-      aula_id: aulaId,
-      aluno_nome: nome,
-      aluno_id: aluno?.id || null,
-      presente: presenca === 'presente',
-    });
-  }
-
   const btn = document.getElementById('btn-salvar-multi-chamada');
-  btn.disabled = true;
-  btn.textContent = 'Salvando...';
 
   try {
-    // Agrupar por aula para fazer POST em lote
+    if (!turmaAtiva) { alEl.textContent = 'Nenhuma turma selecionada.'; alEl.style.display = 'block'; return; }
+
+    const linhas = document.querySelectorAll('.mc-linha');
+    if (linhas.length === 0) { alEl.textContent = 'Nenhum aluno para salvar.'; alEl.style.display = 'block'; return; }
+
+    const registros = [];
+    for (const linha of linhas) {
+      const nomeEl = linha.querySelector('div[style*="font-weight:600"]');
+      const nome = nomeEl ? nomeEl.textContent.trim() : '';
+      const presenca = linha.dataset.presenca || 'presente';
+      const aulaId = linha.querySelector('select')?.value || '';
+
+      if (!aulaId) {
+        alEl.textContent = `Selecione a aula para o aluno "${nome}".`;
+        alEl.style.display = 'block';
+        return;
+      }
+
+      const aluno = Array.isArray(alunosTurma)
+        ? alunosTurma.find(a => (a.nome || '').toLowerCase() === nome.toLowerCase())
+        : null;
+
+      registros.push({
+        aula_id: aulaId,
+        aluno_nome: nome,
+        aluno_id: aluno?.id || null,
+        presente: presenca === 'presente',
+      });
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
     const porAula = {};
     registros.forEach(r => {
       if (!porAula[r.aula_id]) porAula[r.aula_id] = [];
@@ -586,20 +597,22 @@ window.salvarMultiChamada = async function() {
         presente: r.presente,
       }));
       await api('chamadas', { method: 'POST', body: JSON.stringify(payload) });
-      chamadaCacheSet(aulaId, true);
+      if (typeof chamadaCacheSet === 'function') chamadaCacheSet(aulaId, true);
     }
 
-    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     fecharModal('modal-multi-chamada');
     if (typeof renderListaAulas === 'function') renderListaAulas();
     if (typeof mostrarToast === 'function') {
       mostrarToast(`✓ Chamada registrada para ${registros.length} aluno${registros.length > 1 ? 's' : ''}!`);
     }
-  } catch (e) {
+
+    btn.disabled = false;
+    btn.textContent = 'Salvar chamadas';
+  } catch(e) {
+    console.error('[MultiChamada] salvarMultiChamada:', e);
     alEl.textContent = 'Erro ao salvar: ' + e.message;
     alEl.style.display = 'block';
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar chamadas'; }
   }
-
-  btn.disabled = false;
-  btn.textContent = 'Salvar chamadas';
 };

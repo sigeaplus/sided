@@ -1073,18 +1073,31 @@ document.addEventListener('click', function(e) {
 })();
 
 // ─── 4. MULTI AULAS ─────────────────────────────────────────────────────────
-window.abrirMultiAulas = function() {
-  if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('aulas');
-  const modal = document.getElementById('modal-multi-aulas');
-  if (!modal) return;
-  // Resetar
-  document.getElementById('multi-aulas-tema').value = '';
-  document.getElementById('multi-aulas-desc').value = '';
-  document.getElementById('multi-aulas-bncc').value = '';
-  document.getElementById('multi-aulas-datas').innerHTML = '';
-  document.getElementById('multi-aulas-alert').style.display = 'none';
-  _adicionarLinhaDataMulti(); // começa com 1 linha
-  modal.classList.add('open');
+window.abrirMultiAulas = async function() {
+  try {
+    if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('aulas');
+    if (!turmaAtiva) {
+      if (typeof mostrarToast === 'function') mostrarToast('Selecione uma turma primeiro.');
+      return;
+    }
+    // Garantir que aulasTurma está populado (pode estar vazio se veio direto pelo menu ⋮)
+    if (!aulasTurma || aulasTurma.length === 0) {
+      if (typeof mostrarToast === 'function') mostrarToast('Carregando aulas...');
+      await carregarAulas();
+    }
+    const modal = document.getElementById('modal-multi-aulas');
+    if (!modal) return;
+    document.getElementById('multi-aulas-tema').value = '';
+    document.getElementById('multi-aulas-desc').value = '';
+    document.getElementById('multi-aulas-bncc').value = '';
+    document.getElementById('multi-aulas-datas').innerHTML = '';
+    document.getElementById('multi-aulas-alert').style.display = 'none';
+    window._adicionarLinhaDataMulti();
+    modal.classList.add('open');
+  } catch(e) {
+    console.error('[MultiAulas] abrirMultiAulas:', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao abrir multi aulas: ' + e.message);
+  }
 };
 
 window._adicionarLinhaDataMulti = function() {
@@ -1120,70 +1133,79 @@ window._adicionarLinhaDataMulti = function() {
 
 window.salvarMultiAulas = async function() {
   const alEl = document.getElementById('multi-aulas-alert');
+  if (!alEl) return;
   alEl.style.display = 'none';
 
-  const tema = document.getElementById('multi-aulas-tema').value.trim();
-  const desc = document.getElementById('multi-aulas-desc').value.trim();
-  const bncc = document.getElementById('multi-aulas-bncc').value.trim() || null;
-
-  if (!tema) { alEl.textContent = 'O tema é obrigatório.'; alEl.style.display = 'block'; return; }
-  if (!desc) { alEl.textContent = 'A descrição é obrigatória.'; alEl.style.display = 'block'; return; }
-
-  const inputs = document.querySelectorAll('#multi-aulas-datas .multi-data-row input');
-  const datasISO = [];
-  const meses = new Set();
-  for (const inp of inputs) {
-    const iso = parseDateBR(inp.value.trim());
-    if (!iso) { alEl.textContent = `Data inválida: "${inp.value}". Use DD/MM/AAAA.`; alEl.style.display = 'block'; return; }
-    const mes = iso.slice(0, 7); // AAAA-MM
-    meses.add(mes);
-    datasISO.push(iso);
-  }
-  if (datasISO.length === 0) { alEl.textContent = 'Adicione pelo menos uma data.'; alEl.style.display = 'block'; return; }
-
-  // Verificar limite por mês
-  for (const mes of meses) {
-    const [ano, m] = mes.split('-').map(Number);
-    const diasNoMes = new Date(ano, m, 0).getDate();
-    const qtdNesteMes = datasISO.filter(d => d.startsWith(mes)).length;
-    if (qtdNesteMes > diasNoMes) {
-      alEl.textContent = `Limite de ${diasNoMes} aulas em ${mes} excedido (${qtdNesteMes} informadas).`;
-      alEl.style.display = 'block';
-      return;
-    }
-  }
-
-  const btn = document.getElementById('btn-salvar-multi-aulas');
-  btn.disabled = true;
-  btn.textContent = 'Salvando...';
-
-  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  const aulas = datasISO.map(dataISO => ({
-    data: dataISO,
-    nome: tema,
-    descricao: desc,
-    status: calcularStatusAuto(dataISO, null),
-    turma_id: turmaAtiva.id,
-    professor_id: profData.id,
-    ...(bncc ? { habilidade_bncc: bncc } : {}),
-  }));
-
   try {
-    const res = await api('aulas', { method: 'POST', body: JSON.stringify(aulas) });
-    const criadas = Array.isArray(res) ? res : aulas.map((a, i) => ({ ...a, id: Date.now() + i }));
-    criadas.forEach(a => { aulasTurma.push(a); chamadaCacheSet(a.id, false); });
-    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    // Validações de campos
+    const tema = document.getElementById('multi-aulas-tema').value.trim();
+    const desc = document.getElementById('multi-aulas-desc').value.trim();
+    const bncc = document.getElementById('multi-aulas-bncc').value.trim() || null;
+
+    if (!tema) { alEl.textContent = 'O tema é obrigatório.'; alEl.style.display = 'block'; return; }
+    if (!desc) { alEl.textContent = 'A descrição é obrigatória.'; alEl.style.display = 'block'; return; }
+    if (!turmaAtiva) { alEl.textContent = 'Nenhuma turma selecionada.'; alEl.style.display = 'block'; return; }
+
+    const inputs = document.querySelectorAll('#multi-aulas-datas .multi-data-row input');
+    const datasISO = [];
+    const meses = new Set();
+    for (const inp of inputs) {
+      const iso = parseDateBR(inp.value.trim());
+      if (!iso) { alEl.textContent = `Data inválida: "${inp.value}". Use DD/MM/AAAA.`; alEl.style.display = 'block'; return; }
+      const mes = iso.slice(0, 7);
+      meses.add(mes);
+      datasISO.push(iso);
+    }
+    if (datasISO.length === 0) { alEl.textContent = 'Adicione pelo menos uma data.'; alEl.style.display = 'block'; return; }
+
+    for (const mes of meses) {
+      const [ano, m] = mes.split('-').map(Number);
+      const diasNoMes = new Date(ano, m, 0).getDate();
+      const qtdNesteMes = datasISO.filter(d => d.startsWith(mes)).length;
+      if (qtdNesteMes > diasNoMes) {
+        alEl.textContent = `Limite de ${diasNoMes} aulas em ${mes} excedido (${qtdNesteMes} informadas).`;
+        alEl.style.display = 'block';
+        return;
+      }
+    }
+
+    const btn = document.getElementById('btn-salvar-multi-aulas');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    const aulasPayload = datasISO.map(dataISO => ({
+      data: dataISO,
+      nome: tema,
+      descricao: desc,
+      status: calcularStatusAuto(dataISO, null),
+      turma_id: turmaAtiva.id,
+      professor_id: profData.id,
+      ...(bncc ? { habilidade_bncc: bncc } : {}),
+    }));
+
+    const res = await api('aulas', { method: 'POST', body: JSON.stringify(aulasPayload) });
+    const criadas = Array.isArray(res) ? res : aulasPayload.map((a, i) => ({ ...a, id: Date.now() + i }));
+    criadas.forEach(a => {
+      aulasTurma.push(a);
+      if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
+    });
+    if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     fecharModal('modal-multi-aulas');
-    renderListaAulas();
-    atualizarContadorAulas();
-    atualizarCalendario('cal-aula');
+    if (typeof renderListaAulas === 'function') renderListaAulas();
+    if (typeof atualizarContadorAulas === 'function') atualizarContadorAulas();
+    if (typeof atualizarCalendario === 'function') atualizarCalendario('cal-aula');
     if (typeof mostrarToast === 'function') mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} criada${criadas.length > 1 ? 's' : ''}!`);
-  } catch (e) {
+
+    btn.disabled = false;
+    btn.textContent = 'Criar aulas';
+  } catch(e) {
+    console.error('[MultiAulas] salvarMultiAulas:', e);
     alEl.textContent = 'Erro ao salvar as aulas: ' + e.message;
     alEl.style.display = 'block';
+    const btn = document.getElementById('btn-salvar-multi-aulas');
+    if (btn) { btn.disabled = false; btn.textContent = 'Criar aulas'; }
   }
-  btn.disabled = false;
-  btn.textContent = 'Criar aulas';
 };
 
 // ─── 5. MENU ⋯ (três pontinhos) ─────────────────────────────────────────────
