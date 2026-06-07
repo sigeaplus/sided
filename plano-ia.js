@@ -272,6 +272,7 @@ Instruções CRÍTICAS:
   // ── Passo 2: envia cada página para Groq Vision e acumula habilidades ────────
   const MODELO_VISION = 'meta-llama/llama-4-maverick-17b-128e-instruct-fp8';
   const todasHabilidades = [];
+  let ultimoErroVision = '';
   let resumoGeral = '';
   let objetivosGerais = [];
 
@@ -307,18 +308,23 @@ Instruções CRÍTICAS:
       });
 
       if (!resp.ok) {
-        console.warn(`[PLANO IA] Página ${pagina} falhou:`, resp.status);
+        const errBody = await resp.text().catch(() => '');
+        console.warn(`[PLANO IA] Página ${pagina} HTTP ${resp.status}:`, errBody.slice(0, 200));
+        ultimoErroVision = `HTTP ${resp.status}: ${errBody.slice(0, 150)}`;
         continue;
       }
 
       const data = await resp.json();
       const text = data.choices?.[0]?.message?.content || '';
+      console.log(`[PLANO IA] Página ${pagina} resposta raw:`, text.slice(0, 300));
+
       const clean = _geminiExtrairJSON(text);
+      console.log(`[PLANO IA] Página ${pagina} JSON extraído:`, clean ? clean.slice(0, 200) : 'NULL');
       if (!clean) continue;
 
       const parsed = JSON.parse(clean);
+      console.log(`[PLANO IA] Página ${pagina} habilidades:`, parsed.habilidades?.length ?? 0);
       if (parsed.habilidades?.length) {
-        // Adiciona contexto de página se não tiver
         parsed.habilidades.forEach(h => {
           if (!h.contexto) h.contexto = `Página ${pagina}`;
           todasHabilidades.push(h);
@@ -333,7 +339,7 @@ Instruções CRÍTICAS:
   }
 
   if (!todasHabilidades.length && !resumoGeral) {
-    throw new Error('Nenhuma habilidade encontrada nas páginas do PDF.');
+    throw new Error(`Nenhuma habilidade encontrada. Último erro: ${ultimoErroVision || 'verifique o console para detalhes'}`);
   }
 
   // Remove duplicatas por código
