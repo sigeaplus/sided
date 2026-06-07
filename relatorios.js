@@ -372,7 +372,7 @@ async function carregarRelatorio(tri) {
       const idsAlunos = alunosTurma.map(a => a.id).join(',');
       const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&select=aluno_id,nota_final`) || [];
       if (token !== _relatorioCargaToken) return;
-      confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
+      confRes.forEach(c => { notasConfirmadasMap[String(c.aluno_id)] = Number(c.nota_final); });
     } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
   }
 
@@ -399,7 +399,7 @@ async function carregarRelatorio(tri) {
       // Em Fundamental I, limitar cada disciplina a 30 pts
       const somaCalc = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
       // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(String(a.id)) ? notasConfirmadasMap[String(a.id)] : null;
       const total = notaFechada !== null ? notaFechada : somaCalc;
       return { aluno: a, notasPorDisc, discsSet, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
@@ -426,7 +426,7 @@ async function carregarRelatorio(tri) {
       }, 0);
       const somaCalc = somaBase + somaRecPar + somaRecup;
       // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(String(a.id)) ? notasConfirmadasMap[String(a.id)] : null;
       const total = notaFechada !== null ? notaFechada : somaCalc;
       return { aluno: a, notasAluno, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
