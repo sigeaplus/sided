@@ -196,39 +196,38 @@ function _blobToBase64(blob) {
   });
 }
 
-// ── Chamar Groq API com o texto extraído do PDF ──────────────────────────────
+// ── Chamar Groq Vision API — renderiza cada página como imagem ───────────────
 async function _analisarComAnthropic(base64, mimeType) {
-  const PROMPT = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG - Currículo Referência de Minas Gerais).
-Analise o plano de curso fornecido e extraia todas as informações relevantes.
+  const PROMPT_SISTEMA = `Você é um especialista em currículo escolar brasileiro (BNCC e CRMG).
+Sua tarefa é extrair habilidades de planos de curso, que normalmente vêm em tabelas com colunas como:
+TRIMESTRE | UNIDADE TEMÁTICA | HABILIDADE DO CURRÍCULO | HABILIDADES DE RECOMPOSIÇÃO | HABILIDADES DE SUPORTE | etc.
 
 Retorne SOMENTE um JSON válido, sem markdown, sem explicações, exatamente neste formato:
 {
   "resumo": "Resumo do plano em 2-3 frases",
-  "objetivos": ["objetivo 1", "objetivo 2", "..."],
+  "objetivos": ["objetivo 1", "objetivo 2"],
   "habilidades": [
     {
       "codigo": "EF08MA01",
-      "descricao": "Descrição completa da habilidade",
-      "contexto": "Trecho ou contexto onde aparece no plano"
+      "descricao": "Descrição completa da habilidade conforme aparece no documento",
+      "contexto": "Ex: Trimestre 1 - Números"
     }
   ]
 }
 
-Instruções:
-- Extraia TODOS os códigos de habilidades (formato EFxxMAxx, EFxxLPxx, EFxxCIxx, etc.)
-- Se não houver código explícito mas houver descrição de habilidade, crie um item sem código
-- objetivos: liste os principais conteúdos/objetivos de aprendizagem do plano
-- resumo: síntese do plano (disciplina, ano, período, foco principal)
-
-Analise o documento a seguir e retorne o JSON conforme instruído.`;
+Instruções CRÍTICAS:
+- Leia CADA CÉLULA da tabela com atenção
+- Extraia TODOS os códigos no formato EFxxXXxx (ex: EF04MA02, EF05MA08, EF06LP01...)
+- Pegue códigos de TODAS as colunas: habilidade do currículo, recomposição, suporte, etc.
+- Não pule nenhuma linha da tabela
+- Se a página não tiver tabela ou habilidades, retorne habilidades: []`;
 
   const key = typeof GROQ_KEY !== 'undefined' ? GROQ_KEY : '';
   if (!key) throw new Error('GROQ_KEY não definida');
 
-  // Extrai texto completo do PDF usando PDF.js
-  let textoDocumento = '';
+  // ── Passo 1: renderiza cada página do PDF como imagem via PDF.js + canvas ───
+  let imagensPaginas = []; // array de { base64: string, pagina: number }
   try {
-    // Carrega PDF.js dinamicamente se ainda não estiver disponível
     if (!window.pdfjsLib) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -241,77 +240,116 @@ Analise o documento a seguir e retorne o JSON conforme instruído.`;
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
-    // Converte base64 para Uint8Array
     const binary = atob(base64);
     const pdfBytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) pdfBytes[i] = binary.charCodeAt(i);
 
-    // Carrega e extrai texto de TODAS as páginas
     const pdf = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
-    const partes = [];
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      const linhasPagina = content.items.map(item => item.str).join(' ');
-      partes.push(`--- Página ${p} ---\n${linhasPagina}`);
+      const viewport = page.getViewport({ scale: 1.5 }); // escala boa para leitura
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      // Converte para JPEG leve (qualidade 0.85)
+      const imgBase64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      imagensPaginas.push({ base64: imgBase64, pagina: p });
     }
-    textoDocumento = partes.join('\n\n');
-
-    // Limita para não estourar contexto do Groq
-    if (textoDocumento.length > 24000) {
-      textoDocumento = textoDocumento.slice(0, 24000) + '\n[... documento truncado ...]';
-    }
+    canvas.remove();
   } catch (pdfErr) {
-    console.warn('[PLANO IA] PDF.js falhou, usando fallback:', pdfErr);
-    // Fallback: extração simples de bytes ASCII
-    try {
-      const raw = atob(base64);
-      textoDocumento = raw
-        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-        .replace(/\s{4,}/g, '\n')
-        .slice(0, 24000);
-    } catch (_) {
-      textoDocumento = '[Não foi possível extrair o texto do documento]';
+    console.warn('[PLANO IA] PDF.js falhou:', pdfErr);
+    // Se já é imagem (jpg/png), usa diretamente
+    if (mimeType.startsWith('image/')) {
+      imagensPaginas = [{ base64, pagina: 1 }];
+    } else {
+      throw new Error('Não foi possível renderizar o PDF: ' + pdfErr.message);
     }
   }
 
-  const MODELOS = [
-    'meta-llama/llama-4-scout-17b-16e-instruct',
-    'llama-3.3-70b-versatile',
-    'llama3-70b-8192',
-  ];
+  // ── Passo 2: envia cada página para Groq Vision e acumula habilidades ────────
+  const MODELO_VISION = 'meta-llama/llama-4-maverick-17b-128e-instruct-fp8';
+  const todasHabilidades = [];
+  let resumoGeral = '';
+  let objetivosGerais = [];
 
-  let data = null;
-  let ultimoErro = '';
-  for (const modelo of MODELOS) {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify({
-        model: modelo,
-        temperature: 0.1,
-        max_tokens: 4000,
-        messages: [
-          { role: 'system', content: PROMPT },
-          { role: 'user', content: `Documento:\n\n${textoDocumento}` }
-        ]
-      })
-    });
+  for (const { base64: imgB64, pagina } of imagensPaginas) {
+    try {
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: MODELO_VISION,
+          temperature: 0.1,
+          max_tokens: 2000,
+          messages: [
+            { role: 'system', content: PROMPT_SISTEMA },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image_url',
+                  image_url: { url: `data:image/jpeg;base64,${imgB64}` }
+                },
+                {
+                  type: 'text',
+                  text: `Esta é a página ${pagina} do plano de curso. Extraia todas as habilidades BNCC/CRMG visíveis na tabela. Retorne o JSON conforme instruído.`
+                }
+              ]
+            }
+          ]
+        })
+      });
 
-    if (resp.ok) { data = await resp.json(); break; }
-    ultimoErro = `Groq API ${resp.status} (${modelo}): ${(await resp.text()).slice(0, 150)}`;
-    console.warn('[PLANO IA]', ultimoErro);
+      if (!resp.ok) {
+        console.warn(`[PLANO IA] Página ${pagina} falhou:`, resp.status);
+        continue;
+      }
+
+      const data = await resp.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      const clean = _geminiExtrairJSON(text);
+      if (!clean) continue;
+
+      const parsed = JSON.parse(clean);
+      if (parsed.habilidades?.length) {
+        // Adiciona contexto de página se não tiver
+        parsed.habilidades.forEach(h => {
+          if (!h.contexto) h.contexto = `Página ${pagina}`;
+          todasHabilidades.push(h);
+        });
+      }
+      if (!resumoGeral && parsed.resumo) resumoGeral = parsed.resumo;
+      if (!objetivosGerais.length && parsed.objetivos?.length) objetivosGerais = parsed.objetivos;
+
+    } catch (pageErr) {
+      console.warn(`[PLANO IA] Erro na página ${pagina}:`, pageErr);
+    }
   }
-  if (!data) throw new Error(ultimoErro);
 
-  const text = data.choices?.[0]?.message?.content || '';
+  if (!todasHabilidades.length && !resumoGeral) {
+    throw new Error('Nenhuma habilidade encontrada nas páginas do PDF.');
+  }
 
-  const clean = _geminiExtrairJSON(text);
-  if (!clean) throw new Error('Resposta da IA não é JSON válido');
-  return JSON.parse(clean);
+  // Remove duplicatas por código
+  const vistos = new Set();
+  const habilidadesUnicas = todasHabilidades.filter(h => {
+    const chave = h.codigo || h.descricao?.slice(0, 40) || Math.random();
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+
+  return {
+    resumo: resumoGeral || `${habilidadesUnicas.length} habilidade(s) extraída(s) do plano.`,
+    objetivos: objetivosGerais,
+    habilidades: habilidadesUnicas
+  };
 }
 
 // ── Salvar análise no Supabase (tabela plano_bncc) ───────────────────────────
