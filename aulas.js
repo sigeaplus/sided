@@ -364,7 +364,7 @@ async function excluirAulasSelecionadas() {
   const ids = Array.from(aulasSelecionadas);
   await Promise.all(ids.map(id => api(`aulas?id=eq.${id}`, { method: 'DELETE' })));
   const idSet = new Set(ids.map(String));
-  aulasTurma = aulasTurma.filter(a => !idSet.has(String(a.id)));
+  window.aulasTurma = aulasTurma = aulasTurma.filter(a => !idSet.has(String(a.id)));
   ids.forEach(id => delete _chamadaCache[id]);
   cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
   mostrarToast(`✓ ${n} aula${n > 1 ? 's' : ''} excluída${n > 1 ? 's' : ''}!`);
@@ -677,7 +677,7 @@ window.confirmarCopiarAula = async function() {
 // ── carregarAulas ────────────────────────────────────────────────────────────
 async function carregarAulas(forcarReload = false) {
   if (forcarReload) cacheInvalidar(turmaAtiva.id);
-  aulasTurma = await apiCached(
+  window.aulasTurma = aulasTurma = await apiCached(
     `aulas?turma_id=eq.${turmaAtiva.id}&select=*&order=data`,
     turmaAtiva.id, 'aulas', 30000
   );
