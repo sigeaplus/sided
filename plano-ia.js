@@ -225,21 +225,54 @@ Analise o documento a seguir e retorne o JSON conforme instruído.`;
   const key = typeof GROQ_KEY !== 'undefined' ? GROQ_KEY : '';
   if (!key) throw new Error('GROQ_KEY não definida');
 
-  // Groq não aceita PDF/imagem diretamente — extrai o texto do base64 primeiro
-  // Para PDF: decodifica bytes e extrai texto legível (funciona para PDFs gerados digitalmente)
+  // Extrai texto completo do PDF usando PDF.js
   let textoDocumento = '';
   try {
-    const bytes = atob(base64);
-    // Extrai strings legíveis do binário (heurística para PDFs digitais)
-    textoDocumento = bytes
-      .split('')
-      .map(c => c.charCodeAt(0) < 128 ? c : ' ')
-      .join('')
-      .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
-      .replace(/\s{3,}/g, '\n')
-      .slice(0, 12000); // Groq tem limite de tokens
-  } catch (_) {
-    textoDocumento = '[Não foi possível extrair o texto do documento]';
+    // Carrega PDF.js dinamicamente se ainda não estiver disponível
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // Converte base64 para Uint8Array
+    const binary = atob(base64);
+    const pdfBytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) pdfBytes[i] = binary.charCodeAt(i);
+
+    // Carrega e extrai texto de TODAS as páginas
+    const pdf = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
+    const partes = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const linhasPagina = content.items.map(item => item.str).join(' ');
+      partes.push(`--- Página ${p} ---\n${linhasPagina}`);
+    }
+    textoDocumento = partes.join('\n\n');
+
+    // Limita para não estourar contexto do Groq
+    if (textoDocumento.length > 24000) {
+      textoDocumento = textoDocumento.slice(0, 24000) + '\n[... documento truncado ...]';
+    }
+  } catch (pdfErr) {
+    console.warn('[PLANO IA] PDF.js falhou, usando fallback:', pdfErr);
+    // Fallback: extração simples de bytes ASCII
+    try {
+      const raw = atob(base64);
+      textoDocumento = raw
+        .replace(/[^\x20-\x7E\n\r\t]/g, ' ')
+        .replace(/\s{4,}/g, '\n')
+        .slice(0, 24000);
+    } catch (_) {
+      textoDocumento = '[Não foi possível extrair o texto do documento]';
+    }
   }
 
   const MODELOS = [
