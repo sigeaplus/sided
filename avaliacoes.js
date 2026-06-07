@@ -1452,4 +1452,3 @@ renderAvaliacoes = function(lista, contPorAval, totalAlunos) {
 
 // ═══════════════════════════════════════════════════════
 // HEATMAP NO RELATÓRIO GERAL2
-
