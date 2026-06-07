@@ -107,11 +107,12 @@ function _planoStorageDir() {
 
 function _sanitizarNomeArquivo(nome) {
   return nome
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
     .replace(/\//g, '-')
     .replace(/\\/g, '-')
-    .replace(/[<>:"|?*]/g, '')
-    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '_')  // só ASCII seguro
     .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
     .trim();
 }
 
@@ -121,14 +122,17 @@ function _planoStoragePath(fileName) {
 }
 
 async function _storageList(bucket, prefix) {
-  const encodedPrefix = encodeURIComponent(prefix);
-  const url = `${SUPABASE_URL}/storage/v1/object/list/${bucket}?prefix=${encodedPrefix}&limit=100`;
-  const res = await fetch(url, {
-    method: 'GET',
+  // Supabase Storage list API usa POST com body JSON
+  // prefix deve ser o diretório SEM a barra final
+  const cleanPrefix = prefix.replace(/\/$/, '');
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${bucket}`, {
+    method: 'POST',
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`
-    }
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ prefix: cleanPrefix, limit: 100, offset: 0 })
   });
   if (!res.ok) return [];
   const data = await res.json().catch(() => []);
@@ -297,4 +301,3 @@ async function planoHandleFile(input) {
   }
   input.value = '';
 }
-
