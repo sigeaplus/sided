@@ -76,7 +76,11 @@ async function carregarDadosFechamento(profData, tri) {
       if (metaRes && metaRes[0]) diasLetivos = metaRes[0].total_aulas;
     } catch(e) { /* usa padrão */ }
 
-    const _aulasRaw = await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&select=id`);
+    const _triDatas = { 1: { ini: '-02-04', fim: '-05-20' }, 2: { ini: '-05-21', fim: '-09-09' }, 3: { ini: '-09-10', fim: '-12-18' } };
+    const _ano = new Date().getFullYear();
+    const _triIni = `${_ano}${_triDatas[tri].ini}`;
+    const _triFim = `${_ano}${_triDatas[tri].fim}`;
+    const _aulasRaw = await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`);
     const aulas = Array.isArray(_aulasRaw) ? _aulasRaw : [];
     const totalAulasCriadas = aulas.length;
     let aulasComChamada = 0;
