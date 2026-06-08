@@ -263,6 +263,25 @@
     .turma-codigo { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .turma-endereco { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
     .turma-disciplina { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .btn-disc-turma {
+      display: inline-block;
+      margin: 2px 4px 2px 0;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-disc-turma:hover {
+      border-color: var(--purple);
+      color: var(--purple);
+      background: var(--purple-light);
+    }
     .turma-turno { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
     .turma-empty { grid-column: 1/-1; text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px; }

@@ -3,6 +3,74 @@
 // SIDED+ Professor Dashboard
 // ============================================
 
+// Função para abrir turma via turma_disciplina
+async function abrirTurmaViaDisciplina(td) {
+  // Primeiro, garantir que a turma está carregada
+  if (!todasTurmas || !todasTurmas.length) {
+    if (typeof carregarTurmas === 'function') {
+      const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+      await carregarTurmas(profData.id);
+    }
+  }
+
+  turmaDisciplinaAtiva = td; // <-- Atualiza o estado global!
+  turmaAtiva = td.turmas;    // <-- Atualiza a turma ativa
+  
+  // Limpa e carrega os dados
+  await _carregarContextoTurmaViaDisciplina(td);
+  
+  // Abre a página padrão (relatório geral)
+  esconderTudo();
+  const nome = turmaAtiva?.nome || '';
+  atualizarCabecalho({ info: `Relatórios - ${td.disciplinas?.nome || '—'}`, titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
+  atualizarHeaderMobile('Relatório Geral', `${nome} - ${td.disciplinas?.nome || '—'}`, true, false);
+  _setSidebarEstadoTurma(true);
+
+  const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
+  document.getElementById('pagina-relatorio-geral').style.display = 'block';
+  
+  // Atualiza a URL
+  const url = _construirUrl('relatorio-geral', turmaAtiva, { tri: selTri });
+  window.history.pushState({ pagina: 'relatorio-geral', turmaId: String(turmaAtiva.id), turmaDisciplinaId: String(td.id), opts: { tri: selTri } }, '', url);
+  
+  await carregarRelatorio(selTri);
+}
+
+// Nova função para carregar o contexto via turma_disciplina
+async function _carregarContextoTurmaViaDisciplina(td) {
+  // Resetar TODO o estado global da turma anterior
+  relatorioCache = [];
+  alunosTurma = [];
+  aulasTurma = [];
+  avaliacoesTurma = [];
+  avalDiscFiltro = td.disciplinas?.nome || null; // <-- Filtra automaticamente na disciplina correta!
+  avaliacaoAtiva = null;
+  chamadaTemp = {};
+  triAtivo = '';
+  modoSelecionarAulas = false;
+  aulasSelecionadas = new Set();
+  grupoComposicaoSelecionada = [];
+  grupoEntrouId = null;
+  modoGrupoNotasAtivo = null;
+  editandoAulaId = null;
+  editandoAvalId = null;
+  alunosRecuperacaoExtra = new Set();
+  _relAlunoAtivo = null;
+  _relAtualIdx = null;
+  _cntSomaAtual = 0;
+  filtrosAtivos = { ano: null, turno: null };
+  
+  // Limpar caches
+  window._chamadaCache = {};
+  
+  // Salvar na sessão
+  if (typeof _ctxSalvarTurma === 'function') _ctxSalvarTurma(turmaAtiva);
+  sessionStorage.setItem('td_ativa', JSON.stringify(td)); // <-- Salva a turma_disciplina ativa na sessão
+  
+  _limparCachesVisuais();
+  await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
+}
+
 const todasPaginas = [
   'turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen',
   'pagina-relatorio-geral','pagina-relatorio-individual','pagina-mapeamento-sala',
@@ -172,6 +240,7 @@ function _executarVoltarDashboard() {
   
   // Resetar TODO o estado global
   turmaAtiva = null;
+  turmaDisciplinaAtiva = null; // <-- Limpa a turma_disciplina ativa!
   relatorioCache = [];
   alunosTurma = [];
   aulasTurma = [];
@@ -195,6 +264,7 @@ function _executarVoltarDashboard() {
   
   // Limpar caches
   window._chamadaCache = {};
+  sessionStorage.removeItem('td_ativa'); // <-- Limpa da sessão também!
   
   _setSidebarEstadoTurma(false);
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
@@ -303,6 +373,24 @@ async function _executarAbrirPagina(pagina, opts = {}) {
 async function roteadorRestaurar() {
   const { pagina, turmaId, tri } = _parsearUrl(window.location.pathname, window.location.search);
 
+  // Primeiro tenta restaurar da sessão!
+  const tdSalvo = sessionStorage.getItem('td_ativa');
+  if (tdSalvo) {
+    try {
+      const td = JSON.parse(tdSalvo);
+      // Verifica se a turma_disciplina é válida e corresponde à turmaId
+      if (td && td.turmas && String(td.turmas.id) === String(turmaId)) {
+        await abrirTurmaViaDisciplina(td);
+        if (pagina && pagina !== 'relatorio-geral') {
+          await abrirPagina(pagina, { tri });
+        }
+        return;
+      }
+    } catch (e) {
+      // Se der erro, continua o fluxo normal
+    }
+  }
+
   if (!turmaId || pagina === 'dashboard') {
     _executarVoltarDashboard();
     window.history.replaceState({ pagina: 'dashboard', turmaId: null }, '', '/dashboard');
@@ -317,9 +405,21 @@ async function roteadorRestaurar() {
     return;
   }
 
-  const opts = pagina === 'relatorio-geral' ? { tri } : {};
-  window.history.replaceState({ pagina, turmaId, opts }, '', _construirUrl(pagina, turmaAtiva, opts));
-  await _executarAbrirPagina(pagina, opts);
+  // Se tem turma tem múltiplas disciplinas, pede para selecionar? Por enquanto usa a primeira
+  if (todasTurmaDisciplinas && todasTurmaDisciplinas.length) {
+    const primeiraTd = todasTurmaDisciplinas.find(x => String(x.turmas.id) === String(turmaId));
+    if (primeiraTd) {
+      await abrirTurmaViaDisciplina(primeiraTd);
+      if (pagina && pagina !== 'relatorio-geral') {
+        await abrirPagina(pagina, { tri });
+      }
+      return;
+    }
+  } else {
+    const opts = pagina === 'relatorio-geral' ? { tri } : {};
+    window.history.replaceState({ pagina, turmaId, opts }, '', _construirUrl(pagina, turmaAtiva, opts));
+    await _executarAbrirPagina(pagina, opts);
+  }
 }
 
 // Inicializa os escutadores do History API

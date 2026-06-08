@@ -41,25 +41,27 @@ async function init() {
   }
 }
 
+let todasTurmaDisciplinas = []; // <-- Nova variável: armazena todas as turma_disciplinas do professor!
+
 async function carregarTurmas(profId) {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
 
   const tdResult = await api(`turma_disciplinas?professor_id=eq.${profId}&select=id,disciplinas(id,nome,nivel),turmas(id,nome,ano,turno,nivel,codigo,escola_id,escolas(nome,codigo_escola))`);
 
   if (tdResult && tdResult.length) {
+    todasTurmaDisciplinas = tdResult; // <-- Armazena todas as turma_disciplinas!
+    
+    // Agrupa por turma para renderizar
     const turmaMap = {};
     tdResult.forEach(td => {
       const t = td.turmas;
       if (!t) return;
       if (!turmaMap[t.id]) {
-        turmaMap[t.id] = { ...t, disciplinas: [] };
+        turmaMap[t.id] = { ...t, turmaDisciplinas: [] };
       }
-      if (td.disciplinas) turmaMap[t.id].disciplinas.push(td.disciplinas.nome);
+      turmaMap[t.id].turmaDisciplinas.push(td);
     });
-    todasTurmas = Object.values(turmaMap).map(t => ({
-      ...t,
-      disciplina: t.disciplinas.join(', ')
-    }));
+    todasTurmas = Object.values(turmaMap);
   } else {
     const pt = await api(`professor_turmas?professor_id=eq.${profId}&select=turma_id,disciplina`);
     if (!pt || !pt.length) {
@@ -105,27 +107,58 @@ function aplicarFiltros() {
   renderTurmas(lista);
 }
 
+async function abrirTurmaDisciplina(tdId) {
+  const td = todasTurmaDisciplinas.find(x => String(x.id) === String(tdId));
+  if (!td) {
+    mostrarToast('Turma/Disciplina não encontrada!');
+    return;
+  }
+  // Vamos chamar a função do router para abrir!
+  if (typeof abrirTurmaViaDisciplina === 'function') {
+    await abrirTurmaViaDisciplina(td);
+  }
+}
+
 function renderTurmas(lista) {
   const grid = document.getElementById('turmas-grid');
 
   lista = [...lista].sort((a, b) => {
     const nomeA = (a.nome || '').localeCompare(b.nome || '', 'pt-BR');
     if (nomeA !== 0) return nomeA;
-    return (a.disciplina || '').localeCompare(b.disciplina || '', 'pt-BR');
+    return 0;
   });
 
   document.getElementById('turmas-header').textContent = `Minhas turmas (${lista.length})`;
   grid.innerHTML = lista.length
     ? lista.map((t, i) => {
-        const discLabel = t.disciplina || '—';
-        return `
-          <div class="turma-card" style="animation-delay:${i * 0.04}s" onclick="abrirTurma('${t.id}')">
-            <div class="turma-ano">${t.ano}</div>
-            <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
-            <div class="turma-endereco">${t.escolas?.nome || ''}</div>
-            <div class="turma-disciplina">${discLabel}</div>
-            <div class="turma-turno">${t.turno || '—'}</div>
-          </div>`;
+        // Se tem múltiplas disciplinas, mostra uma lista de botões
+        if (t.turmaDisciplinas && t.turmaDisciplinas.length > 1) {
+          return `
+            <div class="turma-card" style="animation-delay:${i * 0.04}s">
+              <div class="turma-ano">${t.ano}</div>
+              <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
+              <div class="turma-endereco">${t.escolas?.nome || ''}</div>
+              <div class="turma-disciplina">
+                ${t.turmaDisciplinas.map(td => `
+                  <button class="btn-disc-turma" onclick="event.stopPropagation(); abrirTurmaDisciplina('${td.id}')">${td.disciplinas?.nome || '—'}</button>
+                `).join('')}
+              </div>
+              <div class="turma-turno">${t.turno || '—'}</div>
+            </div>`;
+        } else {
+          // Se só tem uma disciplina, abre diretamente a turma_disciplina
+          const td = t.turmaDisciplinas ? t.turmaDisciplinas[0] : null;
+          const discLabel = td ? td.disciplinas?.nome : (t.disciplina || '—');
+          const onclickHandler = td ? `abrirTurmaDisciplina('${td.id}')` : `abrirTurma('${t.id}')`;
+          return `
+            <div class="turma-card" style="animation-delay:${i * 0.04}s" onclick="${onclickHandler}">
+              <div class="turma-ano">${t.ano}</div>
+              <div class="turma-codigo">${t.codigo ? `${t.codigo} — ` : ''}${t.nome}</div>
+              <div class="turma-endereco">${t.escolas?.nome || ''}</div>
+              <div class="turma-disciplina">${discLabel}</div>
+              <div class="turma-turno">${t.turno || '—'}</div>
+            </div>`;
+        }
       }).join('')
     : '<div class="turma-empty">Nenhuma turma encontrada com esses filtros.</div>';
 }

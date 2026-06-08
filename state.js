@@ -5,6 +5,7 @@
 // Turmas e dados da turma ativa
 let todasTurmas = [];
 let turmaAtiva = null;
+let turmaDisciplinaAtiva = null; // <-- NOVA VARIAVEL: turma_disciplina ativa!
 let alunosTurma = [];
 let aulasTurma = [];
 let avaliacoesTurma = [];
