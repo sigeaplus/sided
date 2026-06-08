@@ -116,8 +116,36 @@ async function _carregarContextoTurma(id) {
 
   turmaAtiva = todasTurmas.find(t => String(t.id) === String(id)) || null;
   if (!turmaAtiva) return;
+
+  // Resetar TODO o estado global da turma anterior
   relatorioCache = [];
   alunosTurma = [];
+  aulasTurma = [];
+  avaliacoesTurma = [];
+  avalDiscFiltro = null;
+  avaliacaoAtiva = null;
+  chamadaTemp = {};
+  triAtivo = '';
+  modoSelecaoAulas = false;
+  aulasSelecionadas = new Set();
+  grupoComposicaoSelecionada = [];
+  grupoEntrouId = null;
+  modoGrupoNotasAtivo = null;
+  editandoAulaId = null;
+  editandoAvalId = null;
+  alunosRecuperacaoExtra = new Set();
+  _relAlunoAtivo = null;
+  _relAtualIdx = null;
+  _cntSomaAtual = 0;
+  filtrosAtivos = { ano: null, turno: null };
+  
+  // Limpar caches
+  window._chamadaCache = {};
+  // Não limpar gruposAvaliacaoConfig pois é por turma (chave inclui turma id)
+  
+  // Salvar a nova turma na sessão via context-guard
+  if (typeof _ctxSalvarTurma === 'function') _ctxSalvarTurma(turmaAtiva);
+  
   _limparCachesVisuais();
   await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
 }
@@ -141,7 +169,33 @@ function _executarVoltarDashboard() {
   esconderTudo();
   const dash = document.getElementById('dashboard-screen');
   if (dash) dash.style.display = 'block';
+  
+  // Resetar TODO o estado global
   turmaAtiva = null;
+  relatorioCache = [];
+  alunosTurma = [];
+  aulasTurma = [];
+  avaliacoesTurma = [];
+  avalDiscFiltro = null;
+  avaliacaoAtiva = null;
+  chamadaTemp = {};
+  triAtivo = '';
+  modoSelecionarAulas = false;
+  aulasSelecionadas = new Set();
+  grupoComposicaoSelecionada = [];
+  grupoEntrouId = null;
+  modoGrupoNotasAtivo = null;
+  editandoAulaId = null;
+  editandoAvalId = null;
+  alunosRecuperacaoExtra = new Set();
+  _relAlunoAtivo = null;
+  _relAtualIdx = null;
+  _cntSomaAtual = 0;
+  filtrosAtivos = { ano: null, turno: null };
+  
+  // Limpar caches
+  window._chamadaCache = {};
+  
   _setSidebarEstadoTurma(false);
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const escola = profData.escolas?.nome || '';
