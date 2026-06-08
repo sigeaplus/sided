@@ -352,7 +352,13 @@ async function carregarRelatorio(tri) {
   let faltas = [];
   if (alunosTurma.length) {
     const ids = alunosTurma.map(a => a.id).join(',');
-    faltas = await api(`chamadas?aluno_id=in.(${ids})&presente=eq.false&select=aluno_id`) || [];
+    const _tdId = turmaDisciplinaAtiva?.id;
+    const _aulasRelIds = _tdId
+      ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
+      : aulasTurma.map(a => a.id);
+    faltas = (_aulasRelIds.length)
+      ? await api(`chamadas?aluno_id=in.(${ids})&aula_id=in.(${_aulasRelIds.join(',')})&presente=eq.false&select=aluno_id`) || []
+      : [];
     if (token !== _relatorioCargaToken) return;
   }
   const faltasPorAluno = {};
@@ -372,7 +378,7 @@ async function carregarRelatorio(tri) {
       const idsAlunos = alunosTurma.map(a => a.id).join(',');
       const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&select=aluno_id,nota_final`) || [];
       if (token !== _relatorioCargaToken) return;
-      confRes.forEach(c => { notasConfirmadasMap[String(c.aluno_id)] = Number(c.nota_final); });
+      confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
     } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
   }
 
@@ -384,7 +390,7 @@ async function carregarRelatorio(tri) {
     const discsSet = [...new Set(avalTri.map(a => a.disciplina).filter(Boolean))].sort();
     thead.innerHTML = `<th>Aluno</th>` +
       discsSet.map(d => `<th style="white-space:nowrap;">${d}</th>`).join('') +
-      `<th>Total</th><th>Nota Final</th><th>Faltas</th>`;
+      `<th>Total</th><th>Faltas</th>`;
 
     relatorioCache = alunosTurma.map(a => {
       const notasPorDisc = {};
@@ -399,7 +405,7 @@ async function carregarRelatorio(tri) {
       // Em Fundamental I, limitar cada disciplina a 30 pts
       const somaCalc = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
       // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(String(a.id)) ? notasConfirmadasMap[String(a.id)] : null;
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
       const total = notaFechada !== null ? notaFechada : somaCalc;
       return { aluno: a, notasPorDisc, discsSet, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
@@ -407,7 +413,7 @@ async function carregarRelatorio(tri) {
     // Fundamental II: colunas por avaliação (comportamento original)
     thead.innerHTML = `<th>Aluno</th>` +
       avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
-      `<th>Total de Notas</th><th>Nota Final</th><th>Faltas</th>`;
+      `<th>Total de Notas</th><th>Faltas</th>`;
 
     relatorioCache = alunosTurma.map(a => {
       const notasAluno = avalTri.map(av => {
@@ -426,7 +432,7 @@ async function carregarRelatorio(tri) {
       }, 0);
       const somaCalc = somaBase + somaRecPar + somaRecup;
       // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(String(a.id)) ? notasConfirmadasMap[String(a.id)] : null;
+      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
       const total = notaFechada !== null ? notaFechada : somaCalc;
       return { aluno: a, notasAluno, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
     });
@@ -457,11 +463,6 @@ function renderRelatorio(dados, avalTri) {
         ${r.total.toFixed(1)}<span style="font-weight:400;font-size:11px;color:var(--text-muted);"> / ${r.totalEsperado}</span>
         ${r.notaFechada !== null ? `<span style="display:inline-block;margin-left:5px;font-size:9px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;">✎ confirmada</span>` : ''}
         <div style="font-size:10px;margin-top:2px;color:${r.abaixo?'#C0392B':'#15803D'};">${r.abaixo?'⚠ Abaixo da média ('+r.media+')':'✓ Acima da média'}</div>
-      </td>
-      <td style="font-weight:700;color:${r.notaFechada !== null ? '#7C3AED' : 'var(--text-muted)'};">
-        ${r.notaFechada !== null
-          ? `${r.notaFechada.toFixed(1)}<span style="display:inline-block;margin-left:4px;font-size:9px;background:#F3F0FF;color:#7C3AED;border:1px solid #DDD6FE;border-radius:4px;padding:1px 5px;font-weight:700;">✎</span>`
-          : `<span style="font-size:12px;color:var(--text-muted);">—</span>`}
       </td>
       <td style="color:${r.faltas>0?'#C0392B':'var(--text-muted)'};">${r.faltas}</td>
     </tr>`).join('');
@@ -664,10 +665,18 @@ async function abrirFichaAluno(alunoId) {
   const mediaPorTri = { 1: 18, 2: 18, 3: 24 };
 
   // buscar notas e faltas
+  const _tdId = turmaDisciplinaAtiva?.id;
+  const _aulasFichaIds = _tdId
+    ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
+    : aulasTurma.map(a => a.id);
+  const _chamadaFilter = _aulasFichaIds.length
+    ? `&aula_id=in.(${_aulasFichaIds.join(',')})`
+    : '';
+
   const [notasRes, faltasRes, todasChamadas] = await Promise.all([
     todasAvals.length ? api(`notas?avaliacao_id=in.(${todasAvals.map(a=>a.id).join(',')})&aluno_id=eq.${idAluno}&select=*`) : Promise.resolve([]),
-    api(`chamadas?aluno_id=eq.${idAluno}&presente=eq.false&select=aula_id`),
-    api(`chamadas?aluno_id=eq.${idAluno}&select=aula_id,presente`)
+    api(`chamadas?aluno_id=eq.${idAluno}&presente=eq.false${_chamadaFilter}&select=aula_id`),
+    api(`chamadas?aluno_id=eq.${idAluno}${_chamadaFilter}&select=aula_id,presente`)
   ]);
 
   const mapNotas = {};
@@ -733,7 +742,7 @@ async function abrirFichaAluno(alunoId) {
     const avNorm = porTri[tri].filter(a => a.tipo !== 'recuperacao' && !_isNotaFinal(a));
     const avRecup = porTri[tri].filter(a => a.tipo === 'recuperacao');
     const isFundI = isFundamentalI();
-
+    
     // Em Fundamental I, somaTri = soma por disciplina (máximo 30 cada)
     // Em outros: somaTri = soma de todas as avaliações
     let somaTri = 0;
@@ -758,7 +767,7 @@ async function abrirFichaAluno(alunoId) {
         return s + notaVal + recVal;
       }, 0);
     }
-
+    
     const abaixo = somaTri < mediaPorTri[tri];
 
     // Conteúdo interno: Fundamental I = por disciplina, Fundamental II = por avaliação

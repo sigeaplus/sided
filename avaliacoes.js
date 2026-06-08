@@ -202,12 +202,11 @@ async function cnt_salvar() {
 
   const aluno = (alunosTurma || []).find(a => String(a.id) === String(alunoId));
   const tipo = document.getElementById('cnt-tipo')?.value || 'trimestral';
-  const _profData = (typeof profData !== 'undefined' && profData?.id) ? profData : JSON.parse(sessionStorage.getItem('prof_data') || '{}');
 
   const payload = {
     turma_id       : turmaAtiva.id,
-    aluno_id       : alunoId,
-    professor_id   : _profData.id,
+    aluno_id       : parseInt(alunoId),
+    professor_id   : profData.id,
     trimestre      : parseInt(tri),
     nota_final     : nota,
     soma_original  : _cntSomaAtual,
@@ -216,8 +215,7 @@ async function cnt_salvar() {
   };
 
   try {
-    console.log('[CNT payload]', JSON.stringify(payload));
-    await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
+    await api('notas_confirmadas', {
       method : 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body   : JSON.stringify(payload)
@@ -361,11 +359,14 @@ function entrarNoGrupo(id) {
 }
 
 async function carregarAvaliacoes() {
+  const _tdId = turmaDisciplinaAtiva?.id;
   avaliacoesTurma = await apiCached(
-    `avaliacoes?turma_id=eq.${turmaAtiva.id}&select=*&order=created_at`,
+    _tdId
+      ? `avaliacoes?turma_disciplina_id=eq.${_tdId}&select=*&order=created_at`
+      : `avaliacoes?turma_id=eq.${turmaAtiva.id}&professor_id=eq.${JSON.parse(sessionStorage.getItem('prof_data')||'{}').id}&select=*&order=created_at`,
     turmaAtiva.id, 'avaliacoes', 30000
   );
-
+  
   // garantir que alunos estão carregados
   if (!alunosTurma.length) {
     alunosTurma = await api(`alunos?turma_id=eq.${turmaAtiva.id}&select=*&order=nome_completo`) || [];
@@ -623,7 +624,7 @@ async function salvarAvaliacao() {
   if (isFundI && disciplina && !_isGrupoTipo(tipo)) {
     const triAtual = parseInt(document.getElementById('aval-tri').value);
     let totalPontosDisc = 0;
-
+    
     avaliacoesTurma.forEach(aval => {
       // Contar apenas avaliações normais (não recuperação) do mesmo trimestre e disciplina
       if (aval.tipo !== 'recuperacao' && !_isNotaFinal(aval) && 
@@ -633,7 +634,7 @@ async function salvarAvaliacao() {
         totalPontosDisc += Number(aval.pontos || 0);
       }
     });
-
+    
     if (totalPontosDisc + pontos > 30) {
       alEl.textContent = `Erro: a disciplina "${disciplina}" já tem ${totalPontosDisc} pts. Máximo por disciplina é 30 pts.`;
       alEl.style.display = 'block'; 
@@ -652,6 +653,7 @@ async function salvarAvaliacao() {
     trimestre: parseInt(document.getElementById('aval-tri').value),
     tipo: tipoPersistir,
     turma_id: turmaAtiva.id,
+    turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
     professor_id: profData.id,
     ...(disciplina ? { disciplina } : {})
   };
@@ -1154,9 +1156,9 @@ async function salvarNotasAluno(avancar = false) {
         nao_realizado: false,
         ausente: false
       };
-      await api('notas?on_conflict=avaliacao_id,aluno_id', {
+      await api('notas', {
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
         body: JSON.stringify(row)
       });
       // Sincronizar input na tela principal se existir
@@ -1237,10 +1239,14 @@ async function salvarTodasNotas() {
           nota: document.getElementById(`gnota-${sub.id}-${a.id}`)?.value !== '' && document.getElementById(`gnota-${sub.id}-${a.id}`)?.value != null ? parseFloat(document.getElementById(`gnota-${sub.id}-${a.id}`)?.value) : null,
           recuperacao_paralela: null,
           nao_realizado: false,
+          turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
           lancado_em: new Date().toISOString()
         }));
-        await api(`notas?avaliacao_id=eq.${sub.id}`, { method: 'DELETE' });
-        if (rowsSub.length) await api('notas?on_conflict=avaliacao_id,aluno_id', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(rowsSub) });
+        if (rowsSub.length) await api('notas', {
+          method : 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body   : JSON.stringify(rowsSub)
+        });
       }
       const chaveAval = turmaAtiva.id + '::avaliacoes';
       Object.keys(_cache).forEach(k => { if (k === chaveAval) delete _cache[k]; });
@@ -1258,6 +1264,7 @@ async function salvarTodasNotas() {
         nota: document.getElementById(`nr-${a.id}`)?.checked ? null : (document.getElementById(`nota-${a.id}`)?.value !== '' && document.getElementById(`nota-${a.id}`)?.value != null ? parseFloat(document.getElementById(`nota-${a.id}`)?.value) : null),
         recuperacao_paralela: document.getElementById(`rec-${a.id}`)?.value !== '' && document.getElementById(`rec-${a.id}`)?.value != null ? parseFloat(document.getElementById(`rec-${a.id}`)?.value) : null,
         nao_realizado: document.getElementById(`nr-${a.id}`)?.checked || false,
+        turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
         lancado_em: new Date().toISOString()
       }));
 
@@ -1273,17 +1280,21 @@ async function salvarTodasNotas() {
           aluno_id             : a.id,
           nota                 : somaTri[a.id] ?? 0,
           recuperacao_paralela : notaFinalVal,
-          nao_realizado        : false
+          nao_realizado        : false,
+          turma_disciplina_id  : turmaDisciplinaAtiva?.id || null
         };
       });
-      await api('notas?on_conflict=avaliacao_id,aluno_id', {
+      await api('notas', {
         method : 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body   : JSON.stringify(upserts)
       });
     } else {
-      await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
-      if (rows.length) await api('notas?on_conflict=avaliacao_id,aluno_id', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(rows) });
+      if (rows.length) await api('notas', {
+        method : 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+        body   : JSON.stringify(rows)
+      });
     }
 
     // Invalida só o cache de avaliações (notas mudaram, mas aulas/alunos permanecem válidos)
@@ -1371,7 +1382,7 @@ function aplicarNotaPadrao() {
       inputNota.dispatchEvent(event);
     }
   });
-
+  
   // Limpar campo de nota padrão após aplicar
   document.getElementById('nota-padrao').value = '';
 }
@@ -1385,8 +1396,11 @@ async function salvarNotas() {
     nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
     lancado_em: new Date().toISOString()
   }));
-  await api(`notas?avaliacao_id=eq.${avaliacaoAtiva.id}`, { method: 'DELETE' });
-  await api('notas?on_conflict=avaliacao_id,aluno_id', { method: 'POST', headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' }, body: JSON.stringify(rows) });
+  await api('notas', {
+    method : 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+    body   : JSON.stringify(rows)
+  });
   voltarAvaliacoes();
   await carregarAvaliacoes();
 }
@@ -1452,5 +1466,4 @@ renderAvaliacoes = function(lista, contPorAval, totalAlunos) {
 };
 
 // ═══════════════════════════════════════════════════════
-// HEATMAP NO RELATÓRIO GERAL2
-
+// HEATMAP NO RELATÓRIO GERAL

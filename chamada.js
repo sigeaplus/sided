@@ -192,9 +192,16 @@ async function carregarChamadaDeAulaEspecifica(aulaId, aulasOrdenadas) {
   document.getElementById('col-aula-label').textContent = `Aula ${numAula}`;
   document.getElementById('chamada-total-alunos').textContent = alunosTurma.length;
 
+  const _tdId = turmaDisciplinaAtiva?.id;
+  const _aulasIds = _tdId
+    ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
+    : aulasTurma.map(a => a.id);
+
   const [chamadaSalva, todasFaltas] = await Promise.all([
     api(`chamadas?aula_id=eq.${aulaData.id}&select=*`),
-    alunosTurma.length ? api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&presente=eq.false&select=aluno_id`) : Promise.resolve([])
+    (alunosTurma.length && _aulasIds.length)
+      ? api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&aula_id=in.(${_aulasIds.join(',')})&presente=eq.false&select=aluno_id`)
+      : Promise.resolve([])
   ]);
 
   const mapSalvo = {};
@@ -345,7 +352,12 @@ async function salvarChamada() {
   // Copiar automaticamente para outras aulas do mesmo dia
   if (aulaAtual) {
     const dataAtual = dataAulaOnly(aulaAtual.data);
-    const outrasMesmoDia = aulasTurma.filter(a => a.id !== aulaId && dataAulaOnly(a.data) === dataAtual);
+    const _tdId = turmaDisciplinaAtiva?.id;
+    const outrasMesmoDia = aulasTurma.filter(a =>
+      a.id !== aulaId &&
+      dataAulaOnly(a.data) === dataAtual &&
+      (_tdId ? a.turma_disciplina_id === _tdId : a.professor_id === aulaAtual.professor_id)
+    );
     for (const outra of outrasMesmoDia) {
       const rowsOutra = alunosTurma.map(a => ({ aula_id: outra.id, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
       await api(`chamadas?aula_id=eq.${outra.id}`, { method: 'DELETE' });
