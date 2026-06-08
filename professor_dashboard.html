@@ -1173,6 +1173,7 @@
 
         <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">Descrição da Aula</div>
         <textarea id="chamada-desc-aula" style="width:100%;min-height:70px;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;" placeholder="Descreva o conteúdo da aula..."></textarea>
+        <div id="chamada-faltosos-wrap" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;"></div>
 
         <div id="chamada-aviso" style="display:none;background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;color:#92400E;">
           <div style="margin-bottom:8px;">Para prosseguir com a chamada, cadastre uma nova aula para esta data.</div>
@@ -1203,15 +1204,7 @@
                   onmouseout="this.style.background='var(--white)';this.style.color='var(--text-muted)'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
                 </button>
-                <div id="menu-pontinhos-chamada" data-btn-id="btn-mais-chamada"
-                  style="display:none;position:fixed;background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,0.15);overflow:hidden;min-width:180px;z-index:600;border:1px solid var(--border);">
-                  <button onclick="abrirMultiChamada(); toggleMenuPontinhos('chamada', document.getElementById('btn-mais-chamada'))"
-                    style="width:100%;padding:12px 16px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text);text-align:left;"
-                    onmouseover="this.style.background='var(--purple-light)'" onmouseout="this.style.background='none'">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    Multi chamada
-                  </button>
-                </div>
+
               </div>
               <!-- Botão modo inverso -->
               <button id="btn-modo-inverso" onclick="toggleModoInversoChamada()" title="Modo inverso: todos faltaram, marcar só os presentes"
@@ -2659,68 +2652,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-multi-chamada" onclick="fecharModalOutside(event,'modal-multi-chamada')">
-  <div class="modal" style="max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
-    <div class="modal-header" style="background:linear-gradient(135deg,#6C4FD4,#4F46E5);border-radius:16px 16px 0 0;padding:18px 22px;flex-shrink:0;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg>
-        </div>
-        <div>
-          <div style="font-size:15px;font-weight:700;color:#fff;">Multi Chamada</div>
-          <div style="font-size:11px;color:rgba(255,255,255,0.7);">Registre chamada para vários alunos de uma vez</div>
-        </div>
-      </div>
-      <button class="modal-close" onclick="fecharModal('modal-multi-chamada')" style="border-color:rgba(255,255,255,0.3);color:#fff;background:rgba(255,255,255,0.1);">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
 
-    <div style="flex:1;overflow-y:auto;">
-      <div class="modal-body">
-        <div id="multi-chamada-alert" style="display:none;" class="alert-box error"></div>
-
-        <div id="multi-chamada-etapa-1">
-          <div class="field">
-            <label>Lista de alunos <span style="font-size:10px;color:var(--danger);font-weight:700;">*</span></label>
-            <textarea id="multi-chamada-nomes" rows="8"
-              placeholder="Cole ou digite um nome por linha:&#10;João da Silva&#10;Maria Oliveira&#10;Pedro Santos"
-              style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.8;transition:border-color 0.2s;"
-              onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">Um nome por linha. Cada aluno terá seu próprio seletor de aula.</div>
-          </div>
-          <button onclick="gerarPreviewMultiChamada()"
-            style="width:100%;padding:11px;border-radius:9px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity 0.15s;"
-            onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-            Avançar
-          </button>
-        </div>
-
-        <div id="multi-chamada-etapa-2" style="display:none;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <button onclick="document.getElementById('multi-chamada-etapa-1').style.display='block';document.getElementById('multi-chamada-etapa-2').style.display='none';"
-              style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;cursor:pointer;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Voltar
-            </button>
-            <button onclick="marcarTodosPresente()"
-              style="padding:6px 12px;border-radius:7px;border:1.5px solid #22C55E;background:#DCFCE7;color:#166534;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
-              ✓ Todos presentes
-            </button>
-          </div>
-
-          <div id="multi-chamada-preview-wrap">
-            <div id="multi-chamada-preview"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="fecharModal('modal-multi-chamada')">Cancelar</button>
-      <button class="btn-save" id="btn-salvar-multi-chamada" onclick="salvarMultiChamada()">Salvar chamadas</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
