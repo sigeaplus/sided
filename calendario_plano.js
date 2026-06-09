@@ -102,7 +102,9 @@ async function calHandleFile(input) {
 
 function _planoStorageDir() {
   const ano = new Date().getFullYear();
-  return `planos/${turmaAtiva?.id || 'turma'}_${ano}`;
+  const tdId = turmaDisciplinaAtiva?.id;
+  const base = tdId ? `td_${tdId}` : (turmaAtiva?.id || 'turma');
+  return `planos/${base}_${ano}`;
 }
 
 function _sanitizarNomeArquivo(nome) {
@@ -177,7 +179,8 @@ function _planoRenderLista(files) {
 
 async function iniciarPlanoCurso() {
   const label = document.getElementById('plano-turma-label');
-  if (label) label.textContent = turmaAtiva ? `${turmaAtiva.nome} · ${turmaAtiva.disciplina || ''} · ${new Date().getFullYear()}` : '';
+  const discLabel = turmaDisciplinaAtiva?.disciplinas?.nome || turmaAtiva?.disciplina || '';
+  if (label) label.textContent = turmaAtiva ? `${turmaAtiva.nome} · ${discLabel} · ${new Date().getFullYear()}` : '';
 
   document.getElementById('plano-empty').style.display = 'none';
   document.getElementById('plano-viewer').style.display = 'none';
