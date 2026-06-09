@@ -570,6 +570,28 @@ async function criarAulaParaData() {
   await carregarChamadaPorData(dataISO);
 }
 
+// Alias para compatibilidade com onclick gerado no HTML
+window.editarAula = function(aulaId) {
+  const aula = aulasTurma.find(a => String(a.id) === String(aulaId));
+  if (aula) {
+    abrirModalAula(aula);
+  } else {
+    api(`aulas?id=eq.${aulaId}&select=*`).then(res => {
+      if (res && res[0]) abrirModalAula(res[0]);
+    });
+  }
+};
+
+// Garante que todasTurmas está preenchido (recarrega se vazio)
+async function garantirTodasTurmas() {
+  if (todasTurmas && todasTurmas.length > 0) return;
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  if (!profData.id) return;
+  if (typeof carregarTurmas === 'function') {
+    await carregarTurmas(profData.id);
+  }
+}
+
 let aulaParaCopiar = null;
 
 window.duplicarAula = async function(aulaId) {

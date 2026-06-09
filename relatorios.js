@@ -1272,7 +1272,11 @@ async function trimestresEstaFechado(tri) {
   const cached = _bloqueioCacheLer(tri);
   if (cached !== undefined) return cached;
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  const res = await api(`trimestres_fechados?turma_id=eq.${turmaAtiva.id}&professor_id=eq.${profData.id}&trimestre=eq.${tri}&aberto_em=is.null&select=id&limit=1`);
+  const tdId = turmaDisciplinaAtiva?.id;
+  const query = tdId
+    ? `trimestres_fechados?turma_disciplina_id=eq.${tdId}&trimestre=eq.${tri}&aberto_em=is.null&select=id&limit=1`
+    : `trimestres_fechados?turma_id=eq.${turmaAtiva.id}&professor_id=eq.${profData.id}&trimestre=eq.${tri}&aberto_em=is.null&select=id&limit=1`;
+  const res = await api(query);
   const v = !!(res && res.length > 0);
   _bloqueioCacheSet(tri, v);
   return v;

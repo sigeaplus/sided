@@ -47,23 +47,31 @@ async function filtrarFechamentoTri(tri) {
 
 async function carregarDadosFechamento(profData, tri) {
   try {
-  const pt = await api(`professor_turmas?professor_id=eq.${profData.id}&select=turma_id`);
-  if (!pt || !pt.length) {
+  // Usar todasTurmaDisciplinas já carregado no dashboard
+  const tdList = (typeof todasTurmaDisciplinas !== 'undefined' && todasTurmaDisciplinas.length)
+    ? todasTurmaDisciplinas
+    : await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,disciplinas(id,nome),turmas(id,nome,ano,turno,nivel,codigo,escola_id,escolas(nome,codigo_escola))`) || [];
+
+  if (!tdList.length) {
     document.getElementById('ft-loading').innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted);">Nenhuma turma associada.</div>';
     return;
   }
-  const ids = pt.map(r => r.turma_id).join(',');
-  let turmas = await api(`turmas?id=in.(${ids})&select=*,escolas(nome,codigo_escola)&order=nome`) || [];
 
-  const idsFiltrados = turmas.map(t => t.id).join(',');
-  const fechados = idsFiltrados ? (await api(`trimestres_fechados?turma_id=in.(${idsFiltrados})&trimestre=eq.${tri}&aberto_em=is.null&select=turma_id,fechado_em`) || []) : [];
-  const fechadosSet = new Set(fechados.map(f => f.turma_id));
+  const tdIds = tdList.map(td => td.id).join(',');
+  const fechados = tdIds
+    ? await api(`trimestres_fechados?turma_disciplina_id=in.(${tdIds})&trimestre=eq.${tri}&aberto_em=is.null&select=turma_disciplina_id,fechado_em`) || []
+    : [];
+  const fechadosSet = new Set(fechados.map(f => f.turma_disciplina_id));
   const fechadosMap = {};
-  fechados.forEach(f => { fechadosMap[f.turma_id] = f; });
+  fechados.forEach(f => { fechadosMap[f.turma_disciplina_id] = f; });
 
-  const resultados = (await Promise.all(turmas.map(async t => {
-    if (fechadosSet.has(t.id)) {
-      return [{ turma: t, status: 'fechada', p: null, fechadoEm: fechadosMap[t.id]?.fechado_em, disciplina: null }];
+  const resultados = (await Promise.all(tdList.map(async td => {
+    const t = td.turmas;
+    if (!t) return [];
+    const discNome = td.disciplinas?.nome || null;
+
+    if (fechadosSet.has(td.id)) {
+      return [{ turma: t, td, status: 'fechada', p: null, fechadoEm: fechadosMap[td.id]?.fechado_em, disciplina: discNome }];
     }
 
     const alunos = await api(`alunos?turma_id=eq.${t.id}&select=id`) || [];
@@ -80,7 +88,9 @@ async function carregarDadosFechamento(profData, tri) {
     const _ano = new Date().getFullYear();
     const _triIni = `${_ano}${_triDatas[tri].ini}`;
     const _triFim = `${_ano}${_triDatas[tri].fim}`;
-    const _aulasRaw = await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`);
+    const _aulasRaw = await api(`aulas?turma_disciplina_id=eq.${td.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
+      || await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
+      || [];
     const aulas = Array.isArray(_aulasRaw) ? _aulasRaw : [];
     const totalAulasCriadas = aulas.length;
     let aulasComChamada = 0;
@@ -90,58 +100,26 @@ async function carregarDadosFechamento(profData, tri) {
     }
     const temPendAulas = aulasComChamada < totalAulasCriadas;
 
-    const isFundI = (t.nivel || '').trim() === 'Fundamental I';
     const maxPontosTri = tri === 3 ? 40 : 30;
-    const avais = await api(`avaliacoes?turma_id=eq.${t.id}&trimestre=eq.${tri}&tipo=eq.normal&select=id,nome,pontos,disciplina`) || [];
+    const avais = await api(`avaliacoes?turma_disciplina_id=eq.${td.id}&trimestre=eq.${tri}&tipo=eq.normal&select=id,nome,pontos`)
+      || await api(`avaliacoes?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&trimestre=eq.${tri}&tipo=eq.normal&select=id,nome,pontos`)
+      || [];
 
-    if (!isFundI) {
-      let pontosLancados = 0;
-      const avaisNormais = avais.filter(av => !av.nome?.startsWith('__NOTA_FINAL__'));
-      if (avaisNormais.length > 0 && totalAlunos > 0) {
-        const ids = avaisNormais.map(a => a.id).join(',');
-        const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
-        const contPorAval = {};
-        notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
-        avaisNormais.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
-      }
-      const temPendNotas = pontosLancados < maxPontosTri;
-      const status = (temPendAulas || temPendNotas) ? 'pendencia' : 'apta';
-      return [{ turma: t, status, disciplina: null, p: {
-        totalAulasCriadas, aulasLecionadas: aulasComChamada, temPendAulas,
-        pontosLancados, maxPontosTri, temPendNotas
-      }}];
+    const avaisNormais = avais.filter(av => !av.nome?.startsWith('__NOTA_FINAL__'));
+    let pontosLancados = 0;
+    if (avaisNormais.length > 0 && totalAlunos > 0) {
+      const ids = avaisNormais.map(a => a.id).join(',');
+      const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
+      const contPorAval = {};
+      notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
+      avaisNormais.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
     }
-
-    const disciplinasAvais = [...new Set(avais.map(a => a.disciplina).filter(Boolean))];
-    if (disciplinasAvais.length === 0) {
-      const status = temPendAulas ? 'pendencia' : 'apta';
-      return [{ turma: t, status, disciplina: null, isFundI: true, p: {
-        totalAulasCriadas, aulasLecionadas: aulasComChamada, temPendAulas,
-        pontosLancados: 0, maxPontosTri, temPendNotas: true
-      }}];
-    }
-
-    let contPorAval = {};
-    const avaisParaContar = avais.filter(av => !av.nome?.startsWith('__NOTA_FINAL__'));
-    if (totalAlunos > 0) {
-      const ids = avaisParaContar.map(a => a.id).join(',');
-      if (ids) {
-        const notas = await api(`notas?avaliacao_id=in.(${ids})&select=avaliacao_id,nota,nao_realizado`) || [];
-        notas.forEach(n => { if (n.nota !== null || n.nao_realizado) contPorAval[n.avaliacao_id] = (contPorAval[n.avaliacao_id]||0)+1; });
-      }
-    }
-
-    return disciplinasAvais.map(disc => {
-      const avaisDisc = avaisParaContar.filter(av => av.disciplina === disc);
-      let pontosLancados = 0;
-      avaisDisc.forEach(av => { if ((contPorAval[av.id]||0) >= totalAlunos) pontosLancados += Number(av.pontos); });
-      const temPendNotas = pontosLancados < maxPontosTri;
-      const status = temPendNotas ? 'pendencia' : 'apta';
-      return { turma: t, status, disciplina: disc, isFundI: true, p: {
-        totalAulasCriadas, aulasLecionadas: aulasComChamada, temPendAulas,
-        pontosLancados, maxPontosTri, temPendNotas
-      }};
-    });
+    const temPendNotas = pontosLancados < maxPontosTri;
+    const status = (temPendAulas || temPendNotas) ? 'pendencia' : 'apta';
+    return [{ turma: t, td, status, disciplina: discNome, p: {
+      totalAulasCriadas, aulasLecionadas: aulasComChamada, temPendAulas,
+      pontosLancados, maxPontosTri, temPendNotas
+    }}];
   }))).flat();
 
   ftResultados = resultados;
@@ -247,7 +225,7 @@ function renderFechamentoCategoria(categoria) {
           <span>Aulas lecionadas: <strong>${r.p.aulasLecionadas}/${r.p.totalAulasCriadas}</strong></span>
           <span>Notas: <strong>${r.p.pontosLancados}/${r.p.maxPontosTri}</strong></span>
         </div>
-        <button onclick="confirmarFecharTrimestre('${r.turma.id}', '${r.disciplina||''}', this)"
+        <button onclick="confirmarFecharTrimestre('${r.td.id}', '${r.disciplina||''}', this)"
           style="padding:9px 20px;border-radius:10px;border:none;background:#22C55E;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;"
           onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           Fechar divisão
@@ -272,16 +250,20 @@ function renderFechamentoCategoria(categoria) {
   }
 }
 
-async function confirmarFecharTrimestre(turmaId, disciplina, btn) {
+async function confirmarFecharTrimestre(tdId, disciplina, btn) {
   if (disciplina && typeof disciplina === 'object') { btn = disciplina; disciplina = ''; }
   const discMsg = disciplina ? ` (${disciplina})` : '';
   if (!confirm(`Tem certeza? Após fechar${discMsg}, nenhum dado poderá ser editado. Somente o Administrador poderá reabrir.`)) return;
   btn.disabled = true;
   btn.textContent = 'Fechando...';
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  // Buscar turma_id a partir do td
+  const tdObj = ftResultados.find(r => r.td?.id === tdId || String(r.td?.id) === String(tdId));
+  const turmaId = tdObj?.turma?.id;
   try {
     const body = {
-      turma_id: turmaId,
+      turma_disciplina_id: tdId,
+      turma_id: turmaId || null,
       professor_id: profData.id,
       trimestre: ftTriAtivo,
       fechado_em: new Date().toISOString()
