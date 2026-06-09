@@ -353,9 +353,15 @@ async function carregarRelatorio(tri) {
   if (alunosTurma.length) {
     const ids = alunosTurma.map(a => a.id).join(',');
     const _tdId = turmaDisciplinaAtiva?.id;
-    const _aulasRelIds = _tdId
-      ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
-      : aulasTurma.map(a => a.id);
+    const profData2 = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    let _aulasRelIds;
+    if (_tdId) {
+      const _comTd = aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id);
+      const _semTd = aulasTurma.filter(a => !a.turma_disciplina_id && a.professor_id === profData2.id).map(a => a.id);
+      _aulasRelIds = [..._comTd, ..._semTd];
+    } else {
+      _aulasRelIds = aulasTurma.map(a => a.id);
+    }
     faltas = (_aulasRelIds.length)
       ? await api(`chamadas?aluno_id=in.(${ids})&aula_id=in.(${_aulasRelIds.join(',')})&presente=eq.false&select=aluno_id`) || []
       : [];
@@ -667,9 +673,20 @@ async function abrirFichaAluno(alunoId) {
 
   // buscar notas e faltas
   const _tdId = turmaDisciplinaAtiva?.id;
-  const _aulasFichaIds = _tdId
-    ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
-    : aulasTurma.map(a => a.id);
+  const profData2 = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+
+  // Buscar IDs de aulas da disciplina ativa (inclui legados com turma_disciplina_id NULL)
+  let _aulasFichaIds = [];
+  if (_tdId) {
+    // Primeiro tenta as que já têm turma_disciplina_id populado
+    const _comTd = aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id);
+    // Também pega as legadas (NULL) filtrando por professor_id como fallback
+    const _semTd = aulasTurma.filter(a => !a.turma_disciplina_id && a.professor_id === profData2.id).map(a => a.id);
+    _aulasFichaIds = [..._comTd, ..._semTd];
+  } else {
+    _aulasFichaIds = aulasTurma.map(a => a.id);
+  }
+
   const _chamadaFilter = _aulasFichaIds.length
     ? `&aula_id=in.(${_aulasFichaIds.join(',')})`
     : '';

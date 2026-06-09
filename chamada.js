@@ -193,9 +193,15 @@ async function carregarChamadaDeAulaEspecifica(aulaId, aulasOrdenadas) {
   document.getElementById('chamada-total-alunos').textContent = alunosTurma.length;
 
   const _tdId = turmaDisciplinaAtiva?.id;
-  const _aulasIds = _tdId
-    ? aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id)
-    : aulasTurma.map(a => a.id);
+  const _profId = JSON.parse(sessionStorage.getItem('prof_data') || '{}').id;
+  let _aulasIds;
+  if (_tdId) {
+    const _comTd = aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id);
+    const _semTd = aulasTurma.filter(a => !a.turma_disciplina_id && a.professor_id === _profId).map(a => a.id);
+    _aulasIds = [..._comTd, ..._semTd];
+  } else {
+    _aulasIds = aulasTurma.map(a => a.id);
+  }
 
   const [chamadaSalva, todasFaltas] = await Promise.all([
     api(`chamadas?aula_id=eq.${aulaData.id}&select=*`),
