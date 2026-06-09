@@ -138,8 +138,9 @@ async function cnt_atualizarSoma() {
   somaDetalhe.textContent = `de ${max} pts`;
 
   // Verificar se já tem nota confirmada no Supabase
+  const _tdFilter = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
   const ja = await api(
-    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=*&limit=1`
+    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}${_tdFilter}&select=*&limit=1`
   );
 
   if (ja && ja[0]) {
@@ -204,14 +205,15 @@ async function cnt_salvar() {
   const tipo = document.getElementById('cnt-tipo')?.value || 'trimestral';
 
   const payload = {
-    turma_id       : turmaAtiva.id,
-    aluno_id       : parseInt(alunoId),
-    professor_id   : profData.id,
-    trimestre      : parseInt(tri),
-    nota_final     : nota,
-    soma_original  : _cntSomaAtual,
-    justificativa  : just,
-    updated_at     : new Date().toISOString()
+    turma_id            : turmaAtiva.id,
+    turma_disciplina_id : turmaDisciplinaAtiva?.id || null,
+    aluno_id            : parseInt(alunoId),
+    professor_id        : profData.id,
+    trimestre           : parseInt(tri),
+    nota_final          : nota,
+    soma_original       : _cntSomaAtual,
+    justificativa       : just,
+    updated_at          : new Date().toISOString()
   };
 
   try {
@@ -236,8 +238,9 @@ async function cnt_remover() {
   if (!confirm('Remover a nota confirmada? A soma calculada voltará a ser exibida.')) return;
 
   try {
+    const _tdFilterRem = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
     await api(
-      `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}`,
+      `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}${_tdFilterRem}`,
       { method: 'DELETE' }
     );
     mostrarToast('Nota confirmada removida.');
@@ -250,8 +253,9 @@ async function cnt_remover() {
 
 // Expõe a nota confirmada para uso no relatório/ficha do aluno (async — Supabase)
 async function cntObterNotaFinal(turmaId, tri, alunoId) {
+  const _tdFilter = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
   const res = await api(
-    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}&select=nota_final&limit=1`
+    `notas_confirmadas?aluno_id=eq.${alunoId}&trimestre=eq.${tri}${_tdFilter}&select=nota_final&limit=1`
   );
   return res && res[0] ? res[0].nota_final : null;
 }

@@ -376,7 +376,8 @@ async function carregarRelatorio(tri) {
   if (alunosTurma.length) {
     try {
       const idsAlunos = alunosTurma.map(a => a.id).join(',');
-      const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}&select=aluno_id,nota_final`) || [];
+      const _tdFilterRel = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
+      const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}${_tdFilterRel}&select=aluno_id,nota_final`) || [];
       if (token !== _relatorioCargaToken) return;
       confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
     } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
@@ -685,7 +686,8 @@ async function abrirFichaAluno(alunoId) {
   // Buscar notas confirmadas dos 3 trimestres para este aluno
   const notasConfAluno = {};
   try {
-    const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${idAluno}&select=trimestre,nota_final`) || [];
+    const _tdFilterFicha = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
+    const confResAluno = await api(`notas_confirmadas?aluno_id=eq.${idAluno}${_tdFilterFicha}&select=trimestre,nota_final`) || [];
     confResAluno.forEach(c => { notasConfAluno[c.trimestre] = Number(c.nota_final); });
   } catch(e) { console.warn('[Ficha] Erro ao buscar notas confirmadas:', e); }
 

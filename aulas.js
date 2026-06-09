@@ -559,6 +559,7 @@ async function criarAulaParaData() {
     descricao: '',
     status: 'lecionada',
     turma_id: turmaAtiva.id,
+    turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
     professor_id: profData.id
   };
   const res = await api('aulas', { method: 'POST', body: JSON.stringify(body) });
@@ -649,6 +650,7 @@ window.confirmarCopiarAula = async function() {
                     descricao: aulaOriginal.descricao || '',
                     status: 'futura',
                     turma_id: turmaDestinoId,
+                    turma_disciplina_id: turmaDestinoId === turmaAtiva?.id ? (turmaDisciplinaAtiva?.id || null) : null,
                     professor_id: profData.id,
                 });
             }
@@ -677,8 +679,11 @@ window.confirmarCopiarAula = async function() {
 // ── carregarAulas ────────────────────────────────────────────────────────────
 async function carregarAulas(forcarReload = false) {
   if (forcarReload) cacheInvalidar(turmaAtiva.id);
+  const _tdIdAulas = turmaDisciplinaAtiva?.id;
   window.aulasTurma = aulasTurma = await apiCached(
-    `aulas?turma_id=eq.${turmaAtiva.id}&select=*&order=data`,
+    _tdIdAulas
+      ? `aulas?turma_disciplina_id=eq.${_tdIdAulas}&select=*&order=data`
+      : `aulas?turma_id=eq.${turmaAtiva.id}&professor_id=eq.${JSON.parse(sessionStorage.getItem('prof_data')||'{}').id}&select=*&order=data`,
     turmaAtiva.id, 'aulas', 30000
   );
   await sincronizarCachesChamada();
@@ -800,6 +805,7 @@ window.salvarAula = async function() {
     descricao,
     status: statusAuto,
     turma_id: turmaAtiva.id,
+    turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
     professor_id: profData.id,
     ...(discVal ? { disciplina: discVal } : {}),
     ...(bnccVal ? { habilidade_bncc: bnccVal } : { habilidade_bncc: null }),
@@ -1180,6 +1186,7 @@ window.salvarMultiAulas = async function() {
       descricao: desc,
       status: calcularStatusAuto(dataISO, null),
       turma_id: turmaAtiva.id,
+      turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
       professor_id: profData.id,
       ...(bncc ? { habilidade_bncc: bncc } : {}),
     }));

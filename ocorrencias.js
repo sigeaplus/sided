@@ -43,7 +43,10 @@ function _ocrSalvar(lista) { localStorage.setItem(_ocrKey(), JSON.stringify(list
 // ── Supabase helpers para Ocorrências ──────────────────────────────────────
 async function _ocrCarregarSupabase(alunoId) {
   try {
-    let path = `ocorrencias?turma_id=eq.${turmaAtiva?.id}&order=data_registro.desc`;
+    const _tdIdOcr = turmaDisciplinaAtiva?.id;
+    let path = _tdIdOcr
+      ? `ocorrencias?turma_disciplina_id=eq.${_tdIdOcr}&order=data_registro.desc`
+      : `ocorrencias?turma_id=eq.${turmaAtiva?.id}&order=data_registro.desc`;
     if (alunoId) path += `&aluno_id=eq.${alunoId}`;
     const rows = await api(path + '&select=*');
     return (rows || []).map(r => ({
@@ -68,6 +71,7 @@ async function _ocrCarregarSupabase(alunoId) {
 async function _ocrSalvarSupabase(ocr) {
   const row = {
     turma_id: turmaAtiva?.id,
+    turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
     aluno_id: ocr.alunoId,
     aluno_nome: ocr.alunoNome,
     motivos: ocr.motivos,
