@@ -1246,7 +1246,7 @@ async function salvarTodasNotas() {
           turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
           lancado_em: new Date().toISOString()
         }));
-        if (rowsSub.length) await api('notas', {
+        if (rowsSub.length) await api('notas?on_conflict=avaliacao_id,aluno_id', {
           method : 'POST',
           headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
           body   : JSON.stringify(rowsSub)
@@ -1288,13 +1288,13 @@ async function salvarTodasNotas() {
           turma_disciplina_id  : turmaDisciplinaAtiva?.id || null
         };
       });
-      await api('notas', {
+      await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method : 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body   : JSON.stringify(upserts)
       });
     } else {
-      if (rows.length) await api('notas', {
+      if (rows.length) await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method : 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body   : JSON.stringify(rows)
