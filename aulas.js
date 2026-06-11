@@ -1132,12 +1132,11 @@ window._adicionarLinhaDataMulti = function() {
   const container = document.getElementById('multi-aulas-datas');
   if (!container) return;
 
-  // Verificar limite: contar linhas existentes vs dias do mês atual
+  // Verificar limite fixo de datas
   const linhas = container.querySelectorAll('.multi-data-row');
-  const hoje = new Date();
-  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-  if (linhas.length >= diasNoMes) {
-    if (typeof mostrarToast === 'function') mostrarToast(`Limite de ${diasNoMes} datas por mês atingido.`);
+  const LIMITE_MAXIMO = 100;
+  if (linhas.length >= LIMITE_MAXIMO) {
+    if (typeof mostrarToast === 'function') mostrarToast(`Limite de ${LIMITE_MAXIMO} datas atingido.`);
     return;
   }
 
@@ -1176,26 +1175,12 @@ window.salvarMultiAulas = async function() {
 
     const inputs = document.querySelectorAll('#multi-aulas-datas .multi-data-row input');
     const datasISO = [];
-    const meses = new Set();
     for (const inp of inputs) {
       const iso = parseDateBR(inp.value.trim());
       if (!iso) { alEl.textContent = `Data inválida: "${inp.value}". Use DD/MM/AAAA.`; alEl.style.display = 'block'; return; }
-      const mes = iso.slice(0, 7);
-      meses.add(mes);
       datasISO.push(iso);
     }
     if (datasISO.length === 0) { alEl.textContent = 'Adicione pelo menos uma data.'; alEl.style.display = 'block'; return; }
-
-    for (const mes of meses) {
-      const [ano, m] = mes.split('-').map(Number);
-      const diasNoMes = new Date(ano, m, 0).getDate();
-      const qtdNesteMes = datasISO.filter(d => d.startsWith(mes)).length;
-      if (qtdNesteMes > diasNoMes) {
-        alEl.textContent = `Limite de ${diasNoMes} aulas em ${mes} excedido (${qtdNesteMes} informadas).`;
-        alEl.style.display = 'block';
-        return;
-      }
-    }
 
     const btn = document.getElementById('btn-salvar-multi-aulas');
     btn.disabled = true;

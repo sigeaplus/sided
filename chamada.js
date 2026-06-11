@@ -182,6 +182,7 @@ async function carregarChamadaDeAulaEspecifica(aulaId, aulasOrdenadas) {
   const btnWrap = document.getElementById('btn-salvar-chamada-wrap');
 
   chamadaTemp = {};
+  _chamadaIdxFoco = -1; // resetar foco ao trocar de aula
   secao.style.display = 'block';
 
   // preencher descrição da aula
@@ -264,7 +265,106 @@ function renderListaChamada(faltasPorAluno) {
       </div>
     </div>`;
   }).join('');
+  // Restaurar foco visual se houver índice ativo
+  _chamadaAplicarFoco();
 }
+
+// ── NAVEGAÇÃO POR TECLADO NA CHAMADA ────────────────────────────────────────
+let _chamadaIdxFoco = -1; // índice do aluno com foco atual (-1 = nenhum)
+
+function _chamadaAplicarFoco() {
+  alunosTurma.forEach((a, i) => {
+    const row = document.getElementById('row-' + a.id);
+    if (!row) return;
+    if (i === _chamadaIdxFoco) {
+      row.style.outline = '2.5px solid var(--purple)';
+      row.style.outlineOffset = '-2px';
+      row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } else {
+      row.style.outline = '';
+      row.style.outlineOffset = '';
+    }
+  });
+}
+
+function _chamadaTeclado(e) {
+  // Só age quando a seção de chamada está visível
+  const secao = document.getElementById('chamada-secao');
+  if (!secao || secao.style.display === 'none') return;
+  // Ignorar se foco está em input/textarea/select
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  const total = alunosTurma.length;
+  if (!total) return;
+
+  const k = e.key;
+
+  if (k === 'ArrowDown') {
+    e.preventDefault();
+    _chamadaIdxFoco = _chamadaIdxFoco < total - 1 ? _chamadaIdxFoco + 1 : 0;
+    _chamadaAplicarFoco();
+    return;
+  }
+
+  if (k === 'ArrowUp') {
+    e.preventDefault();
+    _chamadaIdxFoco = _chamadaIdxFoco > 0 ? _chamadaIdxFoco - 1 : total - 1;
+    _chamadaAplicarFoco();
+    return;
+  }
+
+  // Ações só se há um aluno focado
+  if (_chamadaIdxFoco < 0 || _chamadaIdxFoco >= total) return;
+  const alunoId = alunosTurma[_chamadaIdxFoco].id;
+
+  if (k === 'Enter' || k === ' ') {
+    e.preventDefault();
+    // Marcar falta (força false)
+    chamadaTemp[alunoId] = false;
+    _chamadaAtualizarRow(alunoId, false);
+    // Avançar para próximo automaticamente
+    _chamadaIdxFoco = _chamadaIdxFoco < total - 1 ? _chamadaIdxFoco + 1 : total - 1;
+    _chamadaAplicarFoco();
+    return;
+  }
+
+  if (k === 'Shift' || k === 'Tab' || k === 'Control' || k === 'Alt') {
+    e.preventDefault();
+    // Marcar como presente (força true)
+    chamadaTemp[alunoId] = true;
+    _chamadaAtualizarRow(alunoId, true);
+    // Avançar para próximo automaticamente
+    _chamadaIdxFoco = _chamadaIdxFoco < total - 1 ? _chamadaIdxFoco + 1 : total - 1;
+    _chamadaAplicarFoco();
+    return;
+  }
+}
+
+// Atualiza visualmente uma row sem re-renderizar a lista inteira
+function _chamadaAtualizarRow(alunoId, presente) {
+  const btn = document.getElementById('btn-p-' + alunoId);
+  const row = document.getElementById('row-' + alunoId);
+  if (btn) {
+    btn.style.background = presente ? '#DCFCE7' : '#FEE2E2';
+    btn.innerHTML = presente
+      ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+      : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  }
+  if (row) {
+    row.style.background = presente ? '#fff' : '#FEE2E2';
+    row.classList.toggle('faltou', !presente);
+  }
+  renderizarFaltosos();
+  const todosPresentes = alunosTurma.every(a => chamadaTemp[a.id]);
+  const toggle = document.getElementById('toggle-todos');
+  if (toggle) { toggle.checked = todosPresentes; atualizarToggleVisual(todosPresentes); }
+}
+
+// Resetar índice de foco ao carregar nova chamada
+(function _inicializarTecladoChamada() {
+  document.addEventListener('keydown', _chamadaTeclado);
+})();
 
 function renderizarFaltosos() {
   const faltosos = alunosTurma.filter(a => !chamadaTemp[a.id]);
