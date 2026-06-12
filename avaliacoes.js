@@ -217,7 +217,7 @@ async function cnt_salvar() {
   };
 
   try {
-    await api('notas_confirmadas', {
+    await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
       method : 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body   : JSON.stringify(payload)
@@ -1155,14 +1155,13 @@ async function salvarNotasAluno(avancar = false) {
       const row = {
         avaliacao_id: aval.id,
         aluno_id: aluno.id,
-        turma_id: turmaAtiva.id,
         nota: val,
         nao_realizado: false,
         ausente: false
       };
-      await api('notas', {
+      await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body: JSON.stringify(row)
       });
       // Sincronizar input na tela principal se existir
@@ -1243,7 +1242,6 @@ async function salvarTodasNotas() {
           nota: document.getElementById(`gnota-${sub.id}-${a.id}`)?.value !== '' && document.getElementById(`gnota-${sub.id}-${a.id}`)?.value != null ? parseFloat(document.getElementById(`gnota-${sub.id}-${a.id}`)?.value) : null,
           recuperacao_paralela: null,
           nao_realizado: false,
-          turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
           lancado_em: new Date().toISOString()
         }));
         if (rowsSub.length) await api('notas?on_conflict=avaliacao_id,aluno_id', {
@@ -1268,7 +1266,6 @@ async function salvarTodasNotas() {
         nota: document.getElementById(`nr-${a.id}`)?.checked ? null : (document.getElementById(`nota-${a.id}`)?.value !== '' && document.getElementById(`nota-${a.id}`)?.value != null ? parseFloat(document.getElementById(`nota-${a.id}`)?.value) : null),
         recuperacao_paralela: document.getElementById(`rec-${a.id}`)?.value !== '' && document.getElementById(`rec-${a.id}`)?.value != null ? parseFloat(document.getElementById(`rec-${a.id}`)?.value) : null,
         nao_realizado: document.getElementById(`nr-${a.id}`)?.checked || false,
-        turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
         lancado_em: new Date().toISOString()
       }));
 
@@ -1284,8 +1281,7 @@ async function salvarTodasNotas() {
           aluno_id             : a.id,
           nota                 : somaTri[a.id] ?? 0,
           recuperacao_paralela : notaFinalVal,
-          nao_realizado        : false,
-          turma_disciplina_id  : turmaDisciplinaAtiva?.id || null
+          nao_realizado        : false
         };
       });
       await api('notas?on_conflict=avaliacao_id,aluno_id', {
@@ -1400,7 +1396,7 @@ async function salvarNotas() {
     nao_realizado: (document.getElementById(`nr-${a.id}`)?.checked || document.getElementById(`aus-${a.id}`)?.checked || false),
     lancado_em: new Date().toISOString()
   }));
-  await api('notas', {
+  await api('notas?on_conflict=avaliacao_id,aluno_id', {
     method : 'POST',
     headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body   : JSON.stringify(rows)

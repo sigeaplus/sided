@@ -397,7 +397,7 @@ async function carregarRelatorio(tri) {
     const discsSet = [...new Set(avalTri.map(a => a.disciplina).filter(Boolean))].sort();
     thead.innerHTML = `<th>Aluno</th>` +
       discsSet.map(d => `<th style="white-space:nowrap;">${d}</th>`).join('') +
-      `<th>Total</th><th>Faltas</th>`;
+      `<th>Total</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
 
     relatorioCache = alunosTurma.map(a => {
       const notasPorDisc = {};
@@ -420,7 +420,7 @@ async function carregarRelatorio(tri) {
     // Fundamental II: colunas por avaliação (comportamento original)
     thead.innerHTML = `<th>Aluno</th>` +
       avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
-      `<th>Total de Notas</th><th>Faltas</th>`;
+      `<th>Total de Notas</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
 
     relatorioCache = alunosTurma.map(a => {
       const notasAluno = avalTri.map(av => {
@@ -468,8 +468,12 @@ function renderRelatorio(dados, avalTri) {
       }
       <td style="font-weight:700;color:${r.abaixo?'#C0392B':'var(--success)'};">
         ${r.total.toFixed(1)}<span style="font-weight:400;font-size:11px;color:var(--text-muted);"> / ${r.totalEsperado}</span>
-        ${r.notaFechada !== null ? `<span style="display:inline-block;margin-left:5px;font-size:9px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;padding:1px 5px;font-weight:700;vertical-align:middle;">✎ confirmada</span>` : ''}
         <div style="font-size:10px;margin-top:2px;color:${r.abaixo?'#C0392B':'#15803D'};">${r.abaixo?'⚠ Abaixo da média ('+r.media+')':'✓ Acima da média'}</div>
+      </td>
+      <td style="font-weight:700;color:${r.notaFechada !== null ? '#7C3AED' : 'var(--text-muted)'};text-align:center;">
+        ${r.notaFechada !== null
+          ? `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;"><strong style="font-size:14px;">${Number(r.notaFechada).toFixed(1)}</strong><span style="font-size:9px;background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;border-radius:4px;padding:1px 5px;font-weight:700;">✎ confirmada</span></span>`
+          : '<span style="font-size:12px;color:var(--text-muted);">—</span>'}
       </td>
       <td style="color:${r.faltas>0?'#C0392B':'var(--text-muted)'};">${r.faltas}</td>
     </tr>`).join('');
