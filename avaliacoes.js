@@ -205,29 +205,30 @@ async function cnt_salvar() {
   const tipo = document.getElementById('cnt-tipo')?.value || 'trimestral';
 
   const payload = {
-    turma_id            : turmaAtiva.id,
-    turma_disciplina_id : turmaDisciplinaAtiva?.id || null,
-    aluno_id            : parseInt(alunoId),
-    professor_id        : profData.id,
-    trimestre           : parseInt(tri),
-    nota_final          : nota,
-    soma_original       : _cntSomaAtual,
-    justificativa       : just,
-    updated_at          : new Date().toISOString()
+    turma_id             : turmaAtiva.id,
+    turma_disciplina_id  : turmaDisciplinaAtiva?.id || null,
+    aluno_id             : parseInt(alunoId),
+    professor_id         : profData.id,
+    trimestre            : parseInt(tri),
+    nota_final           : nota,
+    soma_original        : _cntSomaAtual,
+    justificativa        : just,
+    updated_at           : new Date().toISOString()
   };
 
   try {
-    await api('notas_confirmadas?on_conflict=aluno_id,trimestre', {
+    const res = await api('notas_confirmadas?on_conflict=aluno_id,trimestre,turma_disciplina_id', {
       method : 'POST',
       headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
       body   : JSON.stringify(payload)
     });
+    console.log('[CNT] Salvo:', res);
     mostrarToast(`✓ Nota ${nota} confirmada para ${aluno?.nome_completo?.split(' ')[0] || 'aluno(a)'} no ${tri}º trimestre.`);
     fecharModal('modal-confirmar-nota-tri');
   } catch (e) {
-    alertEl.textContent = 'Erro ao salvar no banco. Tente novamente.';
+    console.error('[CNT] Erro completo:', e, JSON.stringify(payload));
+    alertEl.textContent = 'Erro: ' + (e?.message || JSON.stringify(e) || 'Tente novamente.');
     alertEl.style.display = 'block';
-    console.error('[CNT] Erro:', e);
   }
 }
 
