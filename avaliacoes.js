@@ -196,6 +196,8 @@ async function cnt_salvar() {
   const alertEl = document.getElementById('cnt-alert');
   alertEl.style.display = 'none';
 
+  console.log('[CNT] Iniciando salvar:', { nota, just, tri, alunoId, turmaAtiva: turmaAtiva?.id, profData: typeof profData !== 'undefined' ? profData?.id : 'UNDEFINED', turmaDisciplinaAtiva: turmaDisciplinaAtiva?.id });
+
   if (isNaN(nota) || nota < 0) { alertEl.textContent = 'Digite uma nota válida.'; alertEl.style.display = 'block'; return; }
   if (!just || just.length < 5) { alertEl.textContent = 'A justificativa deve ter ao menos 5 caracteres.'; alertEl.style.display = 'block'; return; }
   if (!alunoId) { alertEl.textContent = 'Selecione um(a) aluno(a).'; alertEl.style.display = 'block'; return; }
