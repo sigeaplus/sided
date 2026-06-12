@@ -1273,9 +1273,10 @@ async function salvarTodasNotas() {
       }));
 
     if (_isNotaFinal(avaliacaoAtiva)) {
-      // Nota Final: salva em 'notas' usando avaliacao_id da avaliação __NOTA_FINAL__
-      // nota = soma calculada (readonly), recuperacao_paralela = nota final inserida pelo professor
+      // Nota Final: salva em 'notas' E em 'notas_confirmadas'
       const somaTri = window._somaTri || {};
+      const profDataLocal = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+
       const upserts = alunosTurma.map(a => {
         const recEl = document.getElementById(`rec-${a.id}`);
         const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
@@ -1287,11 +1288,41 @@ async function salvarTodasNotas() {
           nao_realizado        : false
         };
       });
+
+      // Salvar em notas (para exibição na tela de lançamento)
       await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method : 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body   : JSON.stringify(upserts)
       });
+
+      // Salvar em notas_confirmadas (para relatório geral) — apenas alunos com nota final preenchida
+      const confirmadas = alunosTurma
+        .map(a => {
+          const recEl = document.getElementById(`rec-${a.id}`);
+          const notaFinalVal = recEl && recEl.value !== '' ? parseFloat(recEl.value) : null;
+          if (notaFinalVal === null) return null;
+          return {
+            turma_id            : turmaAtiva.id,
+            turma_disciplina_id : turmaDisciplinaAtiva?.id || null,
+            aluno_id            : a.id,
+            professor_id        : profDataLocal.id,
+            trimestre           : avaliacaoAtiva.trimestre,
+            nota_final          : notaFinalVal,
+            soma_original       : somaTri[a.id] ?? 0,
+            justificativa       : 'Lançado via Nota Final',
+            updated_at          : new Date().toISOString()
+          };
+        })
+        .filter(Boolean);
+
+      if (confirmadas.length) {
+        await api('notas_confirmadas?on_conflict=aluno_id,trimestre,turma_disciplina_id', {
+          method : 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+          body   : JSON.stringify(confirmadas)
+        });
+      }
     } else {
       if (rows.length) await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method : 'POST',
