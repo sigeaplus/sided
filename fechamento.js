@@ -257,18 +257,27 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
   btn.disabled = true;
   btn.textContent = 'Fechando...';
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  // Buscar turma_id a partir do td — comparação robusta (string e number)
+
+  // Buscar turma_id — comparação robusta por string
   const tdObj = ftResultados.find(r => String(r.td?.id) === String(tdId));
-  const turmaId = tdObj?.turma?.id || null;
+  const turmaId = tdObj?.turma?.id;
+
+  if (!turmaId) {
+    btn.disabled = false;
+    btn.textContent = 'Fechar divisão';
+    mostrarToast('Erro: turma não encontrada. Recarregue e tente novamente.');
+    return;
+  }
+
   try {
     // Verificar se já existe registro (evita erro de unicidade)
     const existente = await api(`trimestres_fechados?turma_disciplina_id=eq.${tdId}&trimestre=eq.${ftTriAtivo}&select=id&limit=1`);
     if (existente && existente.length) {
-      // Já fechado — apenas atualizar lista e avisar
       mostrarToast('Este trimestre já estava fechado.');
       await carregarDadosFechamento(profData, ftTriAtivo);
       return;
     }
+
     const body = {
       turma_disciplina_id: tdId,
       turma_id: turmaId,
@@ -276,9 +285,9 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
       trimestre: ftTriAtivo,
       fechado_em: new Date().toISOString()
     };
-    if (disciplina) body.disciplina = disciplina;
-    const res = await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
-    if (!res && res !== null) throw new Error('Resposta inesperada do servidor.');
+    // Nota: coluna 'disciplina' não existe na tabela — não enviar
+
+    await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
     mostrarToast('Trimestre fechado com sucesso!');
     Object.keys(_bloqueioCache).forEach(k => { if (k.endsWith(`::${ftTriAtivo}`)) delete _bloqueioCache[k]; });
     await carregarDadosFechamento(profData, ftTriAtivo);
@@ -286,10 +295,7 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
     console.error('[FT] Erro ao fechar trimestre:', e);
     btn.disabled = false;
     btn.textContent = 'Fechar divisão';
-    const msg = e?.message?.includes('duplicate') || e?.message?.includes('unique')
-      ? 'Este trimestre já foi fechado anteriormente.'
-      : 'Erro ao fechar: ' + (e.message || 'tente novamente.');
-    mostrarToast(msg);
+    mostrarToast('Erro ao fechar: ' + (e.message || 'tente novamente.'));
   }
 }
 
