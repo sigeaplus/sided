@@ -5,7 +5,43 @@ let aulasTriFiltro = 'todos';
 let aulasTipoFiltro = 'todos'; // pendente | lecionada | futura | todos
 let aulasDiscFiltro = null; // disciplina ativa no filtro de aulas (Fundamental I)
 let _disciplinasAulasFundI = []; // disciplinas encontradas nas avaliações da turma (Fund I)
-let aulasDiaSemFiltro = null; // 0=dom, 1=seg, ..., 6=sab | null = todos
+let aulasDiaSemFiltro = null; // 0=dom,1=seg,...,6=sab | null=todos
+
+function filtrarAulasDiaSem(dia, btn) {
+  aulasDiaSemFiltro = dia;
+  document.querySelectorAll('[id^="chip-diasem-"]').forEach(c => {
+    const ativo = (dia === null && c.id === 'chip-diasem-todos') || (dia !== null && c.dataset.dia === String(dia));
+    c.style.background = ativo ? 'var(--purple)' : 'transparent';
+    c.style.color = ativo ? '#fff' : 'var(--text)';
+    c.style.borderColor = ativo ? 'var(--purple)' : 'var(--border)';
+  });
+  renderListaAulas();
+}
+window.filtrarAulasDiaSem = filtrarAulasDiaSem;
+
+function _inicializarFiltroDiaSemAulas() {
+  const box = document.getElementById('aulas-diasem-filtro');
+  if (!box) return;
+  const diasLabels = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const diasPresentes = new Set(
+    (aulasTurma || []).map(a => {
+      const iso = dataAulaOnly(a.data);
+      if (!iso) return null;
+      return new Date(iso + 'T12:00:00').getDay();
+    }).filter(d => d !== null)
+  );
+  if (diasPresentes.size === 0) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const chips = box.querySelector('#aulas-diasem-chips');
+  if (!chips) return;
+  chips.innerHTML = [
+    `<button id="chip-diasem-todos" onclick="filtrarAulasDiaSem(null,this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===null?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===null?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===null?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Todos</button>`,
+    ...[1,2,3,4,5,6,0].filter(d => diasPresentes.has(d)).map(d =>
+      `<button id="chip-diasem-${d}" data-dia="${d}" onclick="filtrarAulasDiaSem(${d},this)" style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===d?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===d?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===d?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">${diasLabels[d]}</button>`
+    )
+  ].join('');
+}
+window._inicializarFiltroDiaSemAulas = _inicializarFiltroDiaSemAulas;
 
 async function _inicializarFiltroDiscAulas() {
   const box = document.getElementById('aulas-disciplina-filtro');
@@ -42,48 +78,6 @@ function filtrarAulasDisc(disc, btn) {
   });
   renderListaAulas();
 }
-
-function filtrarAulasDiaSem(dia, btn) {
-  aulasDiaSemFiltro = dia;
-  document.querySelectorAll('[id^="chip-diasem-"]').forEach(c => {
-    const ativo = (dia === null && c.id === 'chip-diasem-todos') || (dia !== null && c.dataset.dia === String(dia));
-    c.style.background = ativo ? 'var(--purple)' : 'transparent';
-    c.style.color = ativo ? '#fff' : 'var(--text)';
-    c.style.borderColor = ativo ? 'var(--purple)' : 'var(--border)';
-  });
-  renderListaAulas();
-}
-window.filtrarAulasDiaSem = filtrarAulasDiaSem;
-
-function _inicializarFiltroDiaSemAulas() {
-  const box = document.getElementById('aulas-diasem-filtro');
-  if (!box) return;
-
-  const diasLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const diasPresentes = new Set(
-    (aulasTurma || []).map(a => {
-      const iso = dataAulaOnly(a.data);
-      if (!iso) return null;
-      const d = new Date(iso + 'T12:00:00');
-      return d.getDay();
-    }).filter(d => d !== null)
-  );
-
-  if (diasPresentes.size === 0) { box.style.display = 'none'; return; }
-
-  box.style.display = 'block';
-  const chips = box.querySelector('#aulas-diasem-chips');
-  if (!chips) return;
-  chips.innerHTML = [
-    `<button id="chip-diasem-todos" onclick="filtrarAulasDiaSem(null,this)"
-      style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===null?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===null?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===null?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Todos</button>`,
-    ...[1,2,3,4,5,6,0].filter(d => diasPresentes.has(d)).map(d =>
-      `<button id="chip-diasem-${d}" data-dia="${d}" onclick="filtrarAulasDiaSem(${d},this)"
-        style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===d?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===d?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===d?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">${diasLabels[d]}</button>`
-    )
-  ].join('');
-}
-window._inicializarFiltroDiaSemAulas = _inicializarFiltroDiaSemAulas;
 
 let aulasOrdemDesc = true;
 
@@ -181,8 +175,7 @@ function renderListaAulas() {
     lista = lista.filter(a => {
       const iso = dataAulaOnly(a.data);
       if (!iso) return false;
-      const d = new Date(iso + 'T12:00:00');
-      return d.getDay() === aulasDiaSemFiltro;
+      return new Date(iso + 'T12:00:00').getDay() === aulasDiaSemFiltro;
     });
   }
 
@@ -435,8 +428,6 @@ async function duplicarAulasSelecionadas() {
     return;
   }
   const lista = document.getElementById('copiar-turmas-lista');
-
-  // Inclui a turma atual como primeira opção
   const turmaAtualLabel = turmaAtiva ? `
     <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--purple);border-radius:8px;background:#F8F6FF;cursor:pointer;margin-bottom:6px;">
         <input type="checkbox" value="_self" style="margin:0;">
@@ -445,7 +436,6 @@ async function duplicarAulasSelecionadas() {
             <div style="font-size:11px;color:var(--text-muted);">Duplicar dentro desta turma</div>
         </div>
     </label>` : '';
-
   const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(turmaAtiva.id));
   lista.innerHTML = turmaAtualLabel + turmasOutras.map(t => `
     <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
@@ -668,8 +658,6 @@ window.duplicarAula = async function(aulaId) {
         }
         window.aulaParaCopiar = aulaOriginal;
         const lista = document.getElementById('copiar-turmas-lista');
-
-        // Inclui a turma atual (mesma turma de origem) como primeira opção
         const turmaAtualLabel = turmaAtiva ? `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--purple);border-radius:8px;background:#F8F6FF;cursor:pointer;margin-bottom:6px;">
                 <input type="checkbox" value="_self" style="margin:0;">
@@ -678,7 +666,6 @@ window.duplicarAula = async function(aulaId) {
                     <div style="font-size:11px;color:var(--text-muted);">Duplicar dentro desta turma</div>
                 </div>
             </label>` : '';
-
         const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(aulaOriginal.turma_id));
         lista.innerHTML = turmaAtualLabel + turmasOutras.map(t => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
@@ -731,7 +718,9 @@ window.confirmarCopiarAula = async function() {
             }
             for (const cb of Array.from(checkboxes)) {
                 const isSelf = cb.value === '_self';
-                const turmaDestinoId = isSelf ? (typeof turmaAtiva !== 'undefined' ? turmaAtiva.id : null) : cb.value;
+                const turmaDestinoId = isSelf
+                    ? (typeof turmaAtiva !== 'undefined' ? turmaAtiva.id : null)
+                    : cb.value;
                 if (!turmaDestinoId) continue;
                 if (isSelf) copiaNaMesmaTurma = true;
                 copias.push({
@@ -747,27 +736,41 @@ window.confirmarCopiarAula = async function() {
                 });
             }
         }
+
+        if (!copias.length) {
+            if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para copiar.');
+            return;
+        }
+
         const res = await api('aulas', { method: 'POST', body: JSON.stringify(copias) });
-        // Se copiou na mesma turma, atualizar cache local imediatamente
-        if (copiaNaMesmaTurma && res && Array.isArray(res)) {
-            res.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => {
+
+        // Verificar se a API realmente criou os registros
+        const criadas = Array.isArray(res) ? res : null;
+        if (!criadas || criadas.length === 0) {
+            throw new Error('O servidor não confirmou a criação das aulas.');
+        }
+
+        // Se copiou na mesma turma, atualizar cache local
+        if (copiaNaMesmaTurma) {
+            criadas.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => {
                 aulasTurma.push(a);
                 if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
             });
             if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
         }
+
         const modal = document.getElementById('modal-copiar-aula');
         if (modal) modal.classList.remove('open');
         if (typeof mostrarToast === 'function') {
-            mostrarToast(`✓ ${copias.length} aula${copias.length > 1 ? 's' : ''} copiada${copias.length > 1 ? 's' : ''}!`);
+            mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} copiada${criadas.length > 1 ? 's' : ''}!`);
         }
         window.aulaParaCopiar = null;
         window.aulasParaCopiar = null;
         if (modoSelecaoAulas) { modoSelecaoAulas = false; limparSelecaoAulas(); }
         if (typeof carregarAulas === 'function') await carregarAulas();
     } catch(e) {
-        console.error("Erro ao copiar no SIDED+:", e);
-        if (typeof mostrarToast === 'function') mostrarToast('Erro ao copiar: ' + e.message);
+        console.error('Erro ao copiar aula:', e);
+        if (typeof mostrarToast === 'function') mostrarToast('Erro ao copiar: ' + (e.message || 'tente novamente.'));
     } finally {
         if (btn) {
             btn.disabled = false;
