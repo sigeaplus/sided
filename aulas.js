@@ -5,6 +5,7 @@ let aulasTriFiltro = 'todos';
 let aulasTipoFiltro = 'todos'; // pendente | lecionada | futura | todos
 let aulasDiscFiltro = null; // disciplina ativa no filtro de aulas (Fundamental I)
 let _disciplinasAulasFundI = []; // disciplinas encontradas nas avaliações da turma (Fund I)
+let aulasDiaSemFiltro = null; // 0=dom, 1=seg, ..., 6=sab | null = todos
 
 async function _inicializarFiltroDiscAulas() {
   const box = document.getElementById('aulas-disciplina-filtro');
@@ -41,6 +42,48 @@ function filtrarAulasDisc(disc, btn) {
   });
   renderListaAulas();
 }
+
+function filtrarAulasDiaSem(dia, btn) {
+  aulasDiaSemFiltro = dia;
+  document.querySelectorAll('[id^="chip-diasem-"]').forEach(c => {
+    const ativo = (dia === null && c.id === 'chip-diasem-todos') || (dia !== null && c.dataset.dia === String(dia));
+    c.style.background = ativo ? 'var(--purple)' : 'transparent';
+    c.style.color = ativo ? '#fff' : 'var(--text)';
+    c.style.borderColor = ativo ? 'var(--purple)' : 'var(--border)';
+  });
+  renderListaAulas();
+}
+window.filtrarAulasDiaSem = filtrarAulasDiaSem;
+
+function _inicializarFiltroDiaSemAulas() {
+  const box = document.getElementById('aulas-diasem-filtro');
+  if (!box) return;
+
+  const diasLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const diasPresentes = new Set(
+    (aulasTurma || []).map(a => {
+      const iso = dataAulaOnly(a.data);
+      if (!iso) return null;
+      const d = new Date(iso + 'T12:00:00');
+      return d.getDay();
+    }).filter(d => d !== null)
+  );
+
+  if (diasPresentes.size === 0) { box.style.display = 'none'; return; }
+
+  box.style.display = 'block';
+  const chips = box.querySelector('#aulas-diasem-chips');
+  if (!chips) return;
+  chips.innerHTML = [
+    `<button id="chip-diasem-todos" onclick="filtrarAulasDiaSem(null,this)"
+      style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===null?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===null?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===null?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">Todos</button>`,
+    ...[1,2,3,4,5,6,0].filter(d => diasPresentes.has(d)).map(d =>
+      `<button id="chip-diasem-${d}" data-dia="${d}" onclick="filtrarAulasDiaSem(${d},this)"
+        style="padding:6px 14px;border-radius:20px;border:1.5px solid ${aulasDiaSemFiltro===d?'var(--purple)':'var(--border)'};background:${aulasDiaSemFiltro===d?'var(--purple)':'transparent'};color:${aulasDiaSemFiltro===d?'#fff':'var(--text)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">${diasLabels[d]}</button>`
+    )
+  ].join('');
+}
+window._inicializarFiltroDiaSemAulas = _inicializarFiltroDiaSemAulas;
 
 let aulasOrdemDesc = true;
 
@@ -133,6 +176,14 @@ function renderListaAulas() {
   }
   if (aulasDiscFiltro) {
     lista = lista.filter(a => a.disciplina === aulasDiscFiltro);
+  }
+  if (aulasDiaSemFiltro !== null) {
+    lista = lista.filter(a => {
+      const iso = dataAulaOnly(a.data);
+      if (!iso) return false;
+      const d = new Date(iso + 'T12:00:00');
+      return d.getDay() === aulasDiaSemFiltro;
+    });
   }
 
   lista.sort((a, b) => {
@@ -384,12 +435,19 @@ async function duplicarAulasSelecionadas() {
     return;
   }
   const lista = document.getElementById('copiar-turmas-lista');
-  const turmasDestino = todasTurmas.filter(t => String(t.id) !== String(turmaAtiva.id));
-  if (turmasDestino.length === 0) {
-    alert('Não há outras turmas disponíveis para cópia.');
-    return;
-  }
-  lista.innerHTML = turmasDestino.map(t => `
+
+  // Inclui a turma atual como primeira opção
+  const turmaAtualLabel = turmaAtiva ? `
+    <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--purple);border-radius:8px;background:#F8F6FF;cursor:pointer;margin-bottom:6px;">
+        <input type="checkbox" value="_self" style="margin:0;">
+        <div>
+            <div style="font-size:13px;font-weight:600;color:var(--purple);">↩ Mesma turma (${turmaAtiva.nome})</div>
+            <div style="font-size:11px;color:var(--text-muted);">Duplicar dentro desta turma</div>
+        </div>
+    </label>` : '';
+
+  const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(turmaAtiva.id));
+  lista.innerHTML = turmaAtualLabel + turmasOutras.map(t => `
     <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
         <input type="checkbox" value="${t.id}" style="margin:0;">
         <div>
@@ -608,14 +666,21 @@ window.duplicarAula = async function(aulaId) {
             alert('Erro: Não foi possível carregar as turmas. Verifique sua conexão e tente recarregar a página.');
             return;
         }
-        const turmasDestino = todasTurmas.filter(t => String(t.id) !== String(aulaOriginal.turma_id));
         window.aulaParaCopiar = aulaOriginal;
         const lista = document.getElementById('copiar-turmas-lista');
-        if (turmasDestino.length === 0) {
-            alert('Não há outras turmas disponíveis para cópia.');
-            return;
-        }
-        lista.innerHTML = turmasDestino.map(t => `
+
+        // Inclui a turma atual (mesma turma de origem) como primeira opção
+        const turmaAtualLabel = turmaAtiva ? `
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--purple);border-radius:8px;background:#F8F6FF;cursor:pointer;margin-bottom:6px;">
+                <input type="checkbox" value="_self" style="margin:0;">
+                <div>
+                    <div style="font-size:13px;font-weight:600;color:var(--purple);">↩ Mesma turma (${turmaAtiva.nome})</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Duplicar dentro desta turma</div>
+                </div>
+            </label>` : '';
+
+        const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(aulaOriginal.turma_id));
+        lista.innerHTML = turmaAtualLabel + turmasOutras.map(t => `
             <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
                 <input type="checkbox" value="${t.id}" style="margin:0;">
                 <div>
@@ -656,32 +721,45 @@ window.confirmarCopiarAula = async function() {
     }
     try {
         const copias = [];
+        let copiaNaMesmaTurma = false;
         for (const aulaId of aulasParaCopiar) {
             let aulaOriginal = window.aulaParaCopiar;
-            if (!aulaOriginal || aulaOriginal.id !== aulaId) {
+            if (!aulaOriginal || String(aulaOriginal.id) !== String(aulaId)) {
                 const aulaData = await api(`aulas?id=eq.${aulaId}&select=*`);
                 if (aulaData && aulaData.length) aulaOriginal = aulaData[0];
                 else continue;
             }
             for (const cb of Array.from(checkboxes)) {
-                const turmaDestinoId = cb.value === '_self' ? (typeof turmaAtiva !== 'undefined' ? turmaAtiva.id : null) : cb.value;
+                const isSelf = cb.value === '_self';
+                const turmaDestinoId = isSelf ? (typeof turmaAtiva !== 'undefined' ? turmaAtiva.id : null) : cb.value;
                 if (!turmaDestinoId) continue;
+                if (isSelf) copiaNaMesmaTurma = true;
                 copias.push({
                     data: typeof dataAulaOnly === 'function' ? dataAulaOnly(aulaOriginal.data) : aulaOriginal.data,
                     nome: aulaOriginal.nome,
                     descricao: aulaOriginal.descricao || '',
                     status: 'futura',
                     turma_id: turmaDestinoId,
-                    turma_disciplina_id: turmaDestinoId === turmaAtiva?.id ? (turmaDisciplinaAtiva?.id || null) : null,
+                    turma_disciplina_id: isSelf ? (turmaDisciplinaAtiva?.id || null) : null,
                     professor_id: profData.id,
+                    ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
+                    ...(isSelf && aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
                 });
             }
         }
-        await api('aulas', { method: 'POST', body: JSON.stringify(copias) });
+        const res = await api('aulas', { method: 'POST', body: JSON.stringify(copias) });
+        // Se copiou na mesma turma, atualizar cache local imediatamente
+        if (copiaNaMesmaTurma && res && Array.isArray(res)) {
+            res.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => {
+                aulasTurma.push(a);
+                if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
+            });
+            if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+        }
         const modal = document.getElementById('modal-copiar-aula');
         if (modal) modal.classList.remove('open');
         if (typeof mostrarToast === 'function') {
-            mostrarToast(`✓ ${copias.length} aula${copias.length > 1 ? 's' : ''} copiada${copias.length > 1 ? 's' : ''} para ${checkboxes.length} turma${checkboxes.length > 1 ? 's' : ''}!`);
+            mostrarToast(`✓ ${copias.length} aula${copias.length > 1 ? 's' : ''} copiada${copias.length > 1 ? 's' : ''}!`);
         }
         window.aulaParaCopiar = null;
         window.aulasParaCopiar = null;
@@ -710,6 +788,7 @@ async function carregarAulas(forcarReload = false) {
   );
   await sincronizarCachesChamada();
   recalcularStatusLocal();
+  _inicializarFiltroDiaSemAulas();
   renderListaAulas();
   atualizarContadorAulas();
   atualizarCalendario('cal-aula');

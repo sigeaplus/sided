@@ -225,7 +225,7 @@ function renderFechamentoCategoria(categoria) {
           <span>Aulas lecionadas: <strong>${r.p.aulasLecionadas}/${r.p.totalAulasCriadas}</strong></span>
           <span>Notas: <strong>${r.p.pontosLancados}/${r.p.maxPontosTri}</strong></span>
         </div>
-        <button onclick="confirmarFecharTrimestre('${r.td.id}', '${r.disciplina||''}', this)"
+        <button onclick="confirmarFecharTrimestre('${r.td.id}', ${r.disciplina ? `'${r.disciplina.replace(/'/g,"\\'")}'` : "''"}, this)"
           style="padding:9px 20px;border-radius:10px;border:none;background:#22C55E;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;"
           onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           Fechar divisão
@@ -257,26 +257,39 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
   btn.disabled = true;
   btn.textContent = 'Fechando...';
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-  // Buscar turma_id a partir do td
-  const tdObj = ftResultados.find(r => r.td?.id === tdId || String(r.td?.id) === String(tdId));
-  const turmaId = tdObj?.turma?.id;
+  // Buscar turma_id a partir do td — comparação robusta (string e number)
+  const tdObj = ftResultados.find(r => String(r.td?.id) === String(tdId));
+  const turmaId = tdObj?.turma?.id || null;
   try {
+    // Verificar se já existe registro (evita erro de unicidade)
+    const existente = await api(`trimestres_fechados?turma_disciplina_id=eq.${tdId}&trimestre=eq.${ftTriAtivo}&select=id&limit=1`);
+    if (existente && existente.length) {
+      // Já fechado — apenas atualizar lista e avisar
+      mostrarToast('Este trimestre já estava fechado.');
+      await carregarDadosFechamento(profData, ftTriAtivo);
+      return;
+    }
     const body = {
       turma_disciplina_id: tdId,
-      turma_id: turmaId || null,
+      turma_id: turmaId,
       professor_id: profData.id,
       trimestre: ftTriAtivo,
       fechado_em: new Date().toISOString()
     };
     if (disciplina) body.disciplina = disciplina;
-    await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
+    const res = await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
+    if (!res && res !== null) throw new Error('Resposta inesperada do servidor.');
     mostrarToast('Trimestre fechado com sucesso!');
     Object.keys(_bloqueioCache).forEach(k => { if (k.endsWith(`::${ftTriAtivo}`)) delete _bloqueioCache[k]; });
     await carregarDadosFechamento(profData, ftTriAtivo);
   } catch(e) {
+    console.error('[FT] Erro ao fechar trimestre:', e);
     btn.disabled = false;
     btn.textContent = 'Fechar divisão';
-    mostrarToast('Erro ao fechar. Tente novamente.');
+    const msg = e?.message?.includes('duplicate') || e?.message?.includes('unique')
+      ? 'Este trimestre já foi fechado anteriormente.'
+      : 'Erro ao fechar: ' + (e.message || 'tente novamente.');
+    mostrarToast(msg);
   }
 }
 

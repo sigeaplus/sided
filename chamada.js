@@ -5,6 +5,17 @@ let dataChamadaAtiva = null;
 let _modoInversoChamada = false;
 let _faltasPorAlunoAtual = {};
 
+// ── DIA DA SEMANA NA CHAMADA ─────────────────────────────────────────────────
+function _atualizarDiaSemChamada(dataISO) {
+  const el = document.getElementById('chamada-dia-semana');
+  if (!el) return;
+  if (!dataISO) { el.textContent = ''; return; }
+  const diasSem = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  const d = new Date(dataISO + 'T12:00:00');
+  const nome = diasSem[d.getDay()] || '';
+  el.textContent = nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
 function mudarDataChamada(delta) {
   const inp = document.getElementById('chamada-date-input');
   // parse DD/MM/AAAA or fallback to today
@@ -22,6 +33,7 @@ function mudarDataChamada(delta) {
   // sync calendar state
   calState['cal-chamada'] = { ano: parseInt(y), mes: parseInt(mo) - 1 };
   atualizarCalendario('cal-chamada');
+  _atualizarDiaSemChamada(iso);
   // limpar seleção de aula ao trocar de data
   const btnWrap = document.getElementById('btn-salvar-chamada-wrap');
   if (btnWrap) btnWrap._aulaId = null;
@@ -33,6 +45,7 @@ function selecionarDataChamada(iso) {
   document.getElementById('chamada-date-input').value = `${dy}/${mo}/${y}`;
   calState['cal-chamada'] = { ano: parseInt(y), mes: parseInt(mo) - 1 };
   atualizarCalendario('cal-chamada');
+  _atualizarDiaSemChamada(iso);
   // limpar seleção de aula ao trocar de data
   const btnWrap = document.getElementById('btn-salvar-chamada-wrap');
   if (btnWrap) btnWrap._aulaId = null;
@@ -46,6 +59,7 @@ async function carregarChamadaHoje() {
   inp.value = `${dy}/${mo}/${y}`;
   calState['cal-chamada'] = { ano: parseInt(y), mes: parseInt(mo) - 1 };
   await atualizarCalendario('cal-chamada');
+  _atualizarDiaSemChamada(hoje);
   await carregarChamadaPorData(hoje);
 }
 
@@ -556,6 +570,7 @@ async function abrirChamadaDeAula(aulaId) {
   document.getElementById('chamada-date-input').value = `${dy}/${mo}/${y}`;
   calState['cal-chamada'] = { ano: parseInt(y), mes: parseInt(mo) - 1 };
   atualizarCalendario('cal-chamada');
+  _atualizarDiaSemChamada(dataISO);
   // Verificar eventos do calendário escolar (reusa lógica do carregarChamadaPorData)
   // mas forçar que o seletor selecione a aula específica após carregar
   const btnWrap = document.getElementById('btn-salvar-chamada-wrap');
