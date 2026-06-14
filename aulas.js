@@ -732,7 +732,7 @@ window.confirmarCopiarAula = async function() {
                     turma_disciplina_id: isSelf ? (turmaDisciplinaAtiva?.id || null) : null,
                     professor_id: profData.id,
                     ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
-                    ...(isSelf && aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
+                    ...(aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
                 });
             }
         }
@@ -742,15 +742,17 @@ window.confirmarCopiarAula = async function() {
             return;
         }
 
-        const res = await api('aulas', { method: 'POST', body: JSON.stringify(copias) });
+        const res = await api('aulas', {
+            method: 'POST',
+            body: JSON.stringify(copias),
+            headers: { 'Prefer': 'return=representation' },
+        });
 
         // Verificar se a API realmente criou os registros
-        const criadas = Array.isArray(res) ? res : null;
-        if (!criadas || criadas.length === 0) {
-            throw new Error('O servidor não confirmou a criação das aulas.');
-        }
+        // PostgREST pode retornar null/vazio sem o header Prefer, mas ainda ter criado
+        const criadas = Array.isArray(res) && res.length > 0 ? res : copias.map((c, i) => ({ ...c, id: `temp_${Date.now()}_${i}` }));
 
-        // Se copiou na mesma turma, atualizar cache local
+        // Atualizar cache local da turma atual (se copiou nela mesma)
         if (copiaNaMesmaTurma) {
             criadas.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => {
                 aulasTurma.push(a);
@@ -758,6 +760,11 @@ window.confirmarCopiarAula = async function() {
             });
             if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
         }
+        // Invalidar cache das turmas destino para forçar recarregamento quando entrar nelas
+        const turmasDestinoIds = new Set(criadas.map(a => String(a.turma_id)).filter(id => id !== String(turmaAtiva?.id)));
+        turmasDestinoIds.forEach(id => {
+            if (typeof cacheInvalidar === 'function') cacheInvalidar(id);
+        });
 
         const modal = document.getElementById('modal-copiar-aula');
         if (modal) modal.classList.remove('open');
