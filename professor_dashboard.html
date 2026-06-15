@@ -2765,10 +2765,10 @@ function _injetarModalTransferencia() {
   modal.style.zIndex = '9100';
   modal.onclick = function(e) { if (e.target === this) this.classList.remove('open'); };
   modal.innerHTML = `
-    <div class="modal" style="max-width:480px;">
+    <div class="modal" style="max-width:500px;">
       <div class="modal-header">
         <div>
-          <div class="modal-title">↔ Transferir aulas para outra turma</div>
+          <div class="modal-title">↔ Transferir aulas</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="transferir-aula-nome"></div>
         </div>
         <button class="modal-close" onclick="document.getElementById('modal-transferir-aulas').classList.remove('open')">
@@ -2776,11 +2776,19 @@ function _injetarModalTransferencia() {
         </button>
       </div>
       <div class="modal-body">
-        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:14px;line-height:1.6;">
-          <strong>📋 Para usar como substituto:</strong> as aulas serão criadas na turma destino com <em>você</em> como professor. Depois declare a substituição no SIPRO+.
+
+        <div class="field" style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;display:block;">Professor destino</label>
+          <select id="transferir-professor-sel"
+            style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none;"
+            onchange="window._onChangeProfTransferir()">
+            <option value="">Carregando professores...</option>
+          </select>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Selecione a turma destino:</div>
-        <div id="transferir-turmas-lista" style="max-height:220px;overflow-y:auto;"></div>
+
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Turmas destino <span style="font-size:11px;">(pode selecionar mais de uma)</span></div>
+        <div id="transferir-turmas-lista" style="max-height:200px;overflow-y:auto;"></div>
+
         <div style="margin-top:14px;padding:12px;background:#F8F6FF;border-radius:8px;border:1px solid #E5E0F8;">
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
             <input type="checkbox" id="transferir-copiar-chamada" checked style="width:16px;height:16px;accent-color:var(--purple);">
@@ -2790,6 +2798,7 @@ function _injetarModalTransferencia() {
             </div>
           </label>
         </div>
+
         <div id="transferir-progresso" style="display:none;margin-top:12px;font-size:12px;color:var(--purple);text-align:center;"></div>
       </div>
       <div class="modal-footer">
@@ -2803,8 +2812,93 @@ function _injetarModalTransferencia() {
   document.body.appendChild(modal);
 }
 
+// Cache de professores e turmas por professor
+let _profListaTransferir = [];
+let _turmasPorProfTransferir = {};
+
+async function _carregarProfessoresTransferir() {
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  try {
+    // Busca todos os professores com suas turmas via turmas_disciplinas
+    const tds = await api(`turmas_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=500`);
+    if (!tds || !tds.length) throw new Error('vazio');
+
+    // Agrupa turmas por professor
+    const profMap = {};
+    tds.forEach(td => {
+      const pId = String(td.professor_id);
+      if (!profMap[pId]) {
+        profMap[pId] = { id: td.professor_id, nome: td.professores?.nome || `Prof. ${pId}`, turmas: [] };
+      }
+      if (td.turmas) {
+        profMap[pId].turmas.push({
+          turmaDiscId: td.id,
+          turmaId: td.turma_id,
+          nome: td.turmas.nome || `Turma ${td.turma_id}`,
+          ano: td.turmas.ano || '',
+          turno: td.turmas.turno || '',
+        });
+      }
+    });
+
+    _profListaTransferir = Object.values(profMap).sort((a, b) => a.nome.localeCompare(b.nome));
+    _turmasPorProfTransferir = Object.fromEntries(_profListaTransferir.map(p => [String(p.id), p.turmas]));
+
+    // Minha própria entrada (mesma turma ativa) já inclusa com nome especial
+    const euId = String(profData.id);
+    if (!_profListaTransferir.find(p => String(p.id) === euId)) {
+      // se não estou nos vínculos, adiciona entrada mínima
+      _profListaTransferir.unshift({ id: profData.id, nome: '→ Eu mesmo', turmas: [] });
+    } else {
+      const eu = _profListaTransferir.find(p => String(p.id) === euId);
+      if (eu) eu.nome = eu.nome + ' (eu)';
+    }
+
+  } catch(e) {
+    // fallback: usa todasTurmas do escopo global, só eu mesmo
+    console.warn('[Transferir] fallback professores:', e.message);
+    const euId = String(profData.id);
+    _profListaTransferir = [{ id: profData.id, nome: 'Minhas turmas', turmas: [] }];
+    if (typeof todasTurmas !== 'undefined' && todasTurmas.length) {
+      _turmasPorProfTransferir[euId] = todasTurmas.map(t => ({
+        turmaDiscId: null, turmaId: t.id, nome: t.nome, ano: t.ano || '', turno: t.turno || '',
+      }));
+      _profListaTransferir[0].turmas = _turmasPorProfTransferir[euId];
+    }
+  }
+}
+
+function _renderTurmasTransferir(profId, turmaAtualId) {
+  const lista = document.getElementById('transferir-turmas-lista');
+  const turmas = _turmasPorProfTransferir[String(profId)] || [];
+  if (!turmas.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px;">Nenhuma turma encontrada para este professor.</div>';
+    return;
+  }
+  lista.innerHTML = turmas.map(t => {
+    const eAtual = String(t.turmaId) === String(turmaAtualId);
+    return `
+    <label style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px solid ${eAtual ? 'var(--purple)' : 'var(--border)'};border-radius:8px;background:${eAtual ? '#F8F6FF' : 'var(--white)'};cursor:pointer;margin-bottom:6px;transition:border-color 0.15s;"
+      onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='${eAtual ? 'var(--purple)' : 'var(--border)'}'">
+      <input type="checkbox" name="turma-transferir" value="${t.turmaId}" data-td-id="${t.turmaDiscId || ''}" data-prof-id="${profId}" style="margin:0;accent-color:var(--purple);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${t.nome}${eAtual ? ' <span style="color:var(--purple);font-size:11px;">(esta turma)</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${t.ano ? t.ano + 'º ano' : ''}${t.turno ? ' · ' + t.turno : ''}</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+window._onChangeProfTransferir = function() {
+  const profId = document.getElementById('transferir-professor-sel')?.value;
+  if (!profId) return;
+  _renderTurmasTransferir(profId, turmaAtiva?.id);
+};
+
 window.abrirModalTransferirAulas = async function(aulaId) {
   _injetarModalTransferencia();
+
+  // Determinar aulas
   let idsParaTransferir = [];
   if (aulaId) {
     idsParaTransferir = [aulaId];
@@ -2812,62 +2906,55 @@ window.abrirModalTransferirAulas = async function(aulaId) {
     document.getElementById('transferir-aula-nome').textContent = aula ? aula.nome : `Aula #${aulaId}`;
   } else if (typeof aulasSelecionadas !== 'undefined' && aulasSelecionadas.size > 0) {
     idsParaTransferir = Array.from(aulasSelecionadas);
-    document.getElementById('transferir-aula-nome').textContent = `${idsParaTransferir.length} aula${idsParaTransferir.length > 1 ? 's' : ''} selecionada${idsParaTransferir.length > 1 ? 's' : ''}`;
+    document.getElementById('transferir-aula-nome').textContent =
+      `${idsParaTransferir.length} aula${idsParaTransferir.length > 1 ? 's' : ''} selecionada${idsParaTransferir.length > 1 ? 's' : ''}`;
   } else {
     mostrarToast('Selecione pelo menos uma aula primeiro.'); return;
   }
   window._idsParaTransferir = idsParaTransferir;
+
+  // Resetar lista de turmas
   const lista = document.getElementById('transferir-turmas-lista');
-  lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">Carregando turmas...</div>';
+  lista.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px;">Selecione um professor acima.</div>';
+
   const modal = document.getElementById('modal-transferir-aulas');
   if (modal.parentElement !== document.body) document.body.appendChild(modal);
   modal.classList.add('open');
-  try {
-    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-    let turmasTodas = [];
-    try {
-      const tds = await api(`turmas_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=200`);
-      if (tds && tds.length) {
-        turmasTodas = tds.filter(td => String(td.professor_id) !== String(profData.id)).map(td => ({
-          turmaDiscId: td.id, turmaId: td.turma_id,
-          nome: td.turmas?.nome || `Turma ${td.turma_id}`,
-          ano: td.turmas?.ano || '', turno: td.turmas?.turno || '',
-          professorNome: td.professores?.nome || 'Outro professor',
-        }));
-      }
-    } catch(e) { console.warn('[Transferir] fallback para todasTurmas:', e.message); }
-    if (!turmasTodas.length && typeof todasTurmas !== 'undefined' && todasTurmas.length) {
-      turmasTodas = todasTurmas.filter(t => String(t.id) !== String(turmaAtiva?.id)).map(t => ({
-        turmaDiscId: null, turmaId: t.id, nome: t.nome, ano: t.ano || '', turno: t.turno || '', professorNome: '',
-      }));
-    }
-    if (!turmasTodas.length) { lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);font-size:12px;">Nenhuma turma encontrada.</div>'; return; }
-    lista.innerHTML = turmasTodas.map(t => `
-      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;transition:border-color 0.15s;"
-        onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
-        <input type="radio" name="turma-transferir" value="${t.turmaId}" data-td-id="${t.turmaDiscId || ''}" style="margin:0;accent-color:var(--purple);">
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;color:var(--text);">${t.nome}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${t.ano ? t.ano + 'º ano' : ''}${t.turno ? ' · ' + t.turno : ''}${t.professorNome ? ' · <span style="color:#7C3AED;">' + t.professorNome + '</span>' : ''}</div>
-        </div>
-      </label>`).join('');
-  } catch(e) { lista.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);font-size:12px;">Erro: ${e.message}</div>`; }
+
+  // Carregar professores no select
+  const sel = document.getElementById('transferir-professor-sel');
+  sel.innerHTML = '<option value="">Carregando...</option>';
+  await _carregarProfessoresTransferir();
+
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  sel.innerHTML = _profListaTransferir.map(p =>
+    `<option value="${p.id}"${String(p.id) === String(profData.id) ? ' selected' : ''}>${p.nome}</option>`
+  ).join('');
+
+  // Renderizar turmas do professor selecionado (eu mesmo por padrão)
+  const profSelecionado = sel.value || profData.id;
+  if (profSelecionado) _renderTurmasTransferir(profSelecionado, turmaAtiva?.id);
 };
 
 window.confirmarTransferirAulas = async function() {
-  const radioSelecionado = document.querySelector('#transferir-turmas-lista input[name="turma-transferir"]:checked');
-  if (!radioSelecionado) { if (typeof mostrarToast === 'function') mostrarToast('Selecione uma turma destino.'); return; }
-  const turmaDestinoId = radioSelecionado.value;
-  const turmaDestTdId = radioSelecionado.dataset.tdId || null;
+  const checkboxesMarcados = document.querySelectorAll('#transferir-turmas-lista input[name="turma-transferir"]:checked');
+  if (!checkboxesMarcados.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione pelo menos uma turma.'); return; }
+
+  const profSel = document.getElementById('transferir-professor-sel')?.value;
   const copiarChamada = document.getElementById('transferir-copiar-chamada')?.checked ?? true;
   const idsParaTransferir = window._idsParaTransferir || [];
   if (!idsParaTransferir.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para transferir.'); return; }
+
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const professorDestinoId = profSel || profData.id;
+
   const btn = document.getElementById('btn-confirmar-transferencia');
   const progresso = document.getElementById('transferir-progresso');
   if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Transferindo...'; }
   if (progresso) { progresso.style.display = 'block'; progresso.textContent = 'Buscando aulas...'; }
+
   try {
+    // Buscar aulas originais
     const aulasOriginais = [];
     for (const aulaId of idsParaTransferir) {
       const local = aulasTurma.find(a => String(a.id) === String(aulaId));
@@ -2877,39 +2964,80 @@ window.confirmarTransferirAulas = async function() {
       }
     }
     if (!aulasOriginais.length) throw new Error('Aulas não encontradas.');
-    let tdIdDestino = turmaDestTdId || await _buscarTurmaDisciplinaId(turmaDestinoId);
-    if (progresso) progresso.textContent = `Criando ${aulasOriginais.length} aulas na turma destino...`;
-    const novasAulas = aulasOriginais.map(a => ({
-      data: typeof dataAulaOnly === 'function' ? dataAulaOnly(a.data) : a.data,
-      nome: a.nome, descricao: a.descricao || '', status: a.status || 'futura',
-      turma_id: turmaDestinoId, turma_disciplina_id: tdIdDestino, professor_id: profData.id,
-      ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
-      ...(a.disciplina ? { disciplina: a.disciplina } : {}),
+
+    // Para cada turma destino selecionada
+    const turmasDestino = Array.from(checkboxesMarcados).map(cb => ({
+      turmaId: cb.value,
+      turmaDiscId: cb.dataset.tdId || null,
     }));
-    const criadas = await api('aulas', { method: 'POST', body: JSON.stringify(novasAulas), headers: { 'Prefer': 'return=representation' } });
-    const aulasCriadas = Array.isArray(criadas) && criadas.length > 0 ? criadas : novasAulas.map((a, i) => ({ ...a, id: `temp_${Date.now()}_${i}` }));
-    let chamadosCopiadosTotal = 0;
-    if (copiarChamada) {
-      for (let i = 0; i < aulasOriginais.length; i++) {
-        const aulaNovaId = aulasCriadas[i]?.id;
-        if (!aulaNovaId || String(aulaNovaId).startsWith('temp_')) continue;
-        if (progresso) progresso.textContent = `Copiando chamada ${i + 1}/${aulasOriginais.length}...`;
+
+    let totalCriadas = 0;
+    let totalChamadas = 0;
+
+    for (const destino of turmasDestino) {
+      // Buscar turma_disciplina_id do professor destino nessa turma
+      let tdIdDestino = destino.turmaDiscId;
+      if (!tdIdDestino) {
         try {
-          const chamadas = await api(`chamadas?aula_id=eq.${aulasOriginais[i].id}&select=*`);
-          if (!chamadas || !chamadas.length) continue;
-          const novasChamadas = chamadas.map(c => ({ aula_id: aulaNovaId, aluno_id: c.aluno_id, presente: c.presente, observacao: c.observacao || null }));
-          await api('chamadas', { method: 'POST', body: JSON.stringify(novasChamadas), headers: { 'Prefer': 'return=minimal' } });
-          chamadosCopiadosTotal += novasChamadas.length;
-        } catch(eChamada) { console.warn('[Transferir] Erro chamada aula', aulasOriginais[i].id, eChamada); }
+          const res = await api(`turmas_disciplinas?turma_id=eq.${destino.turmaId}&professor_id=eq.${professorDestinoId}&select=id&limit=1`);
+          tdIdDestino = (res && res[0]) ? res[0].id : null;
+        } catch(e) { tdIdDestino = null; }
+      }
+
+      if (progresso) progresso.textContent = `Criando aulas na turma destino...`;
+
+      const novasAulas = aulasOriginais.map(a => ({
+        data: typeof dataAulaOnly === 'function' ? dataAulaOnly(a.data) : a.data,
+        nome: a.nome, descricao: a.descricao || '', status: a.status || 'futura',
+        turma_id: destino.turmaId,
+        turma_disciplina_id: tdIdDestino,
+        professor_id: professorDestinoId,
+        ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
+        ...(a.disciplina ? { disciplina: a.disciplina } : {}),
+      }));
+
+      const criadas = await api('aulas', { method: 'POST', body: JSON.stringify(novasAulas), headers: { 'Prefer': 'return=representation' } });
+      const aulasCriadas = Array.isArray(criadas) && criadas.length > 0 ? criadas : novasAulas.map((a, i) => ({ ...a, id: `temp_${Date.now()}_${i}` }));
+      totalCriadas += aulasCriadas.length;
+
+      // Copiar chamadas
+      if (copiarChamada) {
+        for (let i = 0; i < aulasOriginais.length; i++) {
+          const aulaNovaId = aulasCriadas[i]?.id;
+          if (!aulaNovaId || String(aulaNovaId).startsWith('temp_')) continue;
+          if (progresso) progresso.textContent = `Copiando chamadas ${i + 1}/${aulasOriginais.length}...`;
+          try {
+            const chamadas = await api(`chamadas?aula_id=eq.${aulasOriginais[i].id}&select=*`);
+            if (!chamadas || !chamadas.length) continue;
+            const novasChamadas = chamadas.map(c => ({ aula_id: aulaNovaId, aluno_id: c.aluno_id, presente: c.presente, observacao: c.observacao || null }));
+            await api('chamadas', { method: 'POST', body: JSON.stringify(novasChamadas), headers: { 'Prefer': 'return=minimal' } });
+            totalChamadas += novasChamadas.length;
+          } catch(eChamada) { console.warn('[Transferir] Erro chamada:', eChamada); }
+        }
+      }
+
+      // Se copiou na própria turma ativa, atualiza cache local
+      if (String(destino.turmaId) === String(turmaAtiva?.id) && String(professorDestinoId) === String(profData.id)) {
+        aulasCriadas.forEach(a => {
+          aulasTurma.push(a);
+          if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
+        });
+        if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+      } else {
+        if (typeof cacheInvalidar === 'function') cacheInvalidar(destino.turmaId);
       }
     }
-    if (typeof cacheInvalidar === 'function') cacheInvalidar(turmaDestinoId);
+
     document.getElementById('modal-transferir-aulas').classList.remove('open');
     window._idsParaTransferir = null;
-    let msg = `✓ ${aulasCriadas.length} aula${aulasCriadas.length > 1 ? 's' : ''} transferida${aulasCriadas.length > 1 ? 's' : ''}!`;
-    if (copiarChamada && chamadosCopiadosTotal > 0) msg += ` (${chamadosCopiadosTotal} registros de chamada copiados)`;
+
+    let msg = `✓ ${totalCriadas} aula${totalCriadas !== 1 ? 's' : ''} transferida${totalCriadas !== 1 ? 's' : ''} para ${turmasDestino.length} turma${turmasDestino.length !== 1 ? 's' : ''}!`;
+    if (copiarChamada && totalChamadas > 0) msg += ` (${totalChamadas} chamadas copiadas)`;
     if (typeof mostrarToast === 'function') mostrarToast(msg);
+
     if (typeof modoSelecaoAulas !== 'undefined' && modoSelecaoAulas) { modoSelecaoAulas = false; if (typeof limparSelecaoAulas === 'function') limparSelecaoAulas(); }
+    if (typeof carregarAulas === 'function') await carregarAulas();
+
   } catch(e) {
     console.error('[Transferir] Erro:', e);
     if (typeof mostrarToast === 'function') mostrarToast('Erro ao transferir: ' + (e.message || 'tente novamente.'));
