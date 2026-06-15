@@ -2678,5 +2678,262 @@
 </div>
 
 
+<script>
+// ═══════════════════════════════════════════════════════════════════════════════
+// PATCH: Fix duplicar para outra turma + Transferência entre professores
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const _tdIdCache = {};
+
+async function _buscarTurmaDisciplinaId(turmaId) {
+  if (_tdIdCache[turmaId] !== undefined) return _tdIdCache[turmaId];
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  if (!profData.id) return null;
+  try {
+    const res = await api(`turmas_disciplinas?turma_id=eq.${turmaId}&professor_id=eq.${profData.id}&select=id&limit=1`);
+    const tdId = (res && res[0]) ? res[0].id : null;
+    _tdIdCache[turmaId] = tdId;
+    return tdId;
+  } catch(e) {
+    _tdIdCache[turmaId] = null;
+    return null;
+  }
+}
+
+window.confirmarCopiarAula = async function() {
+  const checkboxes = document.querySelectorAll('#copiar-turmas-lista input[type="checkbox"]:checked');
+  if (!checkboxes.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione pelo menos uma turma.'); return; }
+  const aulasParaCopiarIds = window.aulasParaCopiar || (window.aulaParaCopiar ? [window.aulaParaCopiar.id] : []);
+  if (!aulasParaCopiarIds.length) { if (typeof mostrarToast === 'function') mostrarToast('Erro: Nenhuma aula selecionada.'); return; }
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const btn = document.getElementById('btn-confirmar-copia');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;"></span>Copiando...'; }
+  try {
+    const copias = [];
+    let copiaNaMesmaTurma = false;
+    const turmasDestino = Array.from(checkboxes).map(cb => cb.value).filter(v => v !== '_self');
+    const tdIdMap = {};
+    await Promise.all(turmasDestino.map(async turmaId => { tdIdMap[turmaId] = await _buscarTurmaDisciplinaId(turmaId); }));
+    for (const aulaId of aulasParaCopiarIds) {
+      let aulaOriginal = window.aulaParaCopiar;
+      if (!aulaOriginal || String(aulaOriginal.id) !== String(aulaId)) {
+        const aulaData = await api(`aulas?id=eq.${aulaId}&select=*`);
+        if (aulaData && aulaData.length) aulaOriginal = aulaData[0]; else continue;
+      }
+      for (const cb of Array.from(checkboxes)) {
+        const isSelf = cb.value === '_self';
+        const turmaDestinoId = isSelf ? (typeof turmaAtiva !== 'undefined' ? turmaAtiva.id : null) : cb.value;
+        if (!turmaDestinoId) continue;
+        if (isSelf) copiaNaMesmaTurma = true;
+        const tdId = isSelf ? (turmaDisciplinaAtiva?.id || null) : (tdIdMap[turmaDestinoId] || null);
+        copias.push({
+          data: typeof dataAulaOnly === 'function' ? dataAulaOnly(aulaOriginal.data) : aulaOriginal.data,
+          nome: aulaOriginal.nome, descricao: aulaOriginal.descricao || '', status: 'futura',
+          turma_id: turmaDestinoId, turma_disciplina_id: tdId, professor_id: profData.id,
+          ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
+          ...(aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
+        });
+      }
+    }
+    if (!copias.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para copiar.'); return; }
+    const res = await api('aulas', { method: 'POST', body: JSON.stringify(copias), headers: { 'Prefer': 'return=representation' } });
+    const criadas = Array.isArray(res) && res.length > 0 ? res : copias.map((c, i) => ({ ...c, id: `temp_${Date.now()}_${i}` }));
+    if (copiaNaMesmaTurma) {
+      criadas.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => { aulasTurma.push(a); if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false); });
+      if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    }
+    new Set(criadas.map(a => String(a.turma_id)).filter(id => id !== String(turmaAtiva?.id))).forEach(id => { if (typeof cacheInvalidar === 'function') cacheInvalidar(id); });
+    const modal = document.getElementById('modal-copiar-aula');
+    if (modal) modal.classList.remove('open');
+    if (typeof mostrarToast === 'function') mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} copiada${criadas.length > 1 ? 's' : ''}!`);
+    window.aulaParaCopiar = null; window.aulasParaCopiar = null;
+    if (typeof modoSelecaoAulas !== 'undefined' && modoSelecaoAulas) { modoSelecaoAulas = false; if (typeof limparSelecaoAulas === 'function') limparSelecaoAulas(); }
+    if (typeof carregarAulas === 'function') await carregarAulas();
+  } catch(e) {
+    console.error('Erro ao copiar aula:', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao copiar: ' + (e.message || 'tente novamente.'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar'; }
+  }
+};
+
+function _injetarModalTransferencia() {
+  if (document.getElementById('modal-transferir-aulas')) return;
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'modal-transferir-aulas';
+  modal.style.zIndex = '9100';
+  modal.onclick = function(e) { if (e.target === this) this.classList.remove('open'); };
+  modal.innerHTML = `
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">↔ Transferir aulas para outra turma</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="transferir-aula-nome"></div>
+        </div>
+        <button class="modal-close" onclick="document.getElementById('modal-transferir-aulas').classList.remove('open')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:14px;line-height:1.6;">
+          <strong>📋 Para usar como substituto:</strong> as aulas serão criadas na turma destino com <em>você</em> como professor. Depois declare a substituição no SIPRO+.
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Selecione a turma destino:</div>
+        <div id="transferir-turmas-lista" style="max-height:220px;overflow-y:auto;"></div>
+        <div style="margin-top:14px;padding:12px;background:#F8F6FF;border-radius:8px;border:1px solid #E5E0F8;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="transferir-copiar-chamada" checked style="width:16px;height:16px;accent-color:var(--purple);">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text);">Copiar chamadas</div>
+              <div style="font-size:11px;color:var(--text-muted);">Transfere presença/falta dos alunos já registrados</div>
+            </div>
+          </label>
+        </div>
+        <div id="transferir-progresso" style="display:none;margin-top:12px;font-size:12px;color:var(--purple);text-align:center;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="document.getElementById('modal-transferir-aulas').classList.remove('open')">Cancelar</button>
+        <button class="btn-save" id="btn-confirmar-transferencia" onclick="confirmarTransferirAulas()" style="background:#0F766E;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          Transferir
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+window.abrirModalTransferirAulas = async function(aulaId) {
+  _injetarModalTransferencia();
+  let idsParaTransferir = [];
+  if (aulaId) {
+    idsParaTransferir = [aulaId];
+    const aula = aulasTurma.find(a => String(a.id) === String(aulaId));
+    document.getElementById('transferir-aula-nome').textContent = aula ? aula.nome : `Aula #${aulaId}`;
+  } else if (typeof aulasSelecionadas !== 'undefined' && aulasSelecionadas.size > 0) {
+    idsParaTransferir = Array.from(aulasSelecionadas);
+    document.getElementById('transferir-aula-nome').textContent = `${idsParaTransferir.length} aula${idsParaTransferir.length > 1 ? 's' : ''} selecionada${idsParaTransferir.length > 1 ? 's' : ''}`;
+  } else {
+    mostrarToast('Selecione pelo menos uma aula primeiro.'); return;
+  }
+  window._idsParaTransferir = idsParaTransferir;
+  const lista = document.getElementById('transferir-turmas-lista');
+  lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">Carregando turmas...</div>';
+  const modal = document.getElementById('modal-transferir-aulas');
+  if (modal.parentElement !== document.body) document.body.appendChild(modal);
+  modal.classList.add('open');
+  try {
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    let turmasTodas = [];
+    try {
+      const tds = await api(`turmas_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=200`);
+      if (tds && tds.length) {
+        turmasTodas = tds.filter(td => String(td.professor_id) !== String(profData.id)).map(td => ({
+          turmaDiscId: td.id, turmaId: td.turma_id,
+          nome: td.turmas?.nome || `Turma ${td.turma_id}`,
+          ano: td.turmas?.ano || '', turno: td.turmas?.turno || '',
+          professorNome: td.professores?.nome || 'Outro professor',
+        }));
+      }
+    } catch(e) { console.warn('[Transferir] fallback para todasTurmas:', e.message); }
+    if (!turmasTodas.length && typeof todasTurmas !== 'undefined' && todasTurmas.length) {
+      turmasTodas = todasTurmas.filter(t => String(t.id) !== String(turmaAtiva?.id)).map(t => ({
+        turmaDiscId: null, turmaId: t.id, nome: t.nome, ano: t.ano || '', turno: t.turno || '', professorNome: '',
+      }));
+    }
+    if (!turmasTodas.length) { lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--danger);font-size:12px;">Nenhuma turma encontrada.</div>'; return; }
+    lista.innerHTML = turmasTodas.map(t => `
+      <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;transition:border-color 0.15s;"
+        onmouseover="this.style.borderColor='var(--purple)'" onmouseout="this.style.borderColor='var(--border)'">
+        <input type="radio" name="turma-transferir" value="${t.turmaId}" data-td-id="${t.turmaDiscId || ''}" style="margin:0;accent-color:var(--purple);">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${t.nome}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${t.ano ? t.ano + 'º ano' : ''}${t.turno ? ' · ' + t.turno : ''}${t.professorNome ? ' · <span style="color:#7C3AED;">' + t.professorNome + '</span>' : ''}</div>
+        </div>
+      </label>`).join('');
+  } catch(e) { lista.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);font-size:12px;">Erro: ${e.message}</div>`; }
+};
+
+window.confirmarTransferirAulas = async function() {
+  const radioSelecionado = document.querySelector('#transferir-turmas-lista input[name="turma-transferir"]:checked');
+  if (!radioSelecionado) { if (typeof mostrarToast === 'function') mostrarToast('Selecione uma turma destino.'); return; }
+  const turmaDestinoId = radioSelecionado.value;
+  const turmaDestTdId = radioSelecionado.dataset.tdId || null;
+  const copiarChamada = document.getElementById('transferir-copiar-chamada')?.checked ?? true;
+  const idsParaTransferir = window._idsParaTransferir || [];
+  if (!idsParaTransferir.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para transferir.'); return; }
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const btn = document.getElementById('btn-confirmar-transferencia');
+  const progresso = document.getElementById('transferir-progresso');
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Transferindo...'; }
+  if (progresso) { progresso.style.display = 'block'; progresso.textContent = 'Buscando aulas...'; }
+  try {
+    const aulasOriginais = [];
+    for (const aulaId of idsParaTransferir) {
+      const local = aulasTurma.find(a => String(a.id) === String(aulaId));
+      if (local) { aulasOriginais.push(local); } else {
+        const res = await api(`aulas?id=eq.${aulaId}&select=*`);
+        if (res && res[0]) aulasOriginais.push(res[0]);
+      }
+    }
+    if (!aulasOriginais.length) throw new Error('Aulas não encontradas.');
+    let tdIdDestino = turmaDestTdId || await _buscarTurmaDisciplinaId(turmaDestinoId);
+    if (progresso) progresso.textContent = `Criando ${aulasOriginais.length} aulas na turma destino...`;
+    const novasAulas = aulasOriginais.map(a => ({
+      data: typeof dataAulaOnly === 'function' ? dataAulaOnly(a.data) : a.data,
+      nome: a.nome, descricao: a.descricao || '', status: a.status || 'futura',
+      turma_id: turmaDestinoId, turma_disciplina_id: tdIdDestino, professor_id: profData.id,
+      ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
+      ...(a.disciplina ? { disciplina: a.disciplina } : {}),
+    }));
+    const criadas = await api('aulas', { method: 'POST', body: JSON.stringify(novasAulas), headers: { 'Prefer': 'return=representation' } });
+    const aulasCriadas = Array.isArray(criadas) && criadas.length > 0 ? criadas : novasAulas.map((a, i) => ({ ...a, id: `temp_${Date.now()}_${i}` }));
+    let chamadosCopiadosTotal = 0;
+    if (copiarChamada) {
+      for (let i = 0; i < aulasOriginais.length; i++) {
+        const aulaNovaId = aulasCriadas[i]?.id;
+        if (!aulaNovaId || String(aulaNovaId).startsWith('temp_')) continue;
+        if (progresso) progresso.textContent = `Copiando chamada ${i + 1}/${aulasOriginais.length}...`;
+        try {
+          const chamadas = await api(`chamadas?aula_id=eq.${aulasOriginais[i].id}&select=*`);
+          if (!chamadas || !chamadas.length) continue;
+          const novasChamadas = chamadas.map(c => ({ aula_id: aulaNovaId, aluno_id: c.aluno_id, presente: c.presente, observacao: c.observacao || null }));
+          await api('chamadas', { method: 'POST', body: JSON.stringify(novasChamadas), headers: { 'Prefer': 'return=minimal' } });
+          chamadosCopiadosTotal += novasChamadas.length;
+        } catch(eChamada) { console.warn('[Transferir] Erro chamada aula', aulasOriginais[i].id, eChamada); }
+      }
+    }
+    if (typeof cacheInvalidar === 'function') cacheInvalidar(turmaDestinoId);
+    document.getElementById('modal-transferir-aulas').classList.remove('open');
+    window._idsParaTransferir = null;
+    let msg = `✓ ${aulasCriadas.length} aula${aulasCriadas.length > 1 ? 's' : ''} transferida${aulasCriadas.length > 1 ? 's' : ''}!`;
+    if (copiarChamada && chamadosCopiadosTotal > 0) msg += ` (${chamadosCopiadosTotal} registros de chamada copiados)`;
+    if (typeof mostrarToast === 'function') mostrarToast(msg);
+    if (typeof modoSelecaoAulas !== 'undefined' && modoSelecaoAulas) { modoSelecaoAulas = false; if (typeof limparSelecaoAulas === 'function') limparSelecaoAulas(); }
+  } catch(e) {
+    console.error('[Transferir] Erro:', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao transferir: ' + (e.message || 'tente novamente.'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Transferir'; }
+    if (progresso) progresso.style.display = 'none';
+  }
+};
+
+// Injeta botão Transferir na toolbar de seleção múltipla
+[500,1500,3000].forEach(d => setTimeout(() => {
+  const btnCopiar = document.querySelector('[onclick="duplicarAulasSelecionadas()"]');
+  if (btnCopiar && !document.getElementById('btn-transferir-selecionadas')) {
+    const btnTr = document.createElement('button');
+    btnTr.id = 'btn-transferir-selecionadas';
+    btnTr.onclick = () => window.abrirModalTransferirAulas(null);
+    btnTr.title = 'Transferir para outro professor';
+    btnTr.className = btnCopiar.className;
+    btnTr.style.cssText = btnCopiar.style.cssText;
+    btnTr.style.background = '#0F766E';
+    btnTr.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg> Transferir';
+    btnCopiar.parentElement.insertBefore(btnTr, btnCopiar.nextSibling);
+  }
+}, d));
+</script>
 </body>
 </html>
