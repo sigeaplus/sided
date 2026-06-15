@@ -230,8 +230,11 @@ function renderListaAulas() {
         <button class="btn-icon" onclick="event.stopPropagation();editarAula('${a.id}')" title="Editar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
-        <button class="btn-icon" onclick="event.stopPropagation();duplicarAula('${a.id}')" title="Copiar">
+        <button class="btn-icon" onclick="event.stopPropagation();duplicarAula('${a.id}')" title="Copiar para outra turma">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        </button>
+        <button class="btn-icon" onclick="event.stopPropagation();window.abrirModalTransferirAulas('${a.id}')" title="Transferir para outro professor" style="color:#0F766E;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </button>
         <button class="btn-icon danger" onclick="event.stopPropagation();excluirAula('${a.id}')" title="Excluir">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
