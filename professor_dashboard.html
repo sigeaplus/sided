@@ -2691,7 +2691,7 @@ async function _buscarTurmaDisciplinaId(turmaId) {
   if (!profData.id) return null;
   try {
     // Tenta buscar o vínculo turma-disciplina-professor
-    const res = await api(`turmas_disciplinas?turma_id=eq.${turmaId}&professor_id=eq.${profData.id}&select=id&limit=1`);
+    const res = await api(`turma_disciplinas?turma_id=eq.${turmaId}&professor_id=eq.${profData.id}&select=id&limit=1`);
     const tdId = (res && res[0]) ? res[0].id : null;
     _tdIdCache[turmaId] = tdId;
     return tdId;
@@ -2876,8 +2876,8 @@ let _turmasPorProfTransferir = {};
 async function _carregarProfessoresTransferir() {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   try {
-    // Busca todos os professores com suas turmas via turmas_disciplinas
-    const tds = await api(`turmas_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=500`);
+    // Busca todos os professores com suas turmas via turma_disciplinas
+    const tds = await api(`turma_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=500`);
     if (!tds || !tds.length) throw new Error('vazio ou tabela inexistente');
 
     // Agrupa turmas por professor
@@ -3036,10 +3036,10 @@ window.confirmarTransferirAulas = async function() {
       let tdIdDestino = destino.turmaDiscId;
       if (!tdIdDestino) {
         try {
-          const res = await api(`turmas_disciplinas?turma_id=eq.${destino.turmaId}&professor_id=eq.${professorDestinoId}&select=id&limit=1`);
+          const res = await api(`turma_disciplinas?turma_id=eq.${destino.turmaId}&professor_id=eq.${professorDestinoId}&select=id&limit=1`);
           tdIdDestino = (res && res[0]) ? res[0].id : null;
         } catch(e) {
-          console.warn('[Transferir] turmas_disciplinas indisponível, continuando sem tdId:', e.message || e);
+          console.warn('[Transferir] turma_disciplinas indisponível, continuando sem tdId:', e.message || e);
           tdIdDestino = null;
         }
       }
