@@ -2777,7 +2777,18 @@ window.confirmarCopiarAula = async function() {
       }
     }
     if (!copias.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para copiar.'); return; }
-    const res = await api('aulas', { method: 'POST', body: JSON.stringify(copias), headers: { 'Prefer': 'return=representation' } });
+
+    // Tentar insert; se falhar (ex: turma_disciplina_id NOT NULL ou RLS), tenta sem o campo
+    let res;
+    try {
+      res = await api('aulas', { method: 'POST', body: JSON.stringify(copias), headers: { 'Prefer': 'return=representation' } });
+    } catch(eInsert) {
+      console.warn('[Duplicar] Falhou com turma_disciplina_id, tentando sem:', eInsert.message || eInsert);
+      const copiasSemTd = copias.map(c => { const { turma_disciplina_id, ...rest } = c; return rest; });
+      res = await api('aulas', { method: 'POST', body: JSON.stringify(copiasSemTd), headers: { 'Prefer': 'return=representation' } });
+    }
+
+    if (!res) throw new Error('Sem resposta da API. Verifique permissoes da turma destino.');
     const criadas = Array.isArray(res) && res.length > 0 ? res : copias.map((c, i) => ({ ...c, id: `temp_${Date.now()}_${i}` }));
     if (copiaNaMesmaTurma) {
       criadas.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => { aulasTurma.push(a); if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false); });
