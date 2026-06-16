@@ -2700,6 +2700,45 @@ async function _buscarTurmaDisciplinaId(turmaId) {
   }
 }
 
+window.duplicarAula = async function(aulaId) {
+  try {
+    if (typeof api !== 'function') { alert('Erro: Sistema ainda carregando. Aguarde e tente novamente.'); return; }
+    const aula = await api(`aulas?id=eq.${aulaId}&select=*`);
+    if (!aula || !aula.length) throw new Error('Aula original não encontrada');
+    const aulaOriginal = aula[0];
+    await garantirTodasTurmas();
+    if (!todasTurmas || todasTurmas.length === 0) { alert('Erro: Não foi possível carregar as turmas. Verifique sua conexão e tente recarregar a página.'); return; }
+    window.aulaParaCopiar = aulaOriginal;
+    window.aulasParaCopiar = null;
+    const lista = document.getElementById('copiar-turmas-lista');
+    const turmaAtualLabel = turmaAtiva ? `
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--purple);border-radius:8px;background:#F8F6FF;cursor:pointer;margin-bottom:6px;">
+        <input type="checkbox" value="_self" style="margin:0;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--purple);">↩ Mesma turma (${turmaAtiva.nome})</div>
+          <div style="font-size:11px;color:var(--text-muted);">Duplicar dentro desta turma</div>
+        </div>
+      </label>` : '';
+    const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(aulaOriginal.turma_id));
+    lista.innerHTML = turmaAtualLabel + turmasOutras.map(t => `
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
+        <input type="checkbox" value="${t.id}" style="margin:0;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${t.nome}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${t.disciplina} - ${t.ano}º ano</div>
+        </div>
+      </label>`).join('');
+    document.getElementById('copiar-aula-nome').textContent = aulaOriginal.nome;
+    const modalEl = document.getElementById('modal-copiar-aula');
+    if (modalEl) {
+      if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
+      modalEl.classList.add('open');
+    }
+  } catch(error) {
+    alert('Erro ao preparar duplicação: ' + error.message);
+  }
+};
+
 window.confirmarCopiarAula = async function() {
   const checkboxes = document.querySelectorAll('#copiar-turmas-lista input[type="checkbox"]:checked');
   if (!checkboxes.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione pelo menos uma turma.'); return; }
@@ -2726,9 +2765,11 @@ window.confirmarCopiarAula = async function() {
         if (!turmaDestinoId) continue;
         if (isSelf) copiaNaMesmaTurma = true;
         const tdId = isSelf ? (turmaDisciplinaAtiva?.id || null) : (tdIdMap[turmaDestinoId] || null);
+        const dataISO = typeof dataAulaOnly === 'function' ? dataAulaOnly(aulaOriginal.data) : aulaOriginal.data;
+        const status = typeof calcularStatusAuto === 'function' ? calcularStatusAuto(dataISO, null) : 'futura';
         copias.push({
-          data: typeof dataAulaOnly === 'function' ? dataAulaOnly(aulaOriginal.data) : aulaOriginal.data,
-          nome: aulaOriginal.nome, descricao: aulaOriginal.descricao || '', status: 'futura',
+          data: dataISO,
+          nome: aulaOriginal.nome, descricao: aulaOriginal.descricao || '', status,
           turma_id: turmaDestinoId, turma_disciplina_id: tdId, professor_id: profData.id,
           ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
           ...(aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
