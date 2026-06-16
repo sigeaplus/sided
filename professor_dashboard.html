@@ -2690,11 +2690,14 @@ async function _buscarTurmaDisciplinaId(turmaId) {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   if (!profData.id) return null;
   try {
+    // Tenta buscar o vínculo turma-disciplina-professor
     const res = await api(`turmas_disciplinas?turma_id=eq.${turmaId}&professor_id=eq.${profData.id}&select=id&limit=1`);
     const tdId = (res && res[0]) ? res[0].id : null;
     _tdIdCache[turmaId] = tdId;
     return tdId;
   } catch(e) {
+    // Tabela pode não existir ou ter nome diferente — não bloquear a cópia
+    console.warn('[_buscarTurmaDisciplinaId] Ignorando erro (tabela pode não existir):', e.message || e);
     _tdIdCache[turmaId] = null;
     return null;
   }
@@ -2767,10 +2770,12 @@ window.confirmarCopiarAula = async function() {
         const tdId = isSelf ? (turmaDisciplinaAtiva?.id || null) : (tdIdMap[turmaDestinoId] || null);
         const dataISO = typeof dataAulaOnly === 'function' ? dataAulaOnly(aulaOriginal.data) : aulaOriginal.data;
         const status = typeof calcularStatusAuto === 'function' ? calcularStatusAuto(dataISO, null) : 'futura';
+        // Só incluir turma_disciplina_id se tiver valor — evita erro NOT NULL quando tabela não existe
         copias.push({
           data: dataISO,
           nome: aulaOriginal.nome, descricao: aulaOriginal.descricao || '', status,
-          turma_id: turmaDestinoId, turma_disciplina_id: tdId, professor_id: profData.id,
+          turma_id: turmaDestinoId, professor_id: profData.id,
+          ...(tdId ? { turma_disciplina_id: tdId } : {}),
           ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
           ...(aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
         });
@@ -2873,7 +2878,7 @@ async function _carregarProfessoresTransferir() {
   try {
     // Busca todos os professores com suas turmas via turmas_disciplinas
     const tds = await api(`turmas_disciplinas?select=id,turma_id,professor_id,turmas(id,nome,ano,turno),professores(id,nome)&limit=500`);
-    if (!tds || !tds.length) throw new Error('vazio');
+    if (!tds || !tds.length) throw new Error('vazio ou tabela inexistente');
 
     // Agrupa turmas por professor
     const profMap = {};
@@ -3033,7 +3038,10 @@ window.confirmarTransferirAulas = async function() {
         try {
           const res = await api(`turmas_disciplinas?turma_id=eq.${destino.turmaId}&professor_id=eq.${professorDestinoId}&select=id&limit=1`);
           tdIdDestino = (res && res[0]) ? res[0].id : null;
-        } catch(e) { tdIdDestino = null; }
+        } catch(e) {
+          console.warn('[Transferir] turmas_disciplinas indisponível, continuando sem tdId:', e.message || e);
+          tdIdDestino = null;
+        }
       }
 
       if (progresso) progresso.textContent = `Criando aulas na turma destino...`;
@@ -3042,7 +3050,7 @@ window.confirmarTransferirAulas = async function() {
         data: typeof dataAulaOnly === 'function' ? dataAulaOnly(a.data) : a.data,
         nome: a.nome, descricao: a.descricao || '', status: a.status || 'futura',
         turma_id: destino.turmaId,
-        turma_disciplina_id: tdIdDestino,
+        ...(tdIdDestino ? { turma_disciplina_id: tdIdDestino } : {}),
         professor_id: professorDestinoId,
         ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
         ...(a.disciplina ? { disciplina: a.disciplina } : {}),
