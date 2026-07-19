@@ -1566,8 +1566,8 @@
     <div class="modal-sub">Acesse com seu login institucional</div>
     <div id="error-msg" class="error-msg"></div>
     <div class="form-group">
-      <label class="form-label">Login</label>
-      <input class="form-input" id="inp-login" type="text" placeholder="Seu login institucional" autocomplete="username"/>
+      <label class="form-label">E-mail, login ou CPF</label>
+      <input class="form-input" id="inp-login" type="text" placeholder="E-mail, login institucional ou CPF" autocomplete="username" oninput="mascaraLoginCpf(this)"/>
     </div>
     <div class="form-group">
       <label class="form-label">Senha</label>
@@ -1921,6 +1921,19 @@
 
   function esconderErro() {
     document.getElementById('error-msg').style.display = 'none';
+  }
+
+  // Aplica máscara de CPF automaticamente apenas quando o usuário está
+  // digitando números (login/e-mail continuam livres, sem interferência)
+  function mascaraLoginCpf(el) {
+    const raw = el.value;
+    const somenteNumeros = /^[0-9.\-]*$/.test(raw);
+    if (!somenteNumeros) return; // é login ou e-mail, não mexe
+    let v = raw.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+    el.value = v;
   }
 
   async function fazerLogin() {
