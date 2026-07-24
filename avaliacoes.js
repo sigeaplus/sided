@@ -564,10 +564,16 @@ async function abrirModalAvaliacao(data) {
     // Buscar disciplinas do professor para essa turma
     try {
       const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-      const td = await api(`turma_disciplinas?professor_id=eq.${profData.id}&turma_id=eq.${turmaAtiva.id}&select=disciplinas(id,nome)`);
+      const td = await api(`turma_disciplinas?professor_id=eq.${profData.id}&turma_id=eq.${turmaAtiva.id}&select=id,disciplinas(id,nome)`);
+      // Mapa nome da disciplina -> id real de turma_disciplinas, usado em
+      // salvarAvaliacao() para gravar o turma_disciplina_id correto
+      // (não usar turmaDisciplinaAtiva?.id aqui, pois em turmas polivalentes
+      // isso é sempre o mesmo valor, independente da disciplina escolhida).
+      window._mapaDiscParaTurmaDisciplinaId = {};
       selDisc.innerHTML = '<option value="">Selecione a disciplina...</option>';
       (td || []).forEach(r => {
         if (r.disciplinas) {
+          window._mapaDiscParaTurmaDisciplinaId[r.disciplinas.nome] = r.id;
           const opt = document.createElement('option');
           opt.value = r.disciplinas.nome;
           opt.textContent = r.disciplinas.nome;
@@ -576,6 +582,8 @@ async function abrirModalAvaliacao(data) {
         }
       });
       // Se não veio nada do turma_disciplinas, usa disciplina do profData
+      // (fallback apenas para exibição do nome; sem id de turma_disciplinas
+      // disponível, salvarAvaliacao() vai cair de volta em turmaDisciplinaAtiva)
       if (selDisc.options.length <= 1 && profData.disciplina) {
         const opt = document.createElement('option');
         opt.value = profData.disciplina;
@@ -655,12 +663,33 @@ async function salvarAvaliacao() {
   // Para confirmar_nota: nome com prefixo especial, pontos mínimo válido
   const nomeReal = tipo === 'confirmar_nota' ? '__NOTA_FINAL__' + (nome || 'Nota Final') : nome;
   const pontosReal = tipo === 'confirmar_nota' ? 1 : pontos;
+
+  // Resolver o turma_disciplina_id CORRETO para a disciplina escolhida.
+  // Em turmas polivalentes (Fundamental I), turmaDisciplinaAtiva?.id é o
+  // vínculo genérico carregado ao abrir a turma — ele é o MESMO para
+  // todas as disciplinas do professor ali, então NUNCA deve ser usado
+  // diretamente quando uma disciplina específica foi selecionada no
+  // formulário. Nesse caso, usamos o mapa (nome da disciplina -> id real
+  // de turma_disciplinas) construído ao abrir o modal.
+  let turmaDisciplinaIdParaSalvar = turmaDisciplinaAtiva?.id || null;
+  if (isFundI && disciplina && window._mapaDiscParaTurmaDisciplinaId) {
+    const idResolvido = window._mapaDiscParaTurmaDisciplinaId[disciplina];
+    if (idResolvido) {
+      turmaDisciplinaIdParaSalvar = idResolvido;
+    }
+    // Se não houver id resolvido para essa disciplina (ex: veio do
+    // fallback de profData.disciplina, sem turma_disciplinas cadastrado),
+    // mantém turmaDisciplinaAtiva?.id como último recurso — não bloqueia
+    // o salvamento, mas o texto `disciplina` continua correto e pode ser
+    // usado depois para uma correção de dados, se necessário.
+  }
+
   const body = {
     nome: nomeReal, pontos: pontosReal,
     trimestre: parseInt(document.getElementById('aval-tri').value),
     tipo: tipoPersistir,
     turma_id: turmaAtiva.id,
-    turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
+    turma_disciplina_id: turmaDisciplinaIdParaSalvar,
     professor_id: profData.id,
     ...(disciplina ? { disciplina } : {})
   };
