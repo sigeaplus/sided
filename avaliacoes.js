@@ -53,6 +53,88 @@ function valoresDaDivisao(tri) {
   return { max: 30, mediaMin: 18 };
 }
 
+// ------------------------------------------------------------
+// SINCRONIZAÇÃO DE totais_disciplina_trimestre
+// ------------------------------------------------------------
+// O SIDED+ é a fonte de verdade do total (calcula em tempo real
+// a partir das notas). O trigger de banco que recalculava esse
+// total sozinho foi desativado por gerar valores acumulados
+// incorretos. A partir de agora, toda vez que uma nota é salva
+// ou editada, o SIDED+ recalcula o total do trimestre a partir
+// das notas reais (query fresca, sem depender de cache/estado
+// local) e faz upsert em totais_disciplina_trimestre.
+//
+// Respeita bloqueado_secretaria: se a secretaria travou o total,
+// o SIDED+ não sobrescreve — só loga e segue.
+// ------------------------------------------------------------
+async function sincronizarTotalTrimestre(alunoId, turmaDisciplinaId, trimestre) {
+  if (!alunoId || !turmaDisciplinaId || trimestre == null) return;
+
+  try {
+    // Busca disciplina_id direto de turma_disciplinas — não depende do shape
+    // de turmaDisciplinaAtiva (que varia entre módulos/arquivos).
+    const tdRows = await api(`turma_disciplinas?id=eq.${turmaDisciplinaId}&select=disciplina_id`) || [];
+    const disciplinaId = tdRows[0]?.disciplina_id;
+    if (!disciplinaId) {
+      console.error('[sincronizarTotalTrimestre] disciplina_id não encontrado para turma_disciplina_id:', turmaDisciplinaId);
+      return;
+    }
+
+    // Checa se já existe um total bloqueado pela secretaria — se sim, não mexe.
+    const existentes = await api(
+      `totais_disciplina_trimestre?aluno_id=eq.${alunoId}&turma_disciplina_id=eq.${turmaDisciplinaId}&disciplina_id=eq.${disciplinaId}&trimestre=eq.${trimestre}&select=bloqueado_secretaria`
+    ) || [];
+    if (existentes[0]?.bloqueado_secretaria === true) {
+      console.log('[sincronizarTotalTrimestre] Total bloqueado pela secretaria, não sobrescrevendo.', { alunoId, turmaDisciplinaId, trimestre });
+      return;
+    }
+
+    // Todas as avaliações desse turma_disciplina_id/trimestre
+    const avais = await api(
+      `avaliacoes?turma_disciplina_id=eq.${turmaDisciplinaId}&trimestre=eq.${trimestre}&select=id`
+    ) || [];
+
+    let total = 0;
+    if (avais.length) {
+      const ids = avais.map(a => a.id);
+      const todasNotas = await api(
+        `notas?avaliacao_id=in.(${ids.join(',')})&aluno_id=eq.${alunoId}&select=nota,recuperacao_paralela,nao_realizado,ausente`
+      ) || [];
+      todasNotas.forEach(n => {
+        if (n.nao_realizado || n.ausente) return;
+        if (n.nota !== null && n.nota !== undefined) total += Number(n.nota);
+        if (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) total += Number(n.recuperacao_paralela);
+      });
+    }
+
+    await api('totais_disciplina_trimestre?on_conflict=aluno_id,turma_disciplina_id,disciplina_id,trimestre', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify({
+        aluno_id: alunoId,
+        turma_disciplina_id: turmaDisciplinaId,
+        disciplina_id: disciplinaId,
+        trimestre: trimestre,
+        total: total,
+        origem: 'sided',
+        bloqueado_secretaria: false,
+        atualizado_em: new Date().toISOString()
+      })
+    });
+  } catch (e) {
+    console.error('[sincronizarTotalTrimestre] Erro ao sincronizar total:', e);
+    // Não interrompe o fluxo de salvar nota por causa disso — só loga.
+  }
+}
+
+// Sincroniza o total de vários alunos em paralelo (usado após salvar em lote).
+async function sincronizarTotalTrimestreLote(alunoIds, turmaDisciplinaId, trimestre) {
+  const idsUnicos = [...new Set(alunoIds)];
+  await Promise.all(
+    idsUnicos.map(id => sincronizarTotalTrimestre(id, turmaDisciplinaId, trimestre))
+  );
+}
+
 async function _inicializarFiltroDiscAval() {
   const box = document.getElementById('aval-disciplina-filtro');
   const tabsContainer = document.getElementById('aval-disciplina-tabs');
@@ -1256,6 +1338,12 @@ async function salvarNotasAluno(avancar = false) {
     });
 
     await Promise.all(saves);
+
+    // Recalcula e envia o total do trimestre pro banco (fonte de verdade: SIDED+)
+    if (avaliacaoAtiva?.turma_disciplina_id) {
+      await sincronizarTotalTrimestre(aluno.id, avaliacaoAtiva.turma_disciplina_id, tri);
+    }
+
     mostrarToast(`✓ Notas de ${aluno.nome_completo.split(' ')[0]} salvas!`);
 
     if (avancar && _mnaAlunoIdx < _mnaAlunoLista.length - 1) {
@@ -1337,6 +1425,16 @@ async function salvarTodasNotas() {
       }
       const chaveAval = turmaAtiva.id + '::avaliacoes';
       Object.keys(_cache).forEach(k => { if (k === chaveAval) delete _cache[k]; });
+
+      // Recalcula e envia o total do trimestre de todos os alunos do grupo
+      if (avaliacaoAtiva?.turma_disciplina_id) {
+        await sincronizarTotalTrimestreLote(
+          alunosTurma.map(a => a.id),
+          avaliacaoAtiva.turma_disciplina_id,
+          avaliacaoAtiva.trimestre
+        );
+      }
+
       mostrarToast('Grupo salvo com sucesso!');
       setTimeout(() => { resetBtn(); voltarAvaliacoes(); }, 900);
       return;
@@ -1405,12 +1503,24 @@ async function salvarTodasNotas() {
           body   : JSON.stringify(confirmadas)
         });
       }
+
+      // Nota Final não altera a soma "base" do trimestre (ela é a soma_original
+      // registrada em notas_confirmadas), então não recalcula totais_disciplina_trimestre aqui.
     } else {
       if (rows.length) await api('notas?on_conflict=avaliacao_id,aluno_id', {
         method : 'POST',
         headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
         body   : JSON.stringify(rows)
       });
+
+      // Recalcula e envia o total do trimestre de todos os alunos afetados
+      if (rows.length && avaliacaoAtiva?.turma_disciplina_id) {
+        await sincronizarTotalTrimestreLote(
+          rows.map(r => r.aluno_id),
+          avaliacaoAtiva.turma_disciplina_id,
+          avaliacaoAtiva.trimestre
+        );
+      }
     }
 
     // Invalida só o cache de avaliações (notas mudaram, mas aulas/alunos permanecem válidos)
@@ -1517,6 +1627,16 @@ async function salvarNotas() {
     headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body   : JSON.stringify(rows)
   });
+
+  // Recalcula e envia o total do trimestre de todos os alunos afetados
+  if (avaliacaoAtiva?.turma_disciplina_id) {
+    await sincronizarTotalTrimestreLote(
+      rows.map(r => r.aluno_id),
+      avaliacaoAtiva.turma_disciplina_id,
+      avaliacaoAtiva.trimestre
+    );
+  }
+
   voltarAvaliacoes();
   await carregarAvaliacoes();
 }
