@@ -92,11 +92,50 @@ function filtrarAulasTipo(el) {
   renderListaAulas();
 }
 
-const TRI_DATAS = {
-  1: { ini: '-02-04', fim: '-05-20' },
-  2: { ini: '-05-21', fim: '-09-09' },
-  3: { ini: '-09-10', fim: '-12-18' },
-};
+// ------------------------------------------------------------
+// DIVISÕES DO ANO LETIVO (trimestres/bimestres) — substituindo
+// o antigo TRI_DATAS hardcoded. As datas agora vêm do banco:
+// turma → periodo_letivo_id → matrizes_curriculares (mesma
+// escola + periodo_letivo) → parametro_id → parametro_divisoes
+// (com data_inicio/data_fim, cadastradas na tela do SIPRO).
+//
+// Carregado uma vez por turma (cache em memória) para manter
+// trimestreDeAula() síncrona — ela é chamada dentro de vários
+// .filter() no código, então não pode virar async sem quebrar
+// esses pontos de chamada.
+// ------------------------------------------------------------
+let _divisoesCache = null;       // [{ id, ordem, dataIni, dataFim }, ...] ordenado por ordem_divisao
+let _divisoesCacheTurmaId = null; // turma_id para o qual o cache acima é válido
+
+async function carregarDivisoesDaTurma(turma) {
+  if (!turma?.id) { _divisoesCache = null; _divisoesCacheTurmaId = null; return; }
+  if (_divisoesCacheTurmaId === turma.id && _divisoesCache) return; // já carregado
+
+  _divisoesCache = [];
+  _divisoesCacheTurmaId = turma.id;
+
+  if (!turma.periodo_letivo_id) return; // turma ainda sem vínculo de ano letivo — fica sem divisões
+
+  const matrizes = await api(
+    `matrizes_curriculares?escola_id=eq.${turma.escola_id}&periodo_letivo_id=eq.${turma.periodo_letivo_id}&select=id,parametro_id&limit=1`
+  ) || [];
+  const parametroId = matrizes[0]?.parametro_id;
+  if (!parametroId) return; // escola ainda não cadastrou matriz/parâmetro para este ano letivo
+
+  const divisoes = await api(
+    `parametro_divisoes?parametro_id=eq.${parametroId}&select=divisao_id,ordem_divisao,valor_divisao,data_inicio,data_fim&order=ordem_divisao.asc`
+  ) || [];
+
+  _divisoesCache = divisoes
+    .filter(d => d.data_inicio && d.data_fim) // ignora divisão sem data cadastrada ainda
+    .map(d => ({
+      id: d.divisao_id,
+      ordem: d.ordem_divisao,
+      valor: d.valor_divisao,
+      dataIni: d.data_inicio,
+      dataFim: d.data_fim
+    }));
+}
 
 function dataAulaOnly(raw) {
   if (raw == null || raw === '') return '';
@@ -111,11 +150,9 @@ function dataAulaOnly(raw) {
 function trimestreDeAula(dataISO) {
   if (!dataISO) return 0;
   dataISO = dataAulaOnly(dataISO);
-  const ano = dataISO.split('-')[0];
-  for (let tri = 1; tri <= 3; tri++) {
-    const ini = `${ano}${TRI_DATAS[tri].ini}`;
-    const fim = `${ano}${TRI_DATAS[tri].fim}`;
-    if (dataISO >= ini && dataISO <= fim) return tri;
+  if (!_divisoesCache || _divisoesCache.length === 0) return 0; // divisões não carregadas/cadastradas ainda
+  for (const div of _divisoesCache) {
+    if (dataISO >= div.dataIni && dataISO <= div.dataFim) return div.ordem;
   }
   return 0;
 }
@@ -233,6 +270,9 @@ function renderListaAulas() {
         <button class="btn-icon" onclick="event.stopPropagation();duplicarAula('${a.id}')" title="Copiar para outra turma">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         </button>
+        <button class="btn-icon" onclick="event.stopPropagation();exportarAulaPDF('${a.id}')" title="Exportar em PDF" style="color:#7C3AED;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
         <button class="btn-icon" onclick="event.stopPropagation();window.abrirModalTransferirAulas('${a.id}')" title="Transferir para outro professor" style="color:#0F766E;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </button>
@@ -312,6 +352,7 @@ function toggleModoSelecao() {
     btn.style.color = '#fff';
     btn.style.borderColor = 'var(--purple)';
     barra.style.display = 'flex';
+    _inicializarBotaoExportarSelecao();
   } else {
     btn.style.background = 'var(--white)';
     btn.style.color = 'var(--text-muted)';
@@ -654,6 +695,7 @@ window.aulaParaCopiar = window.aulaParaCopiar || null;
 // ── carregarAulas ────────────────────────────────────────────────────────────
 async function carregarAulas(forcarReload = false) {
   if (forcarReload) cacheInvalidar(turmaAtiva.id);
+  await carregarDivisoesDaTurma(turmaAtiva); // garante _divisoesCache pronto antes de qualquer trimestreDeAula()
   const _tdIdAulas = turmaDisciplinaAtiva?.id;
   window.aulasTurma = aulasTurma = await apiCached(
     _tdIdAulas
@@ -1181,6 +1223,7 @@ window.toggleMenuPontinhos = function(secao, btn) {
   const menuId = `menu-pontinhos-${secao}`;
   let menu = document.getElementById(menuId);
   if (!menu) return;
+  if (secao === 'aulas') _inicializarItemImportarMenu(menu);
   const aberto = menu.style.display === 'block';
   // Fechar todos
   document.querySelectorAll('[id^="menu-pontinhos-"]').forEach(m => m.style.display = 'none');
@@ -1208,3 +1251,282 @@ document.addEventListener('click', function(e) {
     }
   });
 });
+
+// ─── 6. EXPORTAR / IMPORTAR AULAS EM PDF ───────────────────────────────────
+// Exportar: gera um PDF com os dados de uma ou várias aulas (botão no card
+// de cada aula e botão "Exportar PDF" na barra de seleção múltipla).
+// Importar: lê um PDF gerado por este mesmo exportador e recria as aulas
+// na turma ativa (item "Importar aulas (PDF)" no menu ⋯).
+
+function _carregarScriptExterno(url) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${url}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = url;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Falha ao carregar biblioteca de PDF.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function _garantirJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return;
+  await _carregarScriptExterno('https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js');
+}
+
+async function _garantirPdfJs() {
+  if (window.pdfjsLib) return;
+  await _carregarScriptExterno('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// Marcadores que delimitam cada aula dentro do PDF gerado — usados depois
+// para reconhecer os dados na importação. Não remova nem traduza.
+const _AULA_PDF_INICIO = '### AULA-SIDED ###';
+const _AULA_PDF_FIM = '### FIM-AULA-SIDED ###';
+
+function _camposBlocoAula(a) {
+  return [
+    _AULA_PDF_INICIO,
+    `ID: ${a.id}`,
+    `DATA: ${formatarData(a.data)}`,
+    `NOME: ${a.nome || ''}`,
+    `STATUS: ${a.status || ''}`,
+    `DISCIPLINA: ${a.disciplina || ''}`,
+    `BNCC: ${a.habilidade_bncc || ''}`,
+    `DESCRICAO: ${(a.descricao || '').replace(/\s*\n\s*/g, ' ')}`,
+    _AULA_PDF_FIM,
+  ];
+}
+
+async function exportarAulasPDF(lista, nomeArquivo) {
+  if (!lista || lista.length === 0) {
+    if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para exportar.');
+    return;
+  }
+  try {
+    await _garantirJsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const margemX = 14;
+    const limiteY = doc.internal.pageSize.getHeight() - 14;
+    const alturaLinha = 5.6;
+    let y = 18;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.text('SIDED+ — Exportação de Aulas', margemX, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Turma: ${turmaAtiva?.nome || '-'}   |   Gerado em: ${new Date().toLocaleString('pt-BR')}`, margemX, y);
+    y += 9;
+
+    lista.forEach(a => {
+      const linhas = _camposBlocoAula(a);
+      const linhasRenderizadas = [];
+      linhas.forEach(l => {
+        if (l.startsWith('DESCRICAO:')) linhasRenderizadas.push(...doc.splitTextToSize(l, 180));
+        else linhasRenderizadas.push(l);
+      });
+      if (y + linhasRenderizadas.length * alturaLinha > limiteY) { doc.addPage(); y = 18; }
+      linhasRenderizadas.forEach(l => {
+        if (y > limiteY) { doc.addPage(); y = 18; }
+        doc.text(l, margemX, y);
+        y += alturaLinha;
+      });
+      y += 3;
+    });
+
+    const nome = nomeArquivo
+      || `aulas_${(turmaAtiva?.nome || 'turma').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    doc.save(nome);
+    if (typeof mostrarToast === 'function') mostrarToast(`✓ ${lista.length} aula${lista.length > 1 ? 's' : ''} exportada${lista.length > 1 ? 's' : ''} em PDF!`);
+  } catch (e) {
+    console.error('[ExportarAulasPDF]', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao exportar PDF: ' + e.message);
+  }
+}
+window.exportarAulasPDF = exportarAulasPDF;
+
+// Exporta uma única aula (botão no card / "balão" de ações da aula)
+window.exportarAulaPDF = function(aulaId) {
+  const aula = aulasTurma.find(a => String(a.id) === String(aulaId));
+  if (!aula) { if (typeof mostrarToast === 'function') mostrarToast('Aula não encontrada.'); return; }
+  exportarAulasPDF([aula], `aula_${(aula.nome || 'aula').replace(/\s+/g, '_')}_${dataAulaOnly(aula.data)}.pdf`);
+};
+
+// Exporta todas as aulas marcadas no modo de seleção múltipla
+window.exportarAulasSelecionadasPDF = function() {
+  if (!aulasSelecionadas || aulasSelecionadas.size === 0) {
+    if (typeof mostrarToast === 'function') mostrarToast('Selecione ao menos uma aula para exportar.');
+    return;
+  }
+  const lista = aulasTurma.filter(a => aulasSelecionadas.has(a.id));
+  exportarAulasPDF(lista);
+};
+
+// Cria (se ainda não existir) o botão "Exportar PDF" dentro da barra de
+// seleção múltipla (#barra-selecao), clonando o estilo de um botão vizinho
+// para se encaixar visualmente sem precisar editar o HTML.
+function _inicializarBotaoExportarSelecao() {
+  const barra = document.getElementById('barra-selecao');
+  if (!barra || document.getElementById('btn-exportar-selecao-pdf')) return;
+  const modelo = barra.querySelector('button');
+  const btn = modelo ? modelo.cloneNode(true) : document.createElement('button');
+  btn.id = 'btn-exportar-selecao-pdf';
+  btn.removeAttribute('onclick');
+  btn.title = 'Exportar selecionadas em PDF';
+  btn.onclick = function(e) { e.stopPropagation(); exportarAulasSelecionadasPDF(); };
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar PDF';
+  if (!modelo) {
+    btn.style.cssText = "padding:7px 14px;border-radius:8px;border:1.5px solid var(--purple);background:var(--white);color:var(--purple);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;";
+  }
+  barra.appendChild(btn);
+}
+
+// ── Importação ───────────────────────────────────────────────────────────
+
+async function _extrairTextoDePDF(file) {
+  await _garantirPdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+  let texto = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    let lastY = null;
+    content.items.forEach(item => {
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 0.5) texto += '\n';
+      texto += item.str;
+      lastY = y;
+    });
+    texto += '\n';
+  }
+  return texto;
+}
+
+const _MAPA_ROTULOS_AULA_PDF = {
+  'DATA:': 'data', 'NOME:': 'nome', 'STATUS:': 'status',
+  'DISCIPLINA:': 'disciplina', 'BNCC:': 'habilidade_bncc', 'DESCRICAO:': 'descricao',
+};
+
+function _parsearAulasDoTextoPDF(texto) {
+  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+  const aulas = [];
+  let atual = null;
+  let campoAtual = null;
+
+  linhas.forEach(linha => {
+    if (linha === _AULA_PDF_INICIO) {
+      atual = { id_origem: null, data: '', nome: '', status: '', disciplina: '', habilidade_bncc: '', descricao: '' };
+      campoAtual = null;
+      return;
+    }
+    if (linha === _AULA_PDF_FIM) {
+      if (atual) aulas.push(atual);
+      atual = null;
+      campoAtual = null;
+      return;
+    }
+    if (!atual) return;
+    if (linha.startsWith('ID:')) { atual.id_origem = linha.slice(3).trim(); campoAtual = null; return; }
+    const rotulo = Object.keys(_MAPA_ROTULOS_AULA_PDF).find(r => linha.startsWith(r));
+    if (rotulo) {
+      atual[_MAPA_ROTULOS_AULA_PDF[rotulo]] = linha.slice(rotulo.length).trim();
+      campoAtual = _MAPA_ROTULOS_AULA_PDF[rotulo];
+      return;
+    }
+    if (campoAtual) atual[campoAtual] += ' ' + linha;
+  });
+
+  return aulas.filter(a => a.data && a.nome);
+}
+
+// Abre o seletor de arquivo e dispara a importação do PDF
+window.importarAulasPDF = function() {
+  if (typeof window._fecharMenuPontinhos === 'function') window._fecharMenuPontinhos('aulas');
+  if (!turmaAtiva) {
+    if (typeof mostrarToast === 'function') mostrarToast('Selecione uma turma primeiro.');
+    return;
+  }
+  let input = document.getElementById('input-importar-aulas-pdf');
+  if (!input) {
+    input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'input-importar-aulas-pdf';
+    input.accept = 'application/pdf';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+  }
+  input.value = '';
+  input.onchange = function() {
+    const file = input.files[0];
+    if (file) _processarImportacaoAulasPDF(file);
+  };
+  input.click();
+};
+
+async function _processarImportacaoAulasPDF(file) {
+  if (typeof mostrarToast === 'function') mostrarToast('Lendo PDF...');
+  try {
+    const texto = await _extrairTextoDePDF(file);
+    const aulasEncontradas = _parsearAulasDoTextoPDF(texto);
+    if (aulasEncontradas.length === 0) {
+      if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula reconhecida nesse PDF. Use um PDF exportado pelo próprio sistema.');
+      return;
+    }
+    if (!confirm(`Foram encontradas ${aulasEncontradas.length} aula${aulasEncontradas.length > 1 ? 's' : ''} no PDF. Importar para a turma "${turmaAtiva.nome}"?`)) return;
+
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    const payload = aulasEncontradas.map(a => {
+      const dataISO = parseDateBR(a.data) || dataAulaOnly(a.data);
+      return {
+        data: dataISO,
+        nome: a.nome,
+        descricao: a.descricao || '',
+        status: calcularStatusAuto(dataISO, null),
+        turma_id: turmaAtiva.id,
+        turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
+        professor_id: profData.id,
+        ...(a.disciplina ? { disciplina: a.disciplina } : {}),
+        ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
+      };
+    });
+
+    const res = await api('aulas', { method: 'POST', body: JSON.stringify(payload) });
+    const criadas = Array.isArray(res) ? res : payload.map((a, i) => ({ ...a, id: Date.now() + i }));
+    criadas.forEach(a => {
+      aulasTurma.push(a);
+      if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
+    });
+    if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    if (typeof renderListaAulas === 'function') renderListaAulas();
+    if (typeof atualizarContadorAulas === 'function') atualizarContadorAulas();
+    if (typeof atualizarCalendario === 'function') atualizarCalendario('cal-aula');
+    if (typeof mostrarToast === 'function') mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} importada${criadas.length > 1 ? 's' : ''}!`);
+  } catch (e) {
+    console.error('[ImportarAulasPDF]', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao importar PDF: ' + e.message);
+  }
+}
+
+// Cria (se ainda não existir) o item "Importar aulas (PDF)" dentro do menu
+// ⋯ das aulas (#menu-pontinhos-aulas), clonando o item "Multi aulas" para
+// herdar o mesmo estilo, sem precisar editar o HTML manualmente.
+function _inicializarItemImportarMenu(menu) {
+  if (!menu || document.getElementById('btn-importar-aulas-pdf')) return;
+  const modelo = menu.querySelector('[onclick*="abrirMultiAulas"]') || menu.querySelector('button, div[onclick], a[onclick]');
+  const item = modelo ? modelo.cloneNode(true) : document.createElement('button');
+  item.id = 'btn-importar-aulas-pdf';
+  item.removeAttribute('onclick');
+  item.onclick = function(e) { e.stopPropagation(); importarAulasPDF(); };
+  const textNode = Array.from(item.childNodes).find(n => n.nodeType === 3 && n.textContent.trim());
+  if (textNode) textNode.textContent = ' Importar aulas (PDF)';
+  else if (!item.querySelector('svg, img')) item.textContent = 'Importar aulas (PDF)';
+  if (!modelo) {
+    item.style.cssText = "display:block;width:100%;text-align:left;padding:9px 14px;border:none;background:none;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);cursor:pointer;";
+  }
+  menu.appendChild(item);
+}

@@ -1,3 +1,58 @@
+// ------------------------------------------------------------
+// VALORES POR DIVISÃO (pontuação máxima e média mínima por
+// trimestre/bimestre) — substituindo a regra antiga hardcoded
+// "trimestre === 3 ? 40 : 30". O valor máximo agora vem de
+// parametro_divisoes.valor_divisao (cadastrado na tela do SIPRO);
+// a média mínima é calculada como 60% do valor máximo, mesma
+// proporção que já existia no código antigo (18/30 = 24/40 = 0.6).
+//
+// Carregado uma vez por oferta (turma_disciplina) e mantido em
+// cache, para as várias chamadas síncronas existentes no código
+// (cnt_validar, abrirNotasAluno, etc.) continuarem funcionando
+// sem precisar virar async.
+// ------------------------------------------------------------
+let _valoresDivisaoCache = null;        // { 1: {max, mediaMin}, 2: {...}, 3: {...} }
+let _valoresDivisaoCacheTurmaId = null; // turma_id para o qual o cache acima é válido
+
+async function carregarValoresDivisaoDaTurma(turma) {
+  if (!turma?.id) { _valoresDivisaoCache = null; _valoresDivisaoCacheTurmaId = null; return; }
+  if (_valoresDivisaoCacheTurmaId === turma.id && _valoresDivisaoCache) return; // já carregado
+
+  _valoresDivisaoCache = {};
+  _valoresDivisaoCacheTurmaId = turma.id;
+
+  if (!turma.periodo_letivo_id) return; // turma sem vínculo de ano letivo ainda
+
+  const matrizes = await api(
+    `matrizes_curriculares?escola_id=eq.${turma.escola_id}&periodo_letivo_id=eq.${turma.periodo_letivo_id}&select=parametro_id&limit=1`
+  ) || [];
+  const parametroId = matrizes[0]?.parametro_id;
+  if (!parametroId) return; // escola sem matriz/parâmetro cadastrado ainda
+
+  const divisoes = await api(
+    `parametro_divisoes?parametro_id=eq.${parametroId}&select=ordem_divisao,valor_divisao&order=ordem_divisao.asc`
+  ) || [];
+
+  divisoes.forEach(d => {
+    if (d.ordem_divisao != null && d.valor_divisao != null) {
+      _valoresDivisaoCache[d.ordem_divisao] = {
+        max: Number(d.valor_divisao),
+        mediaMin: Number(d.valor_divisao) * 0.6
+      };
+    }
+  });
+}
+
+// Helper síncrono usado no lugar da regra antiga "trimestre === 3 ? 40 : 30".
+// Faz fallback para 30/18 (valores antigos do 1º/2º trimestre) se o cache
+// ainda não tiver sido carregado ou a divisão não tiver valor cadastrado —
+// evita quebrar a tela caso a escola ainda não tenha configurado isso.
+function valoresDaDivisao(tri) {
+  const cached = _valoresDivisaoCache?.[parseInt(tri)];
+  if (cached) return cached;
+  return { max: 30, mediaMin: 18 };
+}
+
 async function _inicializarFiltroDiscAval() {
   const box = document.getElementById('aval-disciplina-filtro');
   const tabsContainer = document.getElementById('aval-disciplina-tabs');
@@ -133,8 +188,7 @@ async function cnt_atualizarSoma() {
 
   const soma = await _cntCalcularSoma(tri, alunoId);
   _cntSomaAtual = soma;
-  const max = parseInt(tri) === 3 ? 40 : 30;
-  somaTxt.textContent = soma.toFixed(2).replace('.',',');
+  const max = valoresDaDivisao(tri).max;
   somaDetalhe.textContent = `de ${max} pts`;
 
   // Verificar se já tem nota confirmada no Supabase
@@ -171,8 +225,7 @@ function cnt_validar() {
   btnSalvar.style.opacity = valido ? '1' : '0.5';
 
   if (!isNaN(nota) && alunoId && document.getElementById('cnt-soma-wrap').style.display !== 'none') {
-    const diff = nota - _cntSomaAtual;
-    const max = parseInt(tri) === 3 ? 40 : 30;
+    const max = valoresDaDivisao(tri).max;
     if (Math.abs(diff) > 0.01) {
       const pos = diff > 0;
       diffWrap.style.display = 'block';
@@ -366,6 +419,7 @@ function entrarNoGrupo(id) {
 }
 
 async function carregarAvaliacoes() {
+  await carregarValoresDivisaoDaTurma(turmaAtiva); // garante _valoresDivisaoCache pronto antes de qualquer valoresDaDivisao()
   const _tdId = turmaDisciplinaAtiva?.id;
   avaliacoesTurma = await apiCached(
     _tdId
@@ -809,10 +863,9 @@ async function abrirNotas(avalId) {
     notasSalvas.forEach(n => { mapNotas[n.aluno_id] = n; });
   }
 
-  const maxTri = isFundamentalI() ? 30 : (avaliacaoAtiva.trimestre === 3 ? 40 : 30);
-  const mediaMin = isFundamentalI() ? 18 : (avaliacaoAtiva.trimestre === 3 ? 24 : 18);
+  const maxTri = isFundamentalI() ? 30 : valoresDaDivisao(avaliacaoAtiva.trimestre).max;
+  const mediaMin = isFundamentalI() ? 18 : valoresDaDivisao(avaliacaoAtiva.trimestre).mediaMin;
   const limiteRecup = maxTri * 0.6;
-
   window._somaTri = somaTri;
   window._mapNotas = mapNotas;
 
@@ -1068,7 +1121,7 @@ async function abrirNotasAluno(alunoId) {
   // Construir lista de alunos visíveis no notas-screen
   const isRecup = avaliacaoAtiva.tipo === 'recuperacao';
   const somaTri = window._somaTri || {};
-  const maxTri = isFundamentalI() ? 30 : (avaliacaoAtiva.trimestre === 3 ? 40 : 30);
+  const maxTri = isFundamentalI() ? 30 : valoresDaDivisao(avaliacaoAtiva.trimestre).max;
   const limiteRecup = maxTri * 0.6;
   _mnaAlunoLista = isRecup
     ? alunosTurma.filter(a => (somaTri[a.id] || 0) < limiteRecup)
@@ -1238,8 +1291,8 @@ function incluirAlunoRecuperacao() {
 
   alunosRecuperacaoExtra.add(id);
 
-  const maxTri    = avaliacaoAtiva.trimestre === 3 ? 40 : 30;
-  const mediaMin  = avaliacaoAtiva.trimestre === 3 ? 24 : 18;
+  const maxTri    = valoresDaDivisao(avaliacaoAtiva.trimestre).max;
+  const mediaMin  = valoresDaDivisao(avaliacaoAtiva.trimestre).mediaMin;
   const limiteRecup = maxTri * 0.6;
 
   // recalcular somaTri a partir dos dados já salvos na memória (não faz nova query)

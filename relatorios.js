@@ -644,6 +644,7 @@ function renderRelatorioGrade(dados) {
 // FICHA DO ALUNO
 async function abrirFichaAluno(alunoId) {
   if (!await garantirContextoCompleto()) { mostrarToast('Selecione uma turma para continuar.'); return; }
+  await carregarValoresDivisaoDaTurma(turmaAtiva); // garante _valoresDivisaoCache pronto (função compartilhada com avaliacoes.js)
   const aluno = await garantirAlunoNoContexto(alunoId);
   if (!aluno) return;
   const idAluno = aluno.id;
@@ -672,8 +673,12 @@ async function abrirFichaAluno(alunoId) {
   const porTri = { 1: [], 2: [], 3: [] };
   todasAvals.forEach(av => { if (porTri[av.trimestre]) porTri[av.trimestre].push(av); });
 
-  const maxPorTri = { 1: 30, 2: 30, 3: 40 };
-  const mediaPorTri = { 1: 18, 2: 18, 3: 24 };
+  // maxPorTri/mediaPorTri: antes eram fixos (30/30/40 e 18/18/24).
+  // Agora vêm de valoresDaDivisao(), que consulta parametro_divisoes.
+  // Mantido como objeto {1:x, 2:y, 3:z} para não precisar reescrever
+  // os consumidores abaixo que fazem maxPorTri[tri].
+  const maxPorTri = { 1: valoresDaDivisao(1).max, 2: valoresDaDivisao(2).max, 3: valoresDaDivisao(3).max };
+  const mediaPorTri = { 1: valoresDaDivisao(1).mediaMin, 2: valoresDaDivisao(2).mediaMin, 3: valoresDaDivisao(3).mediaMin };
 
   // buscar notas e faltas
   const _tdId = turmaDisciplinaAtiva?.id;
@@ -1601,9 +1606,10 @@ renderRelatorio = function(dados, avalTri) {
       });
     } else {
       // notas individuais
-      const maxPorTri = { 1: 30, 2: 30, 3: 40 };
+      // max vem de valoresDaDivisao() (compartilhada com avaliacoes.js);
+      // fallback seguro para 30 se o cache ainda não tiver sido carregado
       const tri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
-      const max = maxPorTri[tri] || 30;
+      const max = valoresDaDivisao(tri).max;
       // última td antes da de faltas é o total — anotar
       if (tds.length >= 2) {
         const tdTotal = tds[tds.length - 2];

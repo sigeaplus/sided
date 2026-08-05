@@ -50,7 +50,7 @@ async function carregarDadosFechamento(profData, tri) {
   // Usar todasTurmaDisciplinas já carregado no dashboard
   const tdList = (typeof todasTurmaDisciplinas !== 'undefined' && todasTurmaDisciplinas.length)
     ? todasTurmaDisciplinas
-    : await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,disciplinas(id,nome),turmas(id,nome,ano,turno,nivel,codigo,escola_id,escolas(nome,codigo_escola))`) || [];
+    : await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,disciplinas(id,nome),turmas(id,nome,ano,turno,nivel,codigo,escola_id,periodo_letivo_id,escolas(nome,codigo_escola))`) || [];
 
   if (!tdList.length) {
     document.getElementById('ft-loading').innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted);">Nenhuma turma associada.</div>';
@@ -84,13 +84,35 @@ async function carregarDadosFechamento(profData, tri) {
       if (metaRes && metaRes[0]) diasLetivos = metaRes[0].total_aulas;
     } catch(e) { /* usa padrão */ }
 
-    const _triDatas = { 1: { ini: '-02-04', fim: '-05-20' }, 2: { ini: '-05-21', fim: '-09-09' }, 3: { ini: '-09-10', fim: '-12-18' } };
-    const _ano = new Date().getFullYear();
-    const _triIni = `${_ano}${_triDatas[tri].ini}`;
-    const _triFim = `${_ano}${_triDatas[tri].fim}`;
-    const _aulasRaw = await api(`aulas?turma_disciplina_id=eq.${td.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
-      || await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
-      || [];
+    // Datas do trimestre vêm agora de parametro_divisoes (cadastradas
+    // na tela do SIPRO), via turma → periodo_letivo_id → matriz →
+    // parametro_id. Substitui o antigo _triDatas hardcoded/duplicado.
+    let _triIni = null, _triFim = null;
+    if (t.periodo_letivo_id) {
+      const _matrizes = await api(
+        `matrizes_curriculares?escola_id=eq.${t.escola_id}&periodo_letivo_id=eq.${t.periodo_letivo_id}&select=parametro_id&limit=1`
+      ) || [];
+      const _parametroId = _matrizes[0]?.parametro_id;
+      if (_parametroId) {
+        const _divisao = await api(
+          `parametro_divisoes?parametro_id=eq.${_parametroId}&ordem_divisao=eq.${tri}&select=data_inicio,data_fim&limit=1`
+        ) || [];
+        if (_divisao[0]?.data_inicio && _divisao[0]?.data_fim) {
+          _triIni = _divisao[0].data_inicio;
+          _triFim = _divisao[0].data_fim;
+        }
+      }
+    }
+    // Fallback: se a turma ainda não tem período letivo vinculado, ou a
+    // escola ainda não cadastrou as datas da divisão, não filtra por
+    // data (evita usar data errada de outra escola/ano silenciosamente).
+    const _aulasRaw = (_triIni && _triFim)
+      ? (await api(`aulas?turma_disciplina_id=eq.${td.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
+         || await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&data=gte.${_triIni}&data=lte.${_triFim}&select=id`)
+         || [])
+      : (await api(`aulas?turma_disciplina_id=eq.${td.id}&select=id`)
+         || await api(`aulas?turma_id=eq.${t.id}&professor_id=eq.${profData.id}&select=id`)
+         || []);
     const aulas = Array.isArray(_aulasRaw) ? _aulasRaw : [];
     const totalAulasCriadas = aulas.length;
     let aulasComChamada = 0;
@@ -225,7 +247,7 @@ function renderFechamentoCategoria(categoria) {
           <span>Aulas lecionadas: <strong>${r.p.aulasLecionadas}/${r.p.totalAulasCriadas}</strong></span>
           <span>Notas: <strong>${r.p.pontosLancados}/${r.p.maxPontosTri}</strong></span>
         </div>
-        <button onclick="confirmarFecharTrimestre('${r.td.id}', ${r.disciplina ? `'${r.disciplina.replace(/'/g,"\\'")}'` : "''"}, this)"
+        <button onclick="confirmarFecharTrimestre('${r.td.id}', '${r.disciplina||''}', this)"
           style="padding:9px 20px;border-radius:10px;border:none;background:#22C55E;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;"
           onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           Fechar divisão
@@ -257,45 +279,26 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
   btn.disabled = true;
   btn.textContent = 'Fechando...';
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-
-  // Buscar turma_id — comparação robusta por string
-  const tdObj = ftResultados.find(r => String(r.td?.id) === String(tdId));
+  // Buscar turma_id a partir do td
+  const tdObj = ftResultados.find(r => r.td?.id === tdId || String(r.td?.id) === String(tdId));
   const turmaId = tdObj?.turma?.id;
-
-  if (!turmaId) {
-    btn.disabled = false;
-    btn.textContent = 'Fechar divisão';
-    mostrarToast('Erro: turma não encontrada. Recarregue e tente novamente.');
-    return;
-  }
-
   try {
-    // Verificar se já existe registro (evita erro de unicidade)
-    const existente = await api(`trimestres_fechados?turma_disciplina_id=eq.${tdId}&trimestre=eq.${ftTriAtivo}&select=id&limit=1`);
-    if (existente && existente.length) {
-      mostrarToast('Este trimestre já estava fechado.');
-      await carregarDadosFechamento(profData, ftTriAtivo);
-      return;
-    }
-
     const body = {
       turma_disciplina_id: tdId,
-      turma_id: turmaId,
+      turma_id: turmaId || null,
       professor_id: profData.id,
       trimestre: ftTriAtivo,
       fechado_em: new Date().toISOString()
     };
-    // Nota: coluna 'disciplina' não existe na tabela — não enviar
-
+    if (disciplina) body.disciplina = disciplina;
     await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
     mostrarToast('Trimestre fechado com sucesso!');
     Object.keys(_bloqueioCache).forEach(k => { if (k.endsWith(`::${ftTriAtivo}`)) delete _bloqueioCache[k]; });
     await carregarDadosFechamento(profData, ftTriAtivo);
   } catch(e) {
-    console.error('[FT] Erro ao fechar trimestre:', e);
     btn.disabled = false;
     btn.textContent = 'Fechar divisão';
-    mostrarToast('Erro ao fechar: ' + (e.message || 'tente novamente.'));
+    mostrarToast('Erro ao fechar. Tente novamente.');
   }
 }
 
