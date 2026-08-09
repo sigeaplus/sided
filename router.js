@@ -55,8 +55,6 @@ async function _carregarContextoTurmaViaDisciplina(td) {
   editandoAulaId = null;
   editandoAvalId = null;
   alunosRecuperacaoExtra = new Set();
-  _relAlunoAtivo = null;
-  _relAtualIdx = null;
   _cntSomaAtual = 0;
   filtrosAtivos = { ano: null, turno: null };
   
@@ -73,8 +71,8 @@ async function _carregarContextoTurmaViaDisciplina(td) {
 
 const todasPaginas = [
   'turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen',
-  'pagina-relatorio-geral','pagina-relatorio-individual','pagina-mapeamento-sala',
-  'pagina-calendario-escolar','pagina-ocorrencias','pagina-comunicacao','pagina-plano-curso'
+  'pagina-relatorio-geral','pagina-mapeamento-sala',
+  'pagina-calendario-escolar','pagina-comunicacao','pagina-plano-curso'
 ];
 
 const _abaParaSegmento = {
@@ -82,10 +80,8 @@ const _abaParaSegmento = {
   'chamada': 'chamada',
   'avaliacoes': 'avaliacoes',
   'relatorio-geral': 'relatorio',
-  'relatorio-individual': 'relatorio-individual',
   'mapeamento-sala': 'mapeamento',
   'calendario-escolar': 'calendario',
-  'ocorrencias': 'ocorrencias',
   'plano-curso': 'plano-curso'
 };
 
@@ -202,8 +198,6 @@ async function _carregarContextoTurma(id) {
   editandoAulaId = null;
   editandoAvalId = null;
   alunosRecuperacaoExtra = new Set();
-  _relAlunoAtivo = null;
-  _relAtualIdx = null;
   _cntSomaAtual = 0;
   filtrosAtivos = { ano: null, turno: null };
   
@@ -257,8 +251,6 @@ function _executarVoltarDashboard() {
   editandoAulaId = null;
   editandoAvalId = null;
   alunosRecuperacaoExtra = new Set();
-  _relAlunoAtivo = null;
-  _relAtualIdx = null;
   _cntSomaAtual = 0;
   filtrosAtivos = { ano: null, turno: null };
   
@@ -323,14 +315,6 @@ async function _executarAbrirPagina(pagina, opts = {}) {
       await carregarRelatorio(triRel);
       break;
 
-    case 'relatorio-individual':
-      document.getElementById('pagina-relatorio-individual').style.display = 'block';
-      atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#F97316' });
-      atualizarHeaderMobile('Relatório Individual', nome, true, true);
-      await garantirAlunosTurma();
-      if (typeof renderRelatorioIndividualMenu === 'function') await renderRelatorioIndividualMenu();
-      break;
-
     case 'mapeamento-sala':
       document.getElementById('pagina-mapeamento-sala').style.display = 'block';
       document.getElementById('mapa-lista-view').style.display = 'block';
@@ -346,14 +330,6 @@ async function _executarAbrirPagina(pagina, opts = {}) {
       atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0EA5E9' });
       atualizarHeaderMobile('Calendário Escolar', nome, true, true);
       if (typeof iniciarCalendario === 'function') await iniciarCalendario();
-      break;
-
-    case 'ocorrencias':
-      document.getElementById('pagina-ocorrencias').style.display = 'block';
-      atualizarCabecalho({ info: 'Disciplina', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#B91C1C' });
-      atualizarHeaderMobile('Ocorrências', nome, true, true);
-      await garantirAlunosTurma();
-      if (typeof iniciarOcorrencias === 'function') await iniciarOcorrencias();
       break;
 
     case 'plano-curso':

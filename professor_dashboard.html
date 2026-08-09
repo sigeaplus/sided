@@ -809,8 +809,6 @@
       .filtros-row { gap: 6px; }
       /* Notas: recuperação paralela em linha separada */
       .nota-row-inputs { flex-wrap: wrap; }
-      /* Ocorrências: grid de checkboxes 1 coluna */
-      #ocr-motivos-grid, #ocr-cons-grid { grid-template-columns: 1fr !important; }
     }
   </style>
   <meta name="mobile-web-app-capable" content="yes"/>
@@ -878,10 +876,6 @@
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg></span>
         Chamada
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('relatorio-individual')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
-        <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0114 0"/></svg></span>
-        Rel. individual
-      </button>
       <button onclick="fecharSidebar(); abrirPagina('mapeamento-sala')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
         Mapeamento de sala
@@ -893,10 +887,6 @@
       <button onclick="fecharSidebar(); abrirPagina('calendario-escolar')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
         Calendário escolar
-      </button>
-      <button onclick="fecharSidebar(); abrirPagina('ocorrencias')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
-        <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><polygon points="10 2 2 20 22 20 14 2 10 2"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg></span>
-        Ocorrência
       </button>
       <button onclick="fecharSidebar(); abrirPagina('plano-curso')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
@@ -1387,146 +1377,6 @@
       </div>
     </div>
 
-    <div id="pagina-relatorio-individual" style="display:none;padding:24px 28px;">
-
-      <!-- ── LISTA DE ALUNOS / RELATÓRIOS ── -->
-      <div id="rel-lista-view">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-          <div style="font-size:16px;font-weight:700;color:var(--text);">Relatórios Individuais</div>
-          <button onclick="abrirSeletorAluno(function(id,nome){abrirEditorRelatorio(id);},'Criar relatório para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#F97316;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            + Criar relatório
-          </button>
-        </div>
-        <div id="rel-alunos-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- ── EDITOR DE RELATÓRIO ── -->
-      <div id="rel-editor-view" style="display:none;">
-        <!-- Header -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-          <button onclick="voltarListaRelatorio()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Voltar
-          </button>
-          <div style="flex:1;">
-            <div id="rel-editor-nome" style="font-size:15px;font-weight:700;color:var(--text);"></div>
-            <div id="rel-editor-sub" style="font-size:11px;color:var(--text-muted);"></div>
-          </div>
-          <button onclick="salvarRelatorio()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#F97316;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-            Salvar
-          </button>
-          <button onclick="exportarRelatorioPDF()" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#F97316';this.style.color='#F97316'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Exportar PDF
-          </button>
-        </div>
-
-        <!-- Relatórios do aluno (lista + novo) -->
-        <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;">
-          <div id="rel-chips" style="display:flex;gap:6px;flex-wrap:wrap;flex:1;"></div>
-          <button onclick="novoRelatorioAluno()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;background:#F97316;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Novo relatório
-          </button>
-        </div>
-
-        <!-- Formulário -->
-        <div id="rel-form" style="display:flex;flex-direction:column;gap:14px;">
-          <!-- Linha data + trimestre -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div>
-              <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Data</label>
-              <input id="rel-data" type="date" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);" />
-            </div>
-            <div>
-              <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Trimestre</label>
-              <select id="rel-tri" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);background:#fff;">
-                <option value="1">1º Trimestre</option>
-                <option value="2">2º Trimestre</option>
-                <option value="3">3º Trimestre</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Campos estruturados -->
-          <div style="background:#F8FAFF;border:1.5px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;">
-            <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;">Avaliação</div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:var(--text);min-width:160px;">Comportamento</label>
-              <div style="display:flex;gap:6px;" id="rel-campo-comportamento">
-                <button type="button" onclick="relSelecionarOpcao('comportamento','Ótimo',this)" data-val="Ótimo" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ótimo</button>
-                <button type="button" onclick="relSelecionarOpcao('comportamento','Bom',this)" data-val="Bom" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Bom</button>
-                <button type="button" onclick="relSelecionarOpcao('comportamento','Regular',this)" data-val="Regular" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Regular</button>
-                <button type="button" onclick="relSelecionarOpcao('comportamento','Ruim',this)" data-val="Ruim" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ruim</button>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:var(--text);min-width:160px;">Desempenho acadêmico</label>
-              <div style="display:flex;gap:6px;" id="rel-campo-desempenho">
-                <button type="button" onclick="relSelecionarOpcao('desempenho','Ótimo',this)" data-val="Ótimo" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ótimo</button>
-                <button type="button" onclick="relSelecionarOpcao('desempenho','Bom',this)" data-val="Bom" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Bom</button>
-                <button type="button" onclick="relSelecionarOpcao('desempenho','Regular',this)" data-val="Regular" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Regular</button>
-                <button type="button" onclick="relSelecionarOpcao('desempenho','Ruim',this)" data-val="Ruim" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ruim</button>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:var(--text);min-width:160px;">Frequência</label>
-              <div style="display:flex;gap:6px;" id="rel-campo-frequencia">
-                <button type="button" onclick="relSelecionarOpcao('frequencia','Ótimo',this)" data-val="Ótimo" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ótimo</button>
-                <button type="button" onclick="relSelecionarOpcao('frequencia','Bom',this)" data-val="Bom" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Bom</button>
-                <button type="button" onclick="relSelecionarOpcao('frequencia','Regular',this)" data-val="Regular" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Regular</button>
-                <button type="button" onclick="relSelecionarOpcao('frequencia','Ruim',this)" data-val="Ruim" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ruim</button>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:var(--text);min-width:160px;">Participação</label>
-              <div style="display:flex;gap:6px;" id="rel-campo-participacao">
-                <button type="button" onclick="relSelecionarOpcao('participacao','Ótimo',this)" data-val="Ótimo" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ótimo</button>
-                <button type="button" onclick="relSelecionarOpcao('participacao','Bom',this)" data-val="Bom" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Bom</button>
-                <button type="button" onclick="relSelecionarOpcao('participacao','Regular',this)" data-val="Regular" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Regular</button>
-                <button type="button" onclick="relSelecionarOpcao('participacao','Ruim',this)" data-val="Ruim" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ruim</button>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-              <label style="font-size:13px;font-weight:600;color:var(--text);min-width:160px;">Relacionamento com colegas</label>
-              <div style="display:flex;gap:6px;" id="rel-campo-relacionamento">
-                <button type="button" onclick="relSelecionarOpcao('relacionamento','Ótimo',this)" data-val="Ótimo" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ótimo</button>
-                <button type="button" onclick="relSelecionarOpcao('relacionamento','Bom',this)" data-val="Bom" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Bom</button>
-                <button type="button" onclick="relSelecionarOpcao('relacionamento','Regular',this)" data-val="Regular" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Regular</button>
-                <button type="button" onclick="relSelecionarOpcao('relacionamento','Ruim',this)" data-val="Ruim" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;">Ruim</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Observações -->
-          <div>
-            <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Observações gerais</label>
-            <textarea id="rel-obs" rows="5" placeholder="Descreva observações sobre o aluno..." style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;outline:none;color:var(--text);resize:vertical;line-height:1.6;"></textarea>
-          </div>
-        </div>
-
-        <!-- Histórico de ocorrências -->
-        <div style="margin-top:20px;background:#FFF8F8;border:1.5px solid #FBBFBF;border-radius:12px;padding:16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
-            <div style="font-size:12px;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.6px;">Ocorrências registradas</div>
-            <div id="ocr-hist-aluno-label" style="font-size:12px;color:var(--text-muted);"></div>
-          </div>
-          <div id="ocr-historico-list"><div style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Nenhuma ocorrência registrada.</div></div>
-        </div>
-
-      </div>
-
-      <!-- ── ÁREA DE IMPRESSÃO (oculta) ── -->
-      <div id="rel-print-area" style="display:none;"></div>
-    </div>
-
     <div id="pagina-mapeamento-sala" style="display:none;padding:24px 28px;">
 
       <!-- ── LISTA DE MAPEAMENTOS ── -->
@@ -1634,105 +1484,6 @@
         <img id="cal-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Calendário Escolar" />
       </div>
     </div>
-    <div id="pagina-ocorrencias" style="display:none;">
-
-      <!-- ── FEED VIEW ── -->
-      <div id="ocr-feed-view" style="padding:24px 28px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-          <div style="font-size:16px;font-weight:700;color:var(--text);">Ocorrências</div>
-          <button onclick="abrirSeletorAluno(function(id,nome){abrirFormOcorrencia(id,nome);},'Nova ocorrência para...')" style="display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:9px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            + Nova ocorrência
-          </button>
-        </div>
-        <div id="ocr-feed-list"></div>
-      </div>
-
-      <!-- ── FORM VIEW ── -->
-      <div id="ocr-form-view" style="display:none;padding:24px 28px;">
-        <!-- Header do formulário -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-          <button onclick="fecharFormOcorrencia()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Voltar
-          </button>
-          <div style="flex:1;">
-            <div id="ocr-form-aluno-nome" style="font-size:15px;font-weight:700;color:#B91C1C;"></div>
-            <div style="font-size:11px;color:var(--text-muted);">Nova ocorrência</div>
-          </div>
-        </div>
-
-      <!-- Seletor de aluno (oculto — aluno definido pelo seletor visual) -->
-      <div style="display:none;">
-        <select id="ocr-select-aluno">
-          <option value="">Selecione o(a) aluno(a)...</option>
-        </select>
-      </div>
-
-      <!-- Motivos -->
-      <div class="atalho-card" style="margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">Código / Motivo</div>
-        <div id="ocr-motivos-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
-        <div id="ocr-outro-motivo-wrap" style="display:none;margin-top:8px;padding:10px 12px;border:1.5px dashed var(--border);border-radius:8px;background:#F8F6FF;">
-          <label style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Código 00 — descreva o motivo</label>
-          <input id="ocr-outro-motivo-txt" type="text" placeholder="Descrever o motivo não listado acima..." style="width:100%;padding:9px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
-        </div>
-        <label id="ocr-outro-motivo-toggle" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:#F8F6FF;cursor:pointer;transition:all .15s;">
-          <input type="checkbox" id="ocr-cb-outro-motivo" onchange="ocrToggleOutroMotivo(this)" style="accent-color:#DC2626;cursor:pointer;">
-          <span style="font-size:12.5px;color:var(--text);">Outro motivo</span>
-        </label>
-      </div>
-
-      <!-- Consequências -->
-      <div class="atalho-card" style="margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">Código / Consequências</div>
-        <div id="ocr-cons-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
-        <div id="ocr-outro-cons-wrap" style="display:none;margin-top:8px;padding:10px 12px;border:1.5px dashed var(--border);border-radius:8px;background:#F8F6FF;">
-          <label style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Código 00 — descreva a consequência</label>
-          <input id="ocr-outro-cons-txt" type="text" placeholder="Descrever a consequência não listada acima..." style="width:100%;padding:9px 12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
-        </div>
-        <label id="ocr-outro-cons-toggle" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);background:#F8F6FF;cursor:pointer;transition:all .15s;">
-          <input type="checkbox" id="ocr-cb-outro-cons" onchange="ocrToggleOutraCons(this)" style="accent-color:#DC2626;cursor:pointer;">
-          <span style="font-size:12.5px;color:var(--text);">Outra consequência</span>
-        </label>
-      </div>
-
-      <!-- Datas e observações -->
-      <div class="atalho-card" style="margin-bottom:16px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">Datas e Observações</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-          <div>
-            <label style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Data do ato</label>
-            <input id="ocr-data-ato" type="date" style="width:100%;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
-          </div>
-          <div>
-            <label style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Data do registro</label>
-            <input id="ocr-data-reg" type="date" style="width:100%;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;">
-          </div>
-        </div>
-        <div>
-          <label style="font-size:11px;font-weight:700;color:var(--purple);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Observações</label>
-          <textarea id="ocr-obs" rows="3" placeholder="Detalhes adicionais sobre o ocorrido..." style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;line-height:1.6;"></textarea>
-        </div>
-      </div>
-
-      <!-- Resumo -->
-      <div class="atalho-card" style="margin-bottom:16px;background:#FFF8F8;border-color:#FBBFBF;">
-        <div style="font-size:12px;font-weight:700;color:#B91C1C;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Resumo da ocorrência</div>
-        <div id="ocr-resumo-motivos" style="font-size:13px;color:var(--text-muted);padding:8px 12px;background:#fff;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;">Motivo(s): <strong style="color:var(--text);">nenhum selecionado</strong></div>
-        <div id="ocr-resumo-cons" style="font-size:13px;color:var(--text-muted);padding:8px 12px;background:#fff;border-radius:8px;border:1px solid var(--border);">Consequência(s): <strong style="color:var(--text);">nenhuma selecionada</strong></div>
-      </div>
-
-      <!-- Botão salvar -->
-      <button onclick="ocrSalvar()" style="width:100%;padding:13px;border-radius:10px;border:none;background:#DC2626;color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;" onmouseover="this.style.opacity=.88" onmouseout="this.style.opacity=1">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Registrar Ocorrência
-      </button>
-
-      </div><!-- fim ocr-form-view -->
-
-    </div>
-
 
     <div id="pagina-plano-curso" style="display:none;padding:24px 28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
@@ -1894,11 +1645,6 @@
             <span class="stb-icon" style="background:#F5F3FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C4FD4" stroke-width="2.2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="23 11 17 11"/></svg></span>
             Chamada
           </button>
-
-          <button onclick="abrirPagina('relatorio-individual')" class="stb" data-c="#F97316">
-            <span class="stb-icon" style="background:#FFF7ED;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0114 0"/></svg></span>
-            Rel. individual
-          </button>
           <button onclick="abrirPagina('mapeamento-sala')" class="stb" data-c="#8B5CF6">
             <span class="stb-icon" style="background:#F5F3FF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></span>
             Mapeamento de sala
@@ -1910,10 +1656,6 @@
           <button onclick="abrirPagina('calendario-escolar')" class="stb" data-c="#0891B2">
             <span class="stb-icon" style="background:#ECFEFF;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
             Calendário escolar
-          </button>
-          <button onclick="abrirPagina('ocorrencias')" class="stb" data-c="#DC2626">
-            <span class="stb-icon" style="background:#FEF2F2;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.2" stroke-linecap="round"><polygon points="10 2 2 20 22 20 14 2 10 2"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg></span>
-            Ocorrência
           </button>
 
           <button onclick="abrirPagina('plano-curso')" class="stb" data-c="#BE185D">
@@ -2289,7 +2031,6 @@
 <script src="/chamada.js"></script>
 <script src="/avaliacoes.js"></script>
 <script src="/relatorios.js"></script>
-<script src="/ocorrencias.js"></script>
 <script src="/auth.js"></script>
 <script src="/helpers.js"></script>
 <script src="/sidebar.js"></script>
@@ -2339,7 +2080,6 @@
     <div style="display:flex;border-bottom:2px solid var(--border);background:var(--white);">
       <button id="ficha-aba-notas" onclick="fichaAbaSwitch('notas')" style="flex:1;padding:12px 6px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--purple);border-bottom:2px solid var(--purple);margin-bottom:-2px;transition:all 0.15s;">📊 Notas</button>
       <button id="ficha-aba-faltas" onclick="fichaAbaSwitch('faltas')" style="flex:1;padding:12px 6px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;">📋 Faltas</button>
-      <button id="ficha-aba-ocorrencias" onclick="fichaAbaSwitch('ocorrencias')" style="flex:1;padding:12px 6px;border:none;background:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.15s;">⚠️ Ocorrências</button>
     </div>
 
     <!-- ABA NOTAS -->
@@ -2364,14 +2104,6 @@
     <div id="ficha-painel-faltas" style="display:none;padding:20px;">
       <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;">Histórico de Faltas</div>
       <div id="ficha-faltas-lista">
-        <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
-      </div>
-    </div>
-
-    <!-- ABA OCORRÊNCIAS -->
-    <div id="ficha-painel-ocorrencias" style="display:none;padding:20px;">
-      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;">Histórico de Ocorrências</div>
-      <div id="ficha-ocorrencias-lista">
         <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Carregando...</div>
       </div>
     </div>
