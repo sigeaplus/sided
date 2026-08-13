@@ -845,6 +845,7 @@ window.salvarAula = async function() {
     renderListaAulas();
     atualizarContadorAulas();
     atualizarCalendario('cal-aula');
+    if (typeof mostrarToast === 'function') mostrarToast('Aula salva com sucesso!');
   } catch (e) {
     alEl.textContent = 'Erro ao salvar.';
     alEl.style.display = 'block';
@@ -1120,7 +1121,7 @@ window.abrirMultiAulas = async function() {
     modal.classList.add('open');
   } catch(e) {
     console.error('[MultiAulas] abrirMultiAulas:', e);
-    if (typeof mostrarToast === 'function') mostrarToast('Erro ao abrir multi aulas: ' + e.message);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao abrir multi aulas: ' + e.message);
   }
 };
 
@@ -1344,7 +1345,7 @@ async function exportarAulasPDF(lista, nomeArquivo) {
     if (typeof mostrarToast === 'function') mostrarToast(`✓ ${lista.length} aula${lista.length > 1 ? 's' : ''} exportada${lista.length > 1 ? 's' : ''} em PDF!`);
   } catch (e) {
     console.error('[ExportarAulasPDF]', e);
-    if (typeof mostrarToast === 'function') mostrarToast('Erro ao exportar PDF: ' + e.message);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao exportar PDF: ' + e.message);
   }
 }
 window.exportarAulasPDF = exportarAulasPDF;
@@ -1474,7 +1475,7 @@ async function _processarImportacaoAulasPDF(file) {
     const texto = await _extrairTextoDePDF(file);
     const aulasEncontradas = _parsearAulasDoTextoPDF(texto);
     if (aulasEncontradas.length === 0) {
-      if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula reconhecida nesse PDF. Use um PDF exportado pelo próprio sistema.');
+      if (typeof mostrarErro === 'function') mostrarErro('Nenhuma aula reconhecida nesse PDF. Use um PDF exportado pelo próprio sistema.');
       return;
     }
     if (!confirm(`Foram encontradas ${aulasEncontradas.length} aula${aulasEncontradas.length > 1 ? 's' : ''} no PDF. Importar para a turma "${turmaAtiva.nome}"?`)) return;
@@ -1508,7 +1509,7 @@ async function _processarImportacaoAulasPDF(file) {
     if (typeof mostrarToast === 'function') mostrarToast(`✓ ${criadas.length} aula${criadas.length > 1 ? 's' : ''} importada${criadas.length > 1 ? 's' : ''}!`);
   } catch (e) {
     console.error('[ImportarAulasPDF]', e);
-    if (typeof mostrarToast === 'function') mostrarToast('Erro ao importar PDF: ' + e.message);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao importar PDF: ' + e.message);
   }
 }
 

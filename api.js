@@ -8,20 +8,49 @@ const SUPABASE_URL = 'https://biocjxggjjfeqmpuysik.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpb2NqeGdnampmZXFtcHV5c2lrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxODUwOTQsImV4cCI6MjA4OTc2MTA5NH0.3bL3dKqiWGoHROE6vSzf-7Orp0GLcLpn4mHtUSwC0dU';
 
 // ── FUNÇÃO DE API ────────────────────────────────────────────────────────────
+// Dedup de chamadas idênticas em voo: protege contra clique duplo / re-render
+// disparando a mesma leitura (GET) mais de uma vez em paralelo. Só dedupa GET
+// (leitura), nunca POST/PATCH/DELETE — mutações não devem ser fundidas, pois
+// duas chamadas de escrita "iguais" podem ser duas ações distintas do usuário
+// (ex: criar duas aulas com os mesmos dados de propósito).
+const _emVoo = {};
+function _chaveEmVoo(path, opts) {
+  const method = (opts.method || 'GET').toUpperCase();
+  // Body e o header Prefer entram na chave: dois GETs iguais só são "a mesma
+  // chamada" se pedirem exatamente a mesma coisa.
+  const prefer = opts.headers?.Prefer || opts.headers?.prefer || '';
+  return `${method} ${path} ${prefer} ${opts.body || ''}`;
+}
+
 const api = async (path, opts = {}) => {
   const { headers: extraHeaders, ...restOpts } = opts;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...restOpts,
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...extraHeaders },
-  });
-  if (res.status === 204) return null;
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.message || data?.hint || JSON.stringify(data);
-    console.error(`[API] Erro ${res.status} em ${path}:`, msg, data);
-    throw new Error(`Supabase erro ${res.status}: ${msg}`);
+  const method = (restOpts.method || 'GET').toUpperCase();
+  const dedupavel = method === 'GET';
+  const chave = dedupavel ? _chaveEmVoo(path, restOpts) : null;
+
+  if (dedupavel && _emVoo[chave]) return _emVoo[chave];
+
+  const promessa = (async () => {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      ...restOpts,
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...extraHeaders },
+    });
+    if (res.status === 204) return null;
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data?.message || data?.hint || JSON.stringify(data);
+      console.error(`[API] Erro ${res.status} em ${path}:`, msg, data);
+      throw new Error(`Supabase erro ${res.status}: ${msg}`);
+    }
+    return data;
+  })();
+
+  if (dedupavel) {
+    _emVoo[chave] = promessa;
+    promessa.finally(() => { delete _emVoo[chave]; });
   }
-  return data;
+
+  return promessa;
 };
 
 // ── CACHE DE TURMA ──────────────────────────────────────────────────────────
@@ -69,4 +98,5 @@ if (typeof window !== 'undefined') {
   window._cache = _cache;
   window._cacheKey = _cacheKey;
   window._chamadaCache = _chamadaCache;
+  window._emVoo = _emVoo;
 }

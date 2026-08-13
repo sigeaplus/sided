@@ -188,7 +188,8 @@ function selecionarDiscAval(disc) {
     btn.style.color = ativo ? 'var(--purple)' : 'var(--text-muted)';
     btn.style.fontWeight = ativo ? '700' : '500';
   });
-  carregarAvaliacoes();
+  if (typeof showLoading === 'function') showLoading('Carregando avaliações...');
+  Promise.resolve(carregarAvaliacoes()).finally(() => { if (typeof hideLoading === 'function') hideLoading(); });
 }
 // Estado global carregado via state.js
 
@@ -574,7 +575,8 @@ function filtrarTriSelect(val) {
   // garantir que o select reflete o valor
   const sel = document.getElementById('sel-aval-tri');
   if (sel) sel.value = val;
-  carregarAvaliacoes();
+  if (typeof showLoading === 'function') showLoading('Carregando avaliações...');
+  Promise.resolve(carregarAvaliacoes()).finally(() => { if (typeof hideLoading === 'function') hideLoading(); });
 }
 
 function filtrarTri(el) {
@@ -852,6 +854,7 @@ async function salvarAvaliacao() {
     delete _cache[_cacheKey(turmaAtiva.id, 'avaliacoes')];
     // Recarregar com contagem real de notas
     await carregarAvaliacoes();
+    if (typeof mostrarToast === 'function') mostrarToast('Avaliação salva com sucesso!');
   } catch(e) {
     alEl.textContent = `Erro ao salvar. ${e?.message || ''}`.trim();
     alEl.style.display = 'block';
@@ -1352,7 +1355,8 @@ async function salvarNotasAluno(avancar = false) {
       await renderModalNotasAluno();
     }
   } catch(e) {
-    mostrarToast('Erro ao salvar notas: ' + e.message);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao salvar notas: ' + e.message);
+    else mostrarToast('Erro ao salvar notas: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar e avançar'; }
   }
@@ -1530,7 +1534,8 @@ async function salvarTodasNotas() {
     resetBtn();
   } catch (e) {
     console.error('Erro ao salvar notas:', e);
-    mostrarToast('Erro ao salvar: ' + (e.message || 'Tente novamente.'));
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao salvar: ' + (e.message || 'Tente novamente.'));
+    else mostrarToast('Erro ao salvar: ' + (e.message || 'Tente novamente.'));
     resetBtn();
   }
 }

@@ -5,127 +5,134 @@ async function carregarRelatorio(tri) {
   tri = parseInt(tri) || 1;
   const token = ++_relatorioCargaToken;
   if (!await garantirContextoCompleto()) { mostrarToast('Selecione uma turma para continuar.'); return; }
-  await garantirAlunosTurma();
-  if (token !== _relatorioCargaToken) return;
-  if (!avaliacoesTurma.length) await carregarAvaliacoes();
-  if (token !== _relatorioCargaToken) return;
-  if (!aulasTurma.length) await carregarAulas();
-  if (token !== _relatorioCargaToken) return;
-  document.getElementById('relatorio-total-alunos').textContent = `Total de alunos: ${alunosTurma.length}`;
-
-  const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
-  const media = tri === 3 ? 24 : 18;
-  const totalEsperado = tri === 3 ? 40 : 30;
-
-  // Buscar notas (avaliações normais + recuperação trimestral)
-  let notasTri = [];
-  const avalRecup = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo === 'recuperacao');
-  const idsNormais = avalTri.length ? avalTri.map(a => a.id) : [];
-  const idsRecup   = avalRecup.length ? avalRecup.map(a => a.id) : [];
-  const todosIds   = [...idsNormais, ...idsRecup];
-  if (todosIds.length && alunosTurma.length) {
-    notasTri = await api(`notas?avaliacao_id=in.(${todosIds.join(',')})&select=*`) || [];
+  try {
+    await garantirAlunosTurma();
     if (token !== _relatorioCargaToken) return;
-  }
-
-  // Buscar faltas
-  let faltas = [];
-  if (alunosTurma.length) {
-    const ids = alunosTurma.map(a => a.id).join(',');
-    const _tdId = turmaDisciplinaAtiva?.id;
-    const profData2 = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-    let _aulasRelIds;
-    if (_tdId) {
-      const _comTd = aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id);
-      const _semTd = aulasTurma.filter(a => !a.turma_disciplina_id && a.professor_id === profData2.id).map(a => a.id);
-      _aulasRelIds = [..._comTd, ..._semTd];
-    } else {
-      _aulasRelIds = aulasTurma.map(a => a.id);
-    }
-    faltas = (_aulasRelIds.length)
-      ? await api(`chamadas?aluno_id=in.(${ids})&aula_id=in.(${_aulasRelIds.join(',')})&presente=eq.false&select=aluno_id`) || []
-      : [];
+    if (!avaliacoesTurma.length) await carregarAvaliacoes();
     if (token !== _relatorioCargaToken) return;
-  }
-  const faltasPorAluno = {};
-  faltas.forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id] || 0) + 1; });
+    if (!aulasTurma.length) await carregarAulas();
+    if (token !== _relatorioCargaToken) return;
+    document.getElementById('relatorio-total-alunos').textContent = `Total de alunos: ${alunosTurma.length}`;
 
-  // Mapa notas
-  const notasMap = {};
-  notasTri.forEach(n => {
-    if (!notasMap[n.aluno_id]) notasMap[n.aluno_id] = {};
-    notasMap[n.aluno_id][n.avaliacao_id] = n;
-  });
+    const avalTri = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo !== 'recuperacao' && !_isNotaFinal(a));
+    const media = tri === 3 ? 24 : 18;
+    const totalEsperado = tri === 3 ? 40 : 30;
 
-  // Buscar notas confirmadas para este trimestre (todas de uma vez)
-  let notasConfirmadasMap = {};
-  if (alunosTurma.length) {
-    try {
-      const idsAlunos = alunosTurma.map(a => a.id).join(',');
-      const _tdFilterRel = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
-      const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}${_tdFilterRel}&select=aluno_id,nota_final`) || [];
+    // Buscar notas (avaliações normais + recuperação trimestral)
+    let notasTri = [];
+    const avalRecup = avaliacoesTurma.filter(a => a.trimestre === tri && a.tipo === 'recuperacao');
+    const idsNormais = avalTri.length ? avalTri.map(a => a.id) : [];
+    const idsRecup   = avalRecup.length ? avalRecup.map(a => a.id) : [];
+    const todosIds   = [...idsNormais, ...idsRecup];
+    if (todosIds.length && alunosTurma.length) {
+      notasTri = await api(`notas?avaliacao_id=in.(${todosIds.join(',')})&select=*`) || [];
       if (token !== _relatorioCargaToken) return;
-      confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
-    } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
-  }
+    }
 
-  const thead = document.getElementById('relatorio-thead');
-  const isFundI = isFundamentalI();
+    // Buscar faltas
+    let faltas = [];
+    if (alunosTurma.length) {
+      const ids = alunosTurma.map(a => a.id).join(',');
+      const _tdId = turmaDisciplinaAtiva?.id;
+      const profData2 = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+      let _aulasRelIds;
+      if (_tdId) {
+        const _comTd = aulasTurma.filter(a => a.turma_disciplina_id === _tdId).map(a => a.id);
+        const _semTd = aulasTurma.filter(a => !a.turma_disciplina_id && a.professor_id === profData2.id).map(a => a.id);
+        _aulasRelIds = [..._comTd, ..._semTd];
+      } else {
+        _aulasRelIds = aulasTurma.map(a => a.id);
+      }
+      faltas = (_aulasRelIds.length)
+        ? await api(`chamadas?aluno_id=in.(${ids})&aula_id=in.(${_aulasRelIds.join(',')})&presente=eq.false&select=aluno_id`) || []
+        : [];
+      if (token !== _relatorioCargaToken) return;
+    }
+    const faltasPorAluno = {};
+    faltas.forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id] || 0) + 1; });
 
-  if (isFundI) {
-    // Fundamental I: colunas por disciplina
-    const discsSet = [...new Set(avalTri.map(a => a.disciplina).filter(Boolean))].sort();
-    thead.innerHTML = `<th>Aluno</th>` +
-      discsSet.map(d => `<th style="white-space:nowrap;">${d}</th>`).join('') +
-      `<th>Total</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
+    // Mapa notas
+    const notasMap = {};
+    notasTri.forEach(n => {
+      if (!notasMap[n.aluno_id]) notasMap[n.aluno_id] = {};
+      notasMap[n.aluno_id][n.avaliacao_id] = n;
+    });
 
-    relatorioCache = alunosTurma.map(a => {
-      const notasPorDisc = {};
-      discsSet.forEach(d => {
-        const avalsDisc = avalTri.filter(av => av.disciplina === d);
-        const soma = avalsDisc.reduce((s, av) => {
+    // Buscar notas confirmadas para este trimestre (todas de uma vez)
+    let notasConfirmadasMap = {};
+    if (alunosTurma.length) {
+      try {
+        const idsAlunos = alunosTurma.map(a => a.id).join(',');
+        const _tdFilterRel = turmaDisciplinaAtiva?.id ? `&turma_disciplina_id=eq.${turmaDisciplinaAtiva.id}` : '';
+        const confRes = await api(`notas_confirmadas?aluno_id=in.(${idsAlunos})&trimestre=eq.${tri}${_tdFilterRel}&select=aluno_id,nota_final`) || [];
+        if (token !== _relatorioCargaToken) return;
+        confRes.forEach(c => { notasConfirmadasMap[c.aluno_id] = Number(c.nota_final); });
+      } catch(e) { console.warn('[Relatório] Erro ao buscar notas confirmadas:', e); }
+    }
+
+    const thead = document.getElementById('relatorio-thead');
+    const isFundI = isFundamentalI();
+
+    if (isFundI) {
+      // Fundamental I: colunas por disciplina
+      const discsSet = [...new Set(avalTri.map(a => a.disciplina).filter(Boolean))].sort();
+      thead.innerHTML = `<th>Aluno</th>` +
+        discsSet.map(d => `<th style="white-space:nowrap;">${d}</th>`).join('') +
+        `<th>Total</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
+
+      relatorioCache = alunosTurma.map(a => {
+        const notasPorDisc = {};
+        discsSet.forEach(d => {
+          const avalsDisc = avalTri.filter(av => av.disciplina === d);
+          const soma = avalsDisc.reduce((s, av) => {
+            const n = notasMap[a.id]?.[av.id];
+            return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0);
+          }, 0);
+          notasPorDisc[d] = soma;
+        });
+        // Em Fundamental I, limitar cada disciplina a 30 pts
+        const somaCalc = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
+        // Usar nota confirmada se existir
+        const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+        const total = notaFechada !== null ? notaFechada : somaCalc;
+        return { aluno: a, notasPorDisc, discsSet, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
+      });
+    } else {
+      // Fundamental II: colunas por avaliação (comportamento original)
+      thead.innerHTML = `<th>Aluno</th>` +
+        avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
+        `<th>Total de Notas</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
+
+      relatorioCache = alunosTurma.map(a => {
+        const notasAluno = avalTri.map(av => {
           const n = notasMap[a.id]?.[av.id];
-          return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0);
+          if (!n) return { nota: null, naoRealizado: false, recuperacaoParalela: null };
+          return { nota: n.nota, naoRealizado: n.nao_realizado, recuperacaoParalela: n.recuperacao_paralela };
+        });
+        // Soma das notas normais + recuperação paralela de cada avaliação
+        const somaBase = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.nota || 0)), 0);
+        const somaRecPar = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
+        // Soma das notas da avaliação de recuperação trimestral
+        const somaRecup = avalRecup.reduce((s, av) => {
+          const n = notasMap[a.id]?.[av.id];
+          return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0)
+                   + (n && !n.nao_realizado && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
         }, 0);
-        notasPorDisc[d] = soma;
+        const somaCalc = somaBase + somaRecPar + somaRecup;
+        // Usar nota confirmada se existir
+        const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
+        const total = notaFechada !== null ? notaFechada : somaCalc;
+        return { aluno: a, notasAluno, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
       });
-      // Em Fundamental I, limitar cada disciplina a 30 pts
-      const somaCalc = Object.values(notasPorDisc).reduce((s, v) => s + Math.min(v, 30), 0);
-      // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
-      const total = notaFechada !== null ? notaFechada : somaCalc;
-      return { aluno: a, notasPorDisc, discsSet, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
-    });
-  } else {
-    // Fundamental II: colunas por avaliação (comportamento original)
-    thead.innerHTML = `<th>Aluno</th>` +
-      avalTri.map(a => { const nm = _nomeExibicaoAval(a); return `<th style="white-space:nowrap;">${nm.length > 18 ? nm.substring(0,18)+'…' : nm}<br><span style="font-weight:400;color:var(--text-muted);font-size:10px;">${a.pontos}pts</span></th>`; }).join('') +
-      `<th>Total de Notas</th><th style="white-space:nowrap;color:#7C3AED;">Nota Final</th><th>Faltas</th>`;
+    }
 
-    relatorioCache = alunosTurma.map(a => {
-      const notasAluno = avalTri.map(av => {
-        const n = notasMap[a.id]?.[av.id];
-        if (!n) return { nota: null, naoRealizado: false, recuperacaoParalela: null };
-        return { nota: n.nota, naoRealizado: n.nao_realizado, recuperacaoParalela: n.recuperacao_paralela };
-      });
-      // Soma das notas normais + recuperação paralela de cada avaliação
-      const somaBase = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.nota || 0)), 0);
-      const somaRecPar = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
-      // Soma das notas da avaliação de recuperação trimestral
-      const somaRecup = avalRecup.reduce((s, av) => {
-        const n = notasMap[a.id]?.[av.id];
-        return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0)
-                 + (n && !n.nao_realizado && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
-      }, 0);
-      const somaCalc = somaBase + somaRecPar + somaRecup;
-      // Usar nota confirmada se existir
-      const notaFechada = notasConfirmadasMap.hasOwnProperty(a.id) ? notasConfirmadasMap[a.id] : null;
-      const total = notaFechada !== null ? notaFechada : somaCalc;
-      return { aluno: a, notasAluno, total, notaFechada, faltas: faltasPorAluno[a.id] || 0, abaixo: total < media, media, totalEsperado };
-    });
+    renderRelatorio(relatorioCache, avalTri);
+  } catch(e) {
+    if (token !== _relatorioCargaToken) return; // corrida cancelada, não é erro real pro usuário
+    console.error('[Relatório] Erro ao carregar relatório:', e);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao carregar o relatório. Tente novamente.');
+    else mostrarToast('Erro ao carregar o relatório. Tente novamente.');
   }
-
-  renderRelatorio(relatorioCache, avalTri);
 }
 
 function renderRelatorio(dados, avalTri) {
@@ -195,7 +202,8 @@ async function abrirAlertasRisco(event) {
     }
   } catch(e) {
     console.error('[Alertas] Erro ao carregar dados:', e);
-    mostrarToast('Erro ao carregar dados. Tente novamente.');
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao carregar dados. Tente novamente.');
+    else mostrarToast('Erro ao carregar dados. Tente novamente.');
     return;
   }
 
@@ -933,7 +941,8 @@ async function trimestresEstaFechado(tri) {
 async function verificarBloqueio(tri) {
   const bloqueado = await trimestresEstaFechado(tri);
   if (bloqueado) {
-    mostrarToast('Este trimestre está fechado. Contate o Administrador para reabrir.');
+    if (typeof mostrarErro === 'function') mostrarErro('Este trimestre está fechado. Contate o Administrador para reabrir.');
+    else mostrarToast('Este trimestre está fechado. Contate o Administrador para reabrir.');
     return true;
   }
   return false;
