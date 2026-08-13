@@ -1,6 +1,9 @@
 let ftResultados = [];
 let ftTriAtivo = 1;
+let ftDivisoesDisponiveis = []; // [{ordem, data_inicio, data_fim}], vem de parametro_divisoes
+let ftDivisaoEscolhida = null;
 
+// ── ETAPA 1: abrir modal e mostrar seleção de divisão ────────────────────────
 async function abrirFecharTrimestre() {
   try {
     const el = document.getElementById('modal-fechar-tri');
@@ -11,15 +14,19 @@ async function abrirFecharTrimestre() {
     }
 
     el.style.cssText = 'display:block;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:99999;background:#F4F2FF;overflow-y:auto;';
-    document.getElementById('ft-loading').style.display = 'block';
-    document.getElementById('ft-secoes').style.display = 'none';
 
-    const triInfo = detectarTrimestreAtual();
-    ftTriAtivo = triInfo.tri;
+    // Reseta para a etapa de seleção sempre que o modal é reaberto
+    document.getElementById('ft-selecao-divisao').style.display = 'block';
+    document.getElementById('ft-loading').style.display = 'none';
+    document.getElementById('ft-secoes').style.display = 'none';
+    document.getElementById('ft-sel-tri').style.display = 'none';
+    ftDivisaoEscolhida = null;
 
     const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
 
     if (!profData.id) {
+      document.getElementById('ft-selecao-divisao').style.display = 'none';
+      document.getElementById('ft-loading').style.display = 'block';
       document.getElementById('ft-loading').innerHTML = '<div style="color:#E24B4A;text-align:center;padding:32px;">Sessão expirada. Faça login novamente.</div>';
       return;
     }
@@ -28,13 +35,106 @@ async function abrirFecharTrimestre() {
     document.getElementById('ft-prof-nome').textContent = profData.nome || '—';
     document.getElementById('ft-sidebar-nome').textContent = profData.nome || '—';
     document.getElementById('ft-sidebar-escola').textContent = profData.escolas?.nome || '—';
-    document.getElementById('ft-sel-tri').value = triInfo.tri;
 
-    await carregarDadosFechamento(profData, triInfo.tri);
+    await popularSeletorDivisoes(profData);
   } catch(e) {
     console.error('[FT] Erro em abrirFecharTrimestre:', e);
-    mostrarToast('Erro: ' + e.message);
+    mostrarErro('Erro: ' + e.message);
   }
+}
+
+// ── Busca as divisões reais (parametro_divisoes) e monta a lista de opções ──
+// Reaproveita a mesma estrutura já usada dentro de carregarDadosFechamento
+// (turma → periodo_letivo_id → matrizes_curriculares → parametro_divisoes).
+// Não cria nenhuma tabela ou estrutura nova.
+async function popularSeletorDivisoes(profData) {
+  const lista = document.getElementById('ft-lista-divisoes');
+  lista.innerHTML = skeletonHtml(3);
+
+  try {
+    const tdList = (typeof todasTurmaDisciplinas !== 'undefined' && todasTurmaDisciplinas.length)
+      ? todasTurmaDisciplinas
+      : await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,disciplinas(id,nome),turmas(id,nome,ano,turno,nivel,codigo,escola_id,periodo_letivo_id,escolas(nome,codigo_escola))`) || [];
+
+    // Descobre os parametro_id distintos entre as turmas do professor
+    const periodoLetivoIds = [...new Set(tdList.map(td => td.turmas?.periodo_letivo_id).filter(Boolean))];
+    const escolaIds = [...new Set(tdList.map(td => td.turmas?.escola_id).filter(Boolean))];
+
+    let divisoes = [];
+    if (periodoLetivoIds.length && escolaIds.length) {
+      const matrizes = await api(
+        `matrizes_curriculares?escola_id=in.(${escolaIds.join(',')})&periodo_letivo_id=in.(${periodoLetivoIds.join(',')})&select=parametro_id`
+      ) || [];
+      const parametroIds = [...new Set(matrizes.map(m => m.parametro_id).filter(Boolean))];
+      if (parametroIds.length) {
+        divisoes = await api(
+          `parametro_divisoes?parametro_id=in.(${parametroIds.join(',')})&select=ordem_divisao,data_inicio,data_fim&order=ordem_divisao`
+        ) || [];
+      }
+    }
+
+    // Deduplica por ordem_divisao (caso haja mais de um parametro com a mesma ordem)
+    const porOrdem = {};
+    divisoes.forEach(d => { if (!porOrdem[d.ordem_divisao]) porOrdem[d.ordem_divisao] = d; });
+    ftDivisoesDisponiveis = Object.values(porOrdem).sort((a,b) => a.ordem_divisao - b.ordem_divisao);
+
+    // Fallback: se a escola ainda não cadastrou parametro_divisoes, usa os 3
+    // trimestres padrão (mesmo comportamento de antes, mas só como fallback)
+    if (!ftDivisoesDisponiveis.length) {
+      ftDivisoesDisponiveis = [1,2,3].map(o => ({ ordem_divisao: o, data_inicio: null, data_fim: null }));
+    }
+
+    const nomesTri = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+    const fmtData = iso => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+
+    lista.innerHTML = ftDivisoesDisponiveis.map(d => {
+      const label = nomesTri[d.ordem_divisao] || `Divisão ${d.ordem_divisao}`;
+      const periodo = (d.data_inicio && d.data_fim) ? `${fmtData(d.data_inicio)} — ${fmtData(d.data_fim)}` : 'Período não cadastrado';
+      return `
+        <div class="ft-divisao-opcao" data-ordem="${d.ordem_divisao}" onclick="selecionarDivisaoFechamento(${d.ordem_divisao}, this)"
+          style="border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all 0.15s;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${label}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${periodo}</div>
+        </div>`;
+    }).join('');
+
+    // Popula também o seletor do cabeçalho (usado depois de já estar dentro do fechamento)
+    const selHeader = document.getElementById('ft-sel-tri');
+    selHeader.innerHTML = ftDivisoesDisponiveis.map(d =>
+      `<option value="${d.ordem_divisao}">${nomesTri[d.ordem_divisao] || `Divisão ${d.ordem_divisao}`}</option>`
+    ).join('');
+
+  } catch (e) {
+    console.error('[FT] Erro ao popular divisões:', e);
+    lista.innerHTML = `<div style="color:#E24B4A;text-align:center;padding:20px;">Erro ao carregar divisões: ${e.message}</div>`;
+  }
+}
+
+function selecionarDivisaoFechamento(ordem, el) {
+  ftDivisaoEscolhida = ordem;
+  document.querySelectorAll('.ft-divisao-opcao').forEach(o => {
+    o.style.borderColor = 'var(--border)';
+    o.style.background = 'var(--white)';
+  });
+  el.style.borderColor = 'var(--purple)';
+  el.style.background = 'var(--purple-light)';
+  const btn = document.getElementById('ft-btn-continuar');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
+
+// ── ETAPA 2: usuário confirma a divisão escolhida → dispara o carregamento ──
+async function continuarParaFechamento() {
+  if (!ftDivisaoEscolhida) return;
+  ftTriAtivo = ftDivisaoEscolhida;
+  document.getElementById('ft-sel-tri').value = String(ftTriAtivo);
+  document.getElementById('ft-sel-tri').style.display = 'inline-block';
+
+  document.getElementById('ft-selecao-divisao').style.display = 'none';
+  document.getElementById('ft-loading').style.display = 'block';
+
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  await carregarDadosFechamento(profData, ftTriAtivo);
 }
 
 async function filtrarFechamentoTri(tri) {
@@ -115,10 +215,20 @@ async function carregarDadosFechamento(profData, tri) {
          || []);
     const aulas = Array.isArray(_aulasRaw) ? _aulasRaw : [];
     const totalAulasCriadas = aulas.length;
+    // Antes: 1 query por aula (N+1). Agora: 1 única query buscando todas
+    // as chamadas das aulas dessa turma de uma vez, em lotes de 100 ids
+    // para não estourar limite de URL do Supabase.
     let aulasComChamada = 0;
-    for (const aula of aulas) {
-      const ch = await api(`chamadas?aula_id=eq.${aula.id}&select=id&limit=1`);
-      if (ch && ch.length) aulasComChamada++;
+    if (totalAulasCriadas > 0) {
+      const aulaIds = aulas.map(a => a.id);
+      const LOTE = 100;
+      const idsComChamada = new Set();
+      for (let i = 0; i < aulaIds.length; i += LOTE) {
+        const loteIds = aulaIds.slice(i, i + LOTE);
+        const registros = await api(`chamadas?aula_id=in.(${loteIds.join(',')})&select=aula_id`) || [];
+        registros.forEach(r => idsComChamada.add(r.aula_id));
+      }
+      aulasComChamada = idsComChamada.size;
     }
     const temPendAulas = aulasComChamada < totalAulasCriadas;
 
@@ -161,6 +271,7 @@ async function carregarDadosFechamento(profData, tri) {
   } catch(e) {
     console.error('Erro em carregarDadosFechamento:', e);
     document.getElementById('ft-loading').innerHTML = `<div style="color:#E24B4A;text-align:center;padding:32px;">Erro ao carregar: ${e.message}</div>`;
+    mostrarErro('Erro ao carregar dados do fechamento.');
   }
 }
 
@@ -298,7 +409,7 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
   } catch(e) {
     btn.disabled = false;
     btn.textContent = 'Fechar divisão';
-    mostrarToast('Erro ao fechar. Tente novamente.');
+    mostrarErro('Erro ao fechar. Tente novamente.');
   }
 }
 
@@ -332,4 +443,5 @@ async function irParaTurma(turmaId, pagina) {
 
 function fecharModalFechamento() {
   document.getElementById('modal-fechar-tri').style.display = 'none';
+  ftDivisaoEscolhida = null;
 }

@@ -76,6 +76,9 @@ async function carregarChamadaPorData(dataISO) {
   const btnWrap = document.getElementById('btn-salvar-chamada-wrap');
 
   document.getElementById('chamada-status-label').textContent = '';
+  if (typeof showLoading === 'function') showLoading('Carregando chamada...');
+
+  try {
 
   // verificar calendário da escola — reutiliza feriadosCache (preenchido pelo calendário)
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
@@ -173,6 +176,9 @@ async function carregarChamadaPorData(dataISO) {
   } else {
     seletorWrap.style.display = 'none';
     await carregarChamadaDeAulaEspecifica(aulasDoDia[0].id, aulasOrdenadas);
+  }
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
   }
 }
 
@@ -461,72 +467,86 @@ async function salvarChamada() {
   const aulaAtual = aulasTurma.find(a => a.id === aulaId);
   const rows = alunosTurma.map(a => ({ aula_id: aulaId, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
 
-  // Salvar chamada da aula atual
-  await api(`chamadas?aula_id=eq.${aulaId}`, { method: 'DELETE' });
-  await api('chamadas', { method: 'POST', body: JSON.stringify(rows) });
-  await api(`aulas?id=eq.${aulaId}`, { method: 'PATCH', body: JSON.stringify({ status: 'lecionada' }) });
-  chamadaCacheSet(aulaId, true);
-  const idx = aulasTurma.findIndex(a => a.id === aulaId);
-  if (idx !== -1) aulasTurma[idx] = { ...aulasTurma[idx], status: 'lecionada' };
+  if (typeof showLoading === 'function') showLoading('Salvando chamada...');
 
-  // Copiar automaticamente para outras aulas do mesmo dia
-  if (aulaAtual) {
-    const dataAtual = dataAulaOnly(aulaAtual.data);
-    const _tdId = turmaDisciplinaAtiva?.id;
-    const outrasMesmoDia = aulasTurma.filter(a =>
-      a.id !== aulaId &&
-      dataAulaOnly(a.data) === dataAtual &&
-      (_tdId ? a.turma_disciplina_id === _tdId : a.professor_id === aulaAtual.professor_id)
-    );
-    for (const outra of outrasMesmoDia) {
-      const rowsOutra = alunosTurma.map(a => ({ aula_id: outra.id, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
-      await api(`chamadas?aula_id=eq.${outra.id}`, { method: 'DELETE' });
-      await api('chamadas', { method: 'POST', body: JSON.stringify(rowsOutra) });
-      await api(`aulas?id=eq.${outra.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'lecionada' }) });
-      chamadaCacheSet(outra.id, true);
-      const idxOutra = aulasTurma.findIndex(a => a.id === outra.id);
-      if (idxOutra !== -1) aulasTurma[idxOutra] = { ...aulasTurma[idxOutra], status: 'lecionada' };
-    }
-    mostrarToastChamada(outrasMesmoDia.length);
-  } else {
-    mostrarToastChamada(0);
+  // Salva a chamada de uma única aula: DELETE (limpa registros antigos) →
+  // POST (grava os novos) → PATCH (marca status lecionada). Essas 3 etapas
+  // têm que ser sequenciais entre si (não dá pra gravar antes de limpar),
+  // mas aulas diferentes são independentes entre si e podem rodar em paralelo.
+  async function _salvarChamadaDeAula(alvoId, linhas) {
+    await api(`chamadas?aula_id=eq.${alvoId}`, { method: 'DELETE' });
+    await api('chamadas', { method: 'POST', body: JSON.stringify(linhas) });
+    await api(`aulas?id=eq.${alvoId}`, { method: 'PATCH', body: JSON.stringify({ status: 'lecionada' }) });
+    chamadaCacheSet(alvoId, true);
+    const idx = aulasTurma.findIndex(a => a.id === alvoId);
+    if (idx !== -1) aulasTurma[idx] = { ...aulasTurma[idx], status: 'lecionada' };
   }
 
-  cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
-  setTimeout(() => voltarTurma(), 1800);
+  try {
+    // Descobre as outras aulas do mesmo dia (cópia automática) antes de salvar
+    let outrasMesmoDia = [];
+    if (aulaAtual) {
+      const dataAtual = dataAulaOnly(aulaAtual.data);
+      const _tdId = turmaDisciplinaAtiva?.id;
+      outrasMesmoDia = aulasTurma.filter(a =>
+        a.id !== aulaId &&
+        dataAulaOnly(a.data) === dataAtual &&
+        (_tdId ? a.turma_disciplina_id === _tdId : a.professor_id === aulaAtual.professor_id)
+      );
+    }
+
+    // Todas as aulas (a atual + as do mesmo dia) são salvas em paralelo —
+    // antes era um `for` sequencial, o que travava a tela por vários segundos
+    // quando havia múltiplas aulas no mesmo dia.
+    const tarefas = [_salvarChamadaDeAula(aulaId, rows)];
+    outrasMesmoDia.forEach(outra => {
+      const rowsOutra = alunosTurma.map(a => ({ aula_id: outra.id, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
+      tarefas.push(_salvarChamadaDeAula(outra.id, rowsOutra));
+    });
+    await Promise.all(tarefas);
+
+    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    mostrarToastChamada(outrasMesmoDia.length);
+    setTimeout(() => voltarTurma(), 1800);
+  } catch (e) {
+    console.error('[CHAMADA] Erro ao salvar:', e);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao salvar chamada. Tente novamente.');
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
+  }
+}
+
+// ── Toast com mascote (base compartilhada) ──────────────────────────────────
+// Usada por mostrarToastNotas e mostrarToastChamada — evita duplicar a
+// imagem/CSS/timer em duas funções quase idênticas.
+const _TOAST_MASCOTE_B64 = "iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAEAAElEQVR4nOz9ebwk2VXfi373EBE5nXNq6FHqrq4epW6JwcwgJgmDbUBMxgbPz1z8nu/1dMEDXBs/Jl9ssMGAzTV+xs/YeLqAmTwKGZDAgLDBCISQ1N1qdbeGVnd1V50hp4jYe6/7x46IjMxzaugauqq79u/ziZMnMyMjdwwZa+21fuu3FAkJCdcdp06dEq01Sqm1RWsNgIh0j+0C4FzF009/SF23gSckJLxskW4cCQnXEA8+eL/0nyu1/pMLYf211vBvYtMBaNH4B0euC/DYY+9Pv/GEhIQjkW4OCQlXgPtO3yubs/bWgG8a875hvhjadTedgc1tbK63uX77PISA9566rnnqg0+n331CQkJyABISXgxOnTotWZbRhuvNeX5BqxC9AzjkIPQN81Gfa6GPmuKfB/0oQf9Ra00/vSAihBAIIVC5mieffDLdBxISbkKkH35CwgVw7733itYaY0xjRM2aASV44PAMvH08nwFfGemjZ+6b67U4HBHwa+9tphOqqjrS8WihrVmLDiRnICHh5kH6sSckbOD06VOS54PO6LcGP+bf1ZpRLjK7RszbJOldHNFB2DTcLS62nRDc2vNDBr4Z/1HbUkoREFoHRymF956yLPnABz6Q7g0JCa9wpB95QgJw7733SFEUaK0JIeBcnOEflVNvQ+paa8rFsnv9qMX7wxGC/jbb98+H80UGWlhrz1shICIXTCEopahcfWi/2u8UEd773veme0RCwisU6cedcNPi/vvvF62PnnErFWfEbY6+b0j7hja32aHX+kZ400D31wUwxhwaV3+mfqGKAFhxCC4WQTgfmVAZfd4oQwiB4XDIYrHg8ccfT/eKhIRXGNKPOuGmwwP33S9ZlqGUwvlq7b3NmfomSW8TEi78EzrfDLz9Hh/qC37+YhEA5MIkwYtVERz1ej9KUdc1eZ5jjKEsSx57f3IEEhJeKUg/5oSbBq958CFpZ+Tee7z3GHt5ZXqHyu5EI/hokFXonktQ3XOlBYUBFVaPFzHwF0sRdEJBzff0v0/wh76vP74+zkc2bKsGRKRziJITkJDwykD6ISe8onH61D1iraUt3evY+6yM2xpUWAvVr0L0R5frqbBKGcR19Nqj1halBNAoJU1qQbr1L1bmd7H3WwchkhP92iME4q7G8cSKgdVj/ILDKYruUCiFtZa6rgkh0B5H7z2z2SzpCSQkvMyRfsAJr1g8eP8Dkud5N+N3znUz2SzLMMZQ1/W6eI+WQ+Hw+HzlAKy9H+SQdG9fwrdl17fb6j+uNiIg6shHCRd4H9akgjcJgLByENoqhtYB6mb1NjtvGmNTN+Cosb/vsUfTPSQh4WWK9ONNeMXhtQ+9RrTWh8LnrWHuG8LWgHaGTUVD1xrQtszucC19NPy5tWvb7j+2IfMLpRZWzoU+8rGdyR/9/jqJ8EL5/U3jH0IAUdRBYrrgCOJha/z7okVtZYQxBmstLvh";
+
+function _toastComMascote(id, extraHtml) {
+  const isMobile = window.innerWidth < 768;
+  let t = document.getElementById(id);
+  if (!t) { t = document.createElement('div'); t.id = id; document.body.appendChild(t); }
+  t.style.cssText = isMobile
+    ? 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;'
+    : 'position:fixed;bottom:0;right:32px;transform:translateY(110%);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;';
+  t.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;"><img src="data:image/png;base64,${_TOAST_MASCOTE_B64}" style="width:120px;" alt=""/>${extraHtml || ''}</div>`;
+  t.style.opacity = '1';
+  t.style.transform = isMobile ? 'translateX(-50%) translateY(0)' : 'translateY(0)';
+  clearTimeout(t._hide);
+  t._hide = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = isMobile ? 'translateX(-50%) translateY(30px)' : 'translateY(110%)';
+  }, 3000);
 }
 
 function mostrarToastNotas() {
-  const isMobile = window.innerWidth < 768;
-  let t = document.getElementById('toast-notas');
-  if (!t) { t = document.createElement('div'); t.id = 'toast-notas'; document.body.appendChild(t); }
-  t.style.cssText = isMobile ? 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;' : 'position:fixed;bottom:0;right:32px;transform:translateY(110%);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;';
-  t.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAEAAElEQVR4nOz9ebwk2VXfi373EBE5nXNq6FHqrq4epW6JwcwgJgmDbUBMxgbPz1z8nu/1dMEDXBs/Jl9ssMGAzTV+xs/YeLqAmTwKGZDAgLDBCISQ1N1qdbeGVnd1V50hp4jYe6/7x46IjMxzaugauqq79u/ziZMnMyMjdwwZa+21fuu3FAkJCdcdp06dEq01Sqm1RWsNgIh0j+0C4FzF009/SF23gSckJLxskW4cCQnXEA8+eL/0nyu1/pMLYf211vBvYtMBaNH4B0euC/DYY+9Pv/GEhIQjkW4OCQlXgPtO3yubs/bWgG8a875hvhjadTedgc1tbK63uX77PISA9566rnnqg0+n331CQkJyABISXgxOnTotWZbRhuvNeX5BqxC9AzjkIPQN81Gfa6GPmuKfB/0oQf9Ra00/vSAihBAIIVC5mieffDLdBxISbkKkH35CwgVw7733itYaY0xjRM2aASV44PAMvH08nwFfGemjZ+6b67U4HBHwa+9tphOqqjrS8WihrVmLDiRnICHh5kH6sSckbOD06VOS54PO6LcGP+bf1ZpRLjK7RszbJOldHNFB2DTcLS62nRDc2vNDBr4Z/1HbUkoREFoHRymF956yLPnABz6Q7g0JCa9wpB95QgJw7733SFEUaK0JIeBcnOEflVNvQ+paa8rFsnv9qMX7wxGC/jbb98+H80UGWlhrz1shICIXTCEopahcfWi/2u8UEd773veme0RCwisU6cedcNPi/vvvF62PnnErFWfEbY6+b0j7hja32aHX+kZ400D31wUwxhwaV3+mfqGKAFhxCC4WQTgfmVAZfd4oQwiB4XDIYrHg8ccfT/eKhIRXGNKPOuGmwwP33S9ZlqGUwvlq7b3NmfomSW8TEi78EzrfDLz9Hh/qC37+YhEA5MIkwYtVERz1ej9KUdc1eZ5jjKEsSx57f3IEEhJeKUg/5oSbBq958CFpZ+Tee7z3GHt5ZXqHyu5EI/hokFXonktQ3XOlBYUBFVaPFzHwF0sRdEJBzff0v0/wh76vP74+zkc2bKsGRKRziJITkJDwykD6ISe8onH61D1iraUt3evY+6yM2xpUWAvVr0L0R5frqbBKGcR19Nqj1halBNAoJU1qQbr1L1bmd7H3WwchkhP92iME4q7G8cSKgdVj/ILDKYruUCiFtZa6rgkh0B5H7z2z2SzpCSQkvMyRfsAJr1g8eP8Dkud5N+N3znUz2SzLMMZQ1/W6eI+WQ+Hw+HzlAKy9H+SQdG9fwrdl17fb6j+uNiIg6shHCRd4H9akgjcJgLByENoqhtYB6mb1NjtvGmNTN+Cosb/vsUfTPSQh4WWK9ONNeMXhtQ+9RrTWh8LnrWHuG8LWgHaGTUVD1xrQtszucC19NPy5tWvb7j+2IfMLpRZWzoU+8rGdyR/9/jqJ8EL5/U3jH0IAUdRBYrrgCOJha/z7okVtZYQxBmstLvh[... 158431 chars omitted ...]`;
-  t.style.opacity = '1';
-  t.style.transform = isMobile ? 'translateX(-50%) translateY(0)' : 'translateY(0)';
-  clearTimeout(t._hide);
-  t._hide = setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transform = isMobile ? 'translateX(-50%) translateY(30px)' : 'translateY(110%)';
-  }, 3000);
+  _toastComMascote('toast-notas');
 }
 
 function mostrarToastChamada(copiadas) {
-  const isMobile = window.innerWidth < 768;
-  let t = document.getElementById('toast-chamada');
-  if (!t) { t = document.createElement('div'); t.id = 'toast-chamada'; document.body.appendChild(t); }
   const extra = copiadas > 0
     ? `<div style="font-size:11px;color:#A78BFA;margin-top:4px;font-weight:500;">+${copiadas} aula${copiadas>1?'s':''} do mesmo dia preenchida${copiadas>1?'s':''} automaticamente</div>`
     : '';
-  t.style.cssText = isMobile ? 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;' : 'position:fixed;bottom:0;right:32px;transform:translateY(110%);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;';
-  t.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAABCGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8wQAELAYMDLl5JUVB7k4KEZFRCuwPGBiBEAwSk4sLGHADoKpv1yBqL+viUYcLcKakFicD6Q9ArFIEtBxopAiQLZIOYWuA2EkQtg2IXV5SUAJkB4DYRSFBzkB2CpCtkY7ETkJiJxcUgdT3ANk2uTmlyQh3M/Ck5oUGA2kOIJZhKGYIYnBncAL5H6IkfxEDg8VXBgbmCQixpJkMDNtbGRgkbiHEVBYwMPC3MDBsO48QQ4RJQWJRIliIBYiZ0tIYGD4tZ2DgjWRgEL7AwMAVDQsIHG5TALvNnSEfCNMZchhSgSKeDHkMyQx6QJYRgwGDIYMZAKbWPz9HbOBQAAEAAElEQVR4nOz9ebwk2VXfi373EBE5nXNq6FHqrq4epW6JwcwgJgmDbUBMxgbPz1z8nu/1dMEDXBs/Jl9ssMGAzTV+xs/YeLqAmTwKGZDAgLDBCISQ1N1qdbeGVnd1V50hp4jYe6/7x46IjMxzaugauqq79u/ziZMnMyMjdwwZa+21fuu3FAkJCdcdp06dEq01Sqm1RWsNgIh0j+0C4FzF009/SF23gSckJLxskW4cCQnXEA8+eL/0nyu1/pMLYf211vBvYtMBaNH4B0euC/DYY+9Pv/GEhIQjkW4OCQlXgPtO3yubs/bWgG8a875hvhjadTedgc1tbK63uX77PISA9566rnnqg0+n331CQkJyABISXgxOnTotWZbRhuvNeX5BqxC9AzjkIPQN81Gfa6GPmuKfB/0oQf9Ra00/vSAihBAIIVC5mieffDLdBxISbkKkH35CwgVw7733itYaY0xjRM2aASV44PAMvH08nwFfGemjZ+6b67U4HBHwa+9tphOqqjrS8WihrVmLDiRnICHh5kH6sSckbOD06VOS54PO6LcGP+bf1ZpRLjK7RszbJOldHNFB2DTcLS62nRDc2vNDBr4Z/1HbUkoREFoHRymF956yLPnABz6Q7g0JCa9wpB95QgJw7733SFEUaK0JIeBcnOEflVNvQ+paa8rFsnv9qMX7wxGC/jbb98+H80UGWlhrz1shICIXTCEopahcfWi/2u8UEd773veme0RCwisU6cedcNPi/vvvF62PnnErFWfEbY6+b0j7hja32aHX+kZ400D31wUwxhwaV3+mfqGKAFhxCC4WQTgfmVAZfd4oQwiB4XDIYrHg8ccfT/eKhIRXGNKPOuGmwwP33S9ZlqGUwvlq7b3NmfomSW8TEi78EzrfDLz9Hh/qC37+YhEA5MIkwYtVERz1ej9KUdc1eZ5jjKEsSx57f3IEEhJeKUg/5oSbBq958CFpZ+Tee7z3GHt5ZXqHyu5EI/hokFXonktQ3XOlBYUBFVaPFzHwF0sRdEJBzff0v0/wh76vP74+zkc2bKsGRKRziJITkJDwykD6ISe8onH61D1iraUt3evY+6yM2xpUWAvVr0L0R5frqbBKGcR19Nqj1halBNAoJU1qQbr1L1bmd7H3WwchkhP92iME4q7G8cSKgdVj/ILDKYruUCiFtZa6rgkh0B5H7z2z2SzpCSQkvMyRfsAJr1g8eP8Dkud5N+N3znUz2SzLMMZQ1/W6eI+WQ+Hw+HzlAKy9H+SQdG9fwrdl17fb6j+uNiIg6shHCRd4H9akgjcJgLByENoqhtYB6mb1NjtvGmNTN+Cosb/vsUfTPSQh4WWK9ONNeMXhtQ+9RrTWh8LnrWHuG8LWgHaGTUVD1xrQtszucC19NPy5tWvb7j+2IfMLpRZWzoU+8rGdyR/9/jqJ8EL5/U3jH0IAUdRBYrrgCOJha/z7okVtZYQxBmstLvh[... 158428 chars omitted ...]`;
-  t.style.opacity = '1';
-  t.style.transform = isMobile ? 'translateX(-50%) translateY(0)' : 'translateY(0)';
-  clearTimeout(t._hide);
-  t._hide = setTimeout(() => {
-    t.style.opacity = '0';
-    t.style.transform = isMobile ? 'translateX(-50%) translateY(30px)' : 'translateY(110%)';
-  }, 3000);
+  _toastComMascote('toast-chamada', extra);
 }
 
 function togglePresenca(alunoId) {

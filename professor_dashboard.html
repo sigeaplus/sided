@@ -18,6 +18,25 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Remove o realce/borda azul padrão do navegador ao tocar em elementos
+       clicáveis no mobile (WebView/Chrome Android). Mantém o foco visível
+       via teclado (:focus-visible) para não prejudicar acessibilidade. */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+    button, a, [onclick], input, select, textarea {
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:focus, a:focus, [onclick]:focus, input:focus, select:focus, textarea:focus {
+      outline: none;
+    }
+    button:focus-visible, a:focus-visible, [onclick]:focus-visible,
+    input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2.5px solid var(--purple, #2563EB);
+      outline-offset: 2px;
+    }
+
     :root {
       --purple: #2563EB;
       --purple-light: #E8F0FF;
@@ -2021,10 +2040,10 @@
 
 <script src="/api.js"></script>
 <script src="/state.js"></script>
+<script src="/ui.js"></script>
 <script src="/context-guard.js"></script>
 <script src="/router.js"></script>
 <script src="/utils.js"></script>
-<script src="/ui.js"></script>
 <script src="/dashboard.js"></script>
 <script src="/calendario.js"></script>
 <script src="/aulas.js"></script>
@@ -2202,10 +2221,8 @@
         <div style="font-size:14px;font-weight:700;color:#fff;">Fechamento de Trimestre</div>
       </div>
     </div>
-    <select id="ft-sel-tri" onchange="filtrarFechamentoTri(this.value)" style="padding:6px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#fff;outline:none;cursor:pointer;">
-      <option value="1">1º Trimestre</option>
-      <option value="2">2º Trimestre</option>
-      <option value="3">3º Trimestre</option>
+    <select id="ft-sel-tri" onchange="filtrarFechamentoTri(this.value)" style="display:none;padding:6px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#fff;outline:none;cursor:pointer;">
+      <!-- opções preenchidas dinamicamente em popularSeletorDivisoes(), refletindo parametro_divisoes -->
     </select>
   </div>
 
@@ -2227,8 +2244,18 @@
   <!-- CONTEÚDO PRINCIPAL -->
   <div style="padding:20px;max-width:700px;margin:0 auto;">
 
+    <!-- Seleção de divisão (aparece antes de qualquer carregamento pesado) -->
+    <div id="ft-selecao-divisao" style="display:none;padding:8px 0;">
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px;">Selecione a divisão</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:18px;">Escolha o período que deseja consultar antes de carregar o fechamento.</div>
+      <div id="ft-lista-divisoes" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+      <button id="ft-btn-continuar" onclick="continuarParaFechamento()" disabled
+        style="width:100%;padding:13px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;opacity:0.5;"
+        >Continuar</button>
+    </div>
+
     <!-- Loading -->
-    <div id="ft-loading" style="text-align:center;padding:64px;color:var(--text-muted);">
+    <div id="ft-loading" style="display:none;text-align:center;padding:64px;color:var(--text-muted);">
       <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 14px;"></div>
       Verificando turmas...
     </div>

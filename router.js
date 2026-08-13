@@ -5,35 +5,47 @@
 
 // Função para abrir turma via turma_disciplina
 async function abrirTurmaViaDisciplina(td) {
-  // Primeiro, garantir que a turma está carregada
-  if (!todasTurmas || !todasTurmas.length) {
-    if (typeof carregarTurmas === 'function') {
-      const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
-      await carregarTurmas(profData.id);
+  if (typeof showLoading === 'function') showLoading('Carregando turma...');
+  try {
+    // Primeiro, garantir que a turma está carregada
+    if (!todasTurmas || !todasTurmas.length) {
+      if (typeof carregarTurmas === 'function') {
+        const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+        await carregarTurmas(profData.id);
+      }
     }
+
+    turmaDisciplinaAtiva = td; // <-- Atualiza o estado global!
+    turmaAtiva = td.turmas;    // <-- Atualiza a turma ativa
+
+    // Esconde a tela anterior e limpa os containers de dado ANTES de buscar
+    // os novos, para nunca deixar dado da turma anterior visível durante o fetch.
+    esconderTudo();
+    _limparCachesVisuais();
+
+    // Limpa e carrega os dados
+    await _carregarContextoTurmaViaDisciplina(td);
+
+    // Abre a página padrão (relatório geral)
+    const nome = turmaAtiva?.nome || '';
+    atualizarCabecalho({ info: `Relatórios - ${td.disciplinas?.nome || '—'}`, titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
+    atualizarHeaderMobile('Relatório Geral', `${nome} - ${td.disciplinas?.nome || '—'}`, true, false);
+    _setSidebarEstadoTurma(true);
+
+    const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
+
+    // Atualiza a URL
+    const url = _construirUrl('relatorio-geral', turmaAtiva, { tri: selTri });
+    window.history.pushState({ pagina: 'relatorio-geral', turmaId: String(turmaAtiva.id), turmaDisciplinaId: String(td.id), opts: { tri: selTri } }, '', url);
+
+    await carregarRelatorio(selTri);
+
+    // Só mostra a tela depois que os dados já estão prontos —
+    // evita o "flash" de tela vazia/desatualizada antes do render.
+    document.getElementById('pagina-relatorio-geral').style.display = 'block';
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
   }
-
-  turmaDisciplinaAtiva = td; // <-- Atualiza o estado global!
-  turmaAtiva = td.turmas;    // <-- Atualiza a turma ativa
-  
-  // Limpa e carrega os dados
-  await _carregarContextoTurmaViaDisciplina(td);
-  
-  // Abre a página padrão (relatório geral)
-  esconderTudo();
-  const nome = turmaAtiva?.nome || '';
-  atualizarCabecalho({ info: `Relatórios - ${td.disciplinas?.nome || '—'}`, titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
-  atualizarHeaderMobile('Relatório Geral', `${nome} - ${td.disciplinas?.nome || '—'}`, true, false);
-  _setSidebarEstadoTurma(true);
-
-  const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
-  document.getElementById('pagina-relatorio-geral').style.display = 'block';
-  
-  // Atualiza a URL
-  const url = _construirUrl('relatorio-geral', turmaAtiva, { tri: selTri });
-  window.history.pushState({ pagina: 'relatorio-geral', turmaId: String(turmaAtiva.id), turmaDisciplinaId: String(td.id), opts: { tri: selTri } }, '', url);
-  
-  await carregarRelatorio(selTri);
 }
 
 // Nova função para carregar o contexto via turma_disciplina
@@ -65,7 +77,6 @@ async function _carregarContextoTurmaViaDisciplina(td) {
   if (typeof _ctxSalvarTurma === 'function') _ctxSalvarTurma(turmaAtiva);
   sessionStorage.setItem('td_ativa', JSON.stringify(td)); // <-- Salva a turma_disciplina ativa na sessão
   
-  _limparCachesVisuais();
   await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
 }
 
@@ -153,9 +164,27 @@ function esconderTudo() {
   if (dash) dash.style.display = 'none';
 }
 
+// Limpa visualmente os containers de dados de todas as telas antes de uma
+// troca de contexto (turma/tela), para que o usuário nunca veja dado da
+// tela/turma anterior "grudado" enquanto os novos dados ainda carregam.
+// Usa skeleton (placeholder animado) em vez de innerHTML='' para também
+// evitar o estado "Nenhum dado encontrado" aparecer antes da hora.
 function _limparCachesVisuais() {
-  const containers = ['cards-aulas-container', 'lista-avaliacoes-container', 'chamada-alunos-corpo'];
+  const skel = (typeof skeletonHtml === 'function') ? skeletonHtml(3) : '';
+  const containers = [
+    'aulas-list',
+    'avaliacoes-list',
+    'chamada-list',
+    'relatorio-body',
+  ];
   containers.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = skel;
+  });
+  // Containers que devem apenas ficar vazios (não têm "estado vazio" textual
+  // que confundiria o usuário — são áreas auxiliares, não listas principais)
+  const limparSemSkeleton = ['chamada-faltosos-wrap'];
+  limparSemSkeleton.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = '';
   });
@@ -208,23 +237,28 @@ async function _carregarContextoTurma(id) {
   // Salvar a nova turma na sessão via context-guard
   if (typeof _ctxSalvarTurma === 'function') _ctxSalvarTurma(turmaAtiva);
   
+  esconderTudo();
   _limparCachesVisuais();
   await Promise.all([carregarAulas(), carregarAlunos(), carregarAvaliacoes()]);
 }
 
 async function _executarAbrirTurma(id) {
-  await _carregarContextoTurma(id);
-  if (!turmaAtiva) return;
-  esconderTudo();
+  if (typeof showLoading === 'function') showLoading('Carregando turma...');
+  try {
+    await _carregarContextoTurma(id);
+    if (!turmaAtiva) return;
 
-  const nome = turmaAtiva?.nome || '';
-  atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
-  atualizarHeaderMobile('Relatório Geral', nome, true, false);
-  _setSidebarEstadoTurma(true);
+    const nome = turmaAtiva?.nome || '';
+    atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar às turmas', voltarFn: 'voltarDashboard', cor: '#16A34A' });
+    atualizarHeaderMobile('Relatório Geral', nome, true, false);
+    _setSidebarEstadoTurma(true);
 
-  const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
-  document.getElementById('pagina-relatorio-geral').style.display = 'block';
-  await carregarRelatorio(selTri);
+    const selTri = parseInt(document.getElementById('sel-rel-tri')?.value || '1');
+    await carregarRelatorio(selTri);
+    document.getElementById('pagina-relatorio-geral').style.display = 'block';
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
+  }
 }
 
 function _executarVoltarDashboard() {
@@ -267,81 +301,89 @@ function _executarVoltarDashboard() {
 }
 
 async function _executarAbrirPagina(pagina, opts = {}) {
-  esconderTudo();
-  _limparCachesVisuais();
-  const nome = turmaAtiva?.nome || '';
+  if (typeof showLoading === 'function') showLoading('Carregando...');
+  try {
+    esconderTudo();
+    _limparCachesVisuais();
+    const nome = turmaAtiva?.nome || '';
 
-  if (turmaAtiva?.id) await garantirAlunosTurma();
+    if (turmaAtiva?.id) await garantirAlunosTurma();
 
-  switch (pagina) {
-    case 'aulas':
-      document.getElementById('pagina-aulas').style.display = 'block';
-      atualizarCabecalho({ info: 'Aulas', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0F766E' });
-      atualizarHeaderMobile('Aulas', nome, true, true);
-      await carregarAulas();
-      if (typeof _inicializarFiltroDiscAulas === 'function') await _inicializarFiltroDiscAulas();
-      break;
+    switch (pagina) {
+      case 'aulas':
+        atualizarCabecalho({ info: 'Aulas', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0F766E' });
+        atualizarHeaderMobile('Aulas', nome, true, true);
+        await carregarAulas();
+        if (typeof _inicializarFiltroDiscAulas === 'function') await _inicializarFiltroDiscAulas();
+        document.getElementById('pagina-aulas').style.display = 'block';
+        break;
 
-    case 'chamada':
-      document.getElementById('pagina-chamada').style.display = 'block';
-      const chamadaTitulo = `${turmaAtiva.codigo || ''} — ${turmaAtiva.nome || ''} — ${turmaAtiva.disciplina || ''} — ${turmaAtiva.turno || ''} — ${turmaAtiva.escolas?.nome || ''}`;
-      document.getElementById('chamada-turma-titulo').textContent = chamadaTitulo;
-      atualizarCabecalho({ info: 'Chamada do Dia', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#6C4FD4' });
-      atualizarHeaderMobile('Chamada do Dia', nome, true, true);
-      await garantirAlunosTurma();
-      await carregarChamadaHoje();
-      break;
+      case 'chamada': {
+        const chamadaTitulo = `${turmaAtiva.codigo || ''} — ${turmaAtiva.nome || ''} — ${turmaAtiva.disciplina || ''} — ${turmaAtiva.turno || ''} — ${turmaAtiva.escolas?.nome || ''}`;
+        document.getElementById('chamada-turma-titulo').textContent = chamadaTitulo;
+        atualizarCabecalho({ info: 'Chamada do Dia', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#6C4FD4' });
+        atualizarHeaderMobile('Chamada do Dia', nome, true, true);
+        await garantirAlunosTurma();
+        await carregarChamadaHoje();
+        document.getElementById('pagina-chamada').style.display = 'block';
+        break;
+      }
 
-    case 'avaliacoes':
-      document.getElementById('pagina-avaliacoes').style.display = 'block';
-      document.getElementById('notas-screen').style.display = 'none';
-      document.getElementById('aval-turma-titulo').textContent = `${turmaAtiva.codigo || ''} — ${turmaAtiva.nome || ''} — ${turmaAtiva.disciplina || ''} — ${turmaAtiva.turno || ''} — ${turmaAtiva.escolas?.nome || ''}`;
-      const triAtual = detectarTrimestreAtual().tri;
-      const sel = document.getElementById('sel-aval-tri'); if (sel) sel.value = String(triAtual);
-      atualizarCabecalho({ info: 'Avaliações', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#FF8C38' });
-      atualizarHeaderMobile('Avaliações', nome, true, true);
-      if (typeof _inicializarFiltroDiscAval === 'function') await _inicializarFiltroDiscAval();
-      await carregarAvaliacoes();
-      break;
+      case 'avaliacoes': {
+        document.getElementById('notas-screen').style.display = 'none';
+        document.getElementById('aval-turma-titulo').textContent = `${turmaAtiva.codigo || ''} — ${turmaAtiva.nome || ''} — ${turmaAtiva.disciplina || ''} — ${turmaAtiva.turno || ''} — ${turmaAtiva.escolas?.nome || ''}`;
+        const triAtual = detectarTrimestreAtual().tri;
+        const sel = document.getElementById('sel-aval-tri'); if (sel) sel.value = String(triAtual);
+        atualizarCabecalho({ info: 'Avaliações', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#FF8C38' });
+        atualizarHeaderMobile('Avaliações', nome, true, true);
+        if (typeof _inicializarFiltroDiscAval === 'function') await _inicializarFiltroDiscAval();
+        await carregarAvaliacoes();
+        document.getElementById('pagina-avaliacoes').style.display = 'block';
+        break;
+      }
 
-    case 'relatorio-geral':
-      document.getElementById('pagina-relatorio-geral').style.display = 'block';
-      atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#16A34A' });
-      atualizarHeaderMobile('Relatório Geral', nome, true, true);
-      await garantirAlunosTurma();
-      const triRel = parseInt((opts.tri ?? document.getElementById('sel-rel-tri')?.value) || '1');
-      const selRelTri = document.getElementById('sel-rel-tri');
-      if (selRelTri) selRelTri.value = String(triRel);
-      await carregarRelatorio(triRel);
-      break;
+      case 'relatorio-geral': {
+        atualizarCabecalho({ info: 'Relatórios', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#16A34A' });
+        atualizarHeaderMobile('Relatório Geral', nome, true, true);
+        await garantirAlunosTurma();
+        const triRel = parseInt((opts.tri ?? document.getElementById('sel-rel-tri')?.value) || '1');
+        const selRelTri = document.getElementById('sel-rel-tri');
+        if (selRelTri) selRelTri.value = String(triRel);
+        await carregarRelatorio(triRel);
+        document.getElementById('pagina-relatorio-geral').style.display = 'block';
+        break;
+      }
 
-    case 'mapeamento-sala':
-      document.getElementById('pagina-mapeamento-sala').style.display = 'block';
-      document.getElementById('mapa-lista-view').style.display = 'block';
-      document.getElementById('mapa-canvas-view').style.display = 'none';
-      _mapaAtivo = null;
-      atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#8B5CF6' });
-      atualizarHeaderMobile('Mapeamento de Sala', nome, true, true);
-      if (typeof renderListaMapeamentos === 'function') renderListaMapeamentos();
-      break;
+      case 'mapeamento-sala':
+        document.getElementById('mapa-lista-view').style.display = 'block';
+        document.getElementById('mapa-canvas-view').style.display = 'none';
+        _mapaAtivo = null;
+        atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#8B5CF6' });
+        atualizarHeaderMobile('Mapeamento de Sala', nome, true, true);
+        if (typeof renderListaMapeamentos === 'function') renderListaMapeamentos();
+        document.getElementById('pagina-mapeamento-sala').style.display = 'block';
+        break;
 
-    case 'calendario-escolar':
-      document.getElementById('pagina-calendario-escolar').style.display = 'block';
-      atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0EA5E9' });
-      atualizarHeaderMobile('Calendário Escolar', nome, true, true);
-      if (typeof iniciarCalendario === 'function') await iniciarCalendario();
-      break;
+      case 'calendario-escolar':
+        atualizarCabecalho({ info: 'Turma', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#0EA5E9' });
+        atualizarHeaderMobile('Calendário Escolar', nome, true, true);
+        if (typeof iniciarCalendario === 'function') await iniciarCalendario();
+        document.getElementById('pagina-calendario-escolar').style.display = 'block';
+        break;
 
-    case 'plano-curso':
-      document.getElementById('pagina-plano-curso').style.display = 'block';
-      atualizarCabecalho({ info: 'Plano de Curso', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
-      atualizarHeaderMobile('Plano de Curso', nome, true, true);
-      if (typeof iniciarPlanoCurso === 'function') await iniciarPlanoCurso();
-      break;
+      case 'plano-curso':
+        atualizarCabecalho({ info: 'Plano de Curso', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
+        atualizarHeaderMobile('Plano de Curso', nome, true, true);
+        if (typeof iniciarPlanoCurso === 'function') await iniciarPlanoCurso();
+        document.getElementById('pagina-plano-curso').style.display = 'block';
+        break;
 
-    default:
-      console.warn('[ROUTER] Página desconhecida:', pagina);
-      break;
+      default:
+        console.warn('[ROUTER] Página desconhecida:', pagina);
+        break;
+    }
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
   }
 }
 
@@ -428,6 +470,7 @@ async function abrirTurma(id) {
     window.history.pushState({ pagina: 'relatorio-geral', turmaId: String(id), opts: { tri: selTri } }, '', url);
   } catch (e) {
     console.error(e);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao abrir turma. Tente novamente.');
   }
 }
 
@@ -438,9 +481,14 @@ function voltarDashboard() {
 
 async function abrirPagina(pagina, opts = {}) {
   if (!turmaAtiva) return;
-  await _executarAbrirPagina(pagina, opts);
-  const url = _construirUrl(pagina, turmaAtiva, opts);
-  window.history.pushState({ pagina, turmaId: String(turmaAtiva.id), opts }, '', url);
+  try {
+    await _executarAbrirPagina(pagina, opts);
+    const url = _construirUrl(pagina, turmaAtiva, opts);
+    window.history.pushState({ pagina, turmaId: String(turmaAtiva.id), opts }, '', url);
+  } catch (e) {
+    console.error('[ROUTER] Erro ao abrir página:', e);
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao carregar a página. Tente novamente.');
+  }
 }
 
 async function voltarTurma() {

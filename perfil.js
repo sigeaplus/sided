@@ -47,13 +47,18 @@ window.abrirPerfil = async function() {
     const session  = JSON.parse(sessionStorage.getItem('ded_user') || '{}');
 
     if (!profData.id && session.login) {
+      if (typeof showLoading === 'function') showLoading('Carregando perfil...');
       try {
         const prof = await api(`professores?id_login=eq.${session.login}&select=*,escolas(*)&limit=1`);
         if (prof && prof[0]) {
           profData = prof[0];
           sessionStorage.setItem('prof_data', JSON.stringify(profData));
         }
-      } catch(apiErr) { console.error('SIDED+: erro ao buscar prof:', apiErr); }
+      } catch(apiErr) {
+        console.error('SIDED+: erro ao buscar prof:', apiErr);
+      } finally {
+        if (typeof hideLoading === 'function') hideLoading();
+      }
     }
 
     const nomeHeader = document.getElementById('perfil-header-nome');
@@ -153,12 +158,14 @@ window.salvarEmailPerfil = async function() {
     msgEl.style.color = '#16A34A';
     msgEl.style.background = '#F0FDF4';
     msgEl.style.display = 'block';
+    if (typeof mostrarToast === 'function') mostrarToast('E-mail salvo com sucesso!');
     setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
   } catch(e) {
     msgEl.textContent = 'Erro ao salvar e-mail. Tente novamente.';
     msgEl.style.color = '#EF4444';
     msgEl.style.background = '#FEF2F2';
     msgEl.style.display = 'block';
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao salvar e-mail. Tente novamente.');
   }
 };
 
@@ -224,12 +231,14 @@ window.salvarDadosPerfil = async function() {
     msgEl.style.color = '#16A34A';
     msgEl.style.background = '#F0FDF4';
     msgEl.style.display = 'block';
+    if (typeof mostrarToast === 'function') mostrarToast('Dados salvos com sucesso!');
     setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
   } catch(e) {
     msgEl.textContent = 'Erro ao salvar. Tente novamente.';
     msgEl.style.color = '#EF4444';
     msgEl.style.background = '#FEF2F2';
     msgEl.style.display = 'block';
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao salvar dados. Tente novamente.');
   }
 };
 
@@ -302,11 +311,13 @@ window.salvarSenhaPerfil = async function() {
     msgEl.style.color = '#16A34A';
     msgEl.style.background = '#F0FDF4';
     msgEl.style.display = 'block';
+    if (typeof mostrarToast === 'function') mostrarToast('Senha alterada com sucesso!');
     setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
   } catch(e) {
     msgEl.textContent = 'Erro ao alterar senha. Tente novamente.';
     msgEl.style.color = '#EF4444';
     msgEl.style.background = '#FEF2F2';
     msgEl.style.display = 'block';
+    if (typeof mostrarErro === 'function') mostrarErro('Erro ao alterar senha. Tente novamente.');
   }
 };
