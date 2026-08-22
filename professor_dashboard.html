@@ -1116,6 +1116,92 @@
           </div>
         </div>
 
+        <!-- CALENDÁRIO + BUSCA + PAINEL NOVA AULA -->
+        <div style="background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;gap:16px;flex-wrap:wrap;">
+
+          <!-- Mini calendário -->
+          <div style="width:220px;flex-shrink:0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <button onclick="calAulasMudarMes(-1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span id="cal-aulas-mes-ano" style="font-size:13px;font-weight:700;color:var(--text);">--</span>
+              <button onclick="calAulasMudarMes(1)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:2px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <div id="cal-aulas-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-bottom:10px;"></div>
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--text-muted);">
+              <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#22C55E;margin-right:5px;"></span>Lecionada</span>
+              <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#F59E0B;margin-right:5px;"></span>Pendente</span>
+            </div>
+          </div>
+
+          <!-- Coluna direita: busca + nova aula OU lista do dia -->
+          <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:10px;">
+
+            <!-- Busca -->
+            <div id="cal-aulas-busca-wrap" style="position:relative;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="cal-aulas-busca" type="text" placeholder="Buscar por tema, conteúdo ou habilidade BNCC"
+                oninput="calAulasBuscar(this.value)"
+                style="width:100%;padding:9px 10px 9px 32px;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;outline:none;box-sizing:border-box;">
+            </div>
+
+            <!-- Cabeçalho do dia selecionado -->
+            <div id="cal-aulas-dia-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <span id="cal-aulas-dia-label" style="font-size:13px;font-weight:700;color:var(--text);">--</span>
+              <button id="cal-aulas-btn-nova" onclick="abrirPainelNovaAulaCal()" style="display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:var(--purple);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Nova aula
+              </button>
+            </div>
+
+            <!-- Lista de aulas do dia (ou resultado da busca) -->
+            <div id="cal-aulas-dia-lista" style="display:flex;flex-direction:column;gap:6px;"></div>
+
+            <!-- Painel de criação (escondido por padrão) -->
+            <div id="painel-nova-aula-cal" style="display:none;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;font-weight:700;color:var(--text);">Nova aula</span>
+                <button onclick="fecharPainelNovaAulaCal()" style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:8px;background:none;border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:11px;color:var(--text-muted);cursor:pointer;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Cancelar
+                </button>
+              </div>
+
+              <div id="painel-nova-aula-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+              <div id="painel-nova-aula-alert" style="display:none;font-size:12px;color:#B91C1C;background:#FEE2E2;padding:8px 10px;border-radius:8px;"></div>
+
+              <div style="display:flex;background:#F1EEFB;border-radius:8px;padding:3px;">
+                <button id="btn-modo-mesmo-conteudo" onclick="setModoNovaAulaCal('mesmo')" style="flex:1;padding:7px;border-radius:6px;background:var(--purple);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Mesmo conteúdo</button>
+                <button id="btn-modo-individual" onclick="setModoNovaAulaCal('individual')" style="flex:1;padding:7px;border-radius:6px;background:none;border:none;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;">Individual por data</button>
+              </div>
+
+              <div id="painel-nova-aula-form-mesmo" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="field">
+                  <label style="font-size:11px;">Tema</label>
+                  <input id="nac-tema" placeholder="Ex: Revolução Industrial" style="width:100%;box-sizing:border-box;">
+                </div>
+                <div class="field">
+                  <label style="font-size:11px;">Conteúdo</label>
+                  <textarea id="nac-conteudo" rows="3" placeholder="Conteúdos, estratégias, recursos..."
+                    style="width:100%;padding:9px 10px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;"></textarea>
+                </div>
+                <div class="field">
+                  <label style="font-size:11px;">Habilidade BNCC <span style="font-weight:400;color:var(--text-muted);">(opcional)</span></label>
+                  <input id="nac-bncc" placeholder="Ex: EF08MA10" style="width:100%;box-sizing:border-box;">
+                </div>
+              </div>
+
+              <div id="painel-nova-aula-form-individual" style="display:none;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;"></div>
+
+              <button id="btn-salvar-nova-aula-cal" onclick="salvarNovaAulaCal()" style="padding:10px;border-radius:8px;background:var(--purple);color:#fff;border:none;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Criar aula</button>
+            </div>
+
+          </div>
+        </div>
+
         <!-- LISTA DE AULAS (agrupada por status) -->
         <div id="aulas-list"></div>
 

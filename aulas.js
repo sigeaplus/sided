@@ -1531,3 +1531,306 @@ function _inicializarItemImportarMenu(menu) {
   }
   menu.appendChild(item);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALENDÁRIO LATERAL DE AULAS — filtro visual + busca + criação de aula
+// ═══════════════════════════════════════════════════════════════════════════
+let _calAulasRef = new Date();
+let _calAulasDiaSel = null;      // 'YYYY-MM-DD' do dia clicado no calendário
+let _calAulasDatasNovaAula = []; // datas marcadas p/ criar aula, quando painel aberto
+let _calAulasModo = 'mesmo';     // 'mesmo' | 'individual'
+
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function _calAulasStatusPorData() {
+  // Agrupa aulasTurma por data ISO -> { lecionada: bool, pendente: bool }
+  const mapa = {};
+  (aulasTurma || []).forEach(a => {
+    const d = a.data?.includes('T') ? a.data.split('T')[0] : a.data;
+    if (!d) return;
+    if (!mapa[d]) mapa[d] = { lecionada: false, pendente: false };
+    const chamadaOk = typeof chamadaCacheGet === 'function' ? chamadaCacheGet(a.id) : null;
+    if (chamadaOk === true || a.status === 'lecionada') mapa[d].lecionada = true;
+    else mapa[d].pendente = true;
+  });
+  return mapa;
+}
+
+function renderCalendarioAulas() {
+  const grid = document.getElementById('cal-aulas-grid');
+  const label = document.getElementById('cal-aulas-mes-ano');
+  if (!grid || !label) return;
+
+  const ano = _calAulasRef.getFullYear();
+  const mes = _calAulasRef.getMonth();
+  label.textContent = `${MESES_PT[mes]} ${ano}`;
+
+  const statusPorData = _calAulasStatusPorData();
+  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+  const totalDias = new Date(ano, mes + 1, 0).getDate();
+
+  let html = ['D','S','T','Q','Q','S','S'].map(d =>
+    `<span style="font-size:10px;font-weight:700;color:var(--text-muted);">${d}</span>`
+  ).join('');
+
+  for (let i = 0; i < primeiroDiaSemana; i++) html += '<span></span>';
+
+  for (let dia = 1; dia <= totalDias; dia++) {
+    const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const st = statusPorData[iso];
+    const selecionado = _calAulasDiaSel === iso;
+    const marcado = _calAulasDatasNovaAula.includes(iso);
+    let bg = 'transparent', color = 'var(--text)';
+    if (st?.lecionada) { bg = '#DCFCE7'; color = '#166534'; }
+    else if (st?.pendente) { bg = '#FEF3C7'; color = '#92400E'; }
+    let outline = '';
+    if (marcado) outline = 'outline:2px solid var(--purple);outline-offset:-1px;';
+    else if (selecionado) outline = 'box-shadow:0 0 0 1.5px var(--purple);';
+    html += `<span onclick="calAulasClicarDia('${iso}')" style="cursor:pointer;font-size:11px;font-weight:600;padding:5px 0;border-radius:50%;background:${bg};color:${color};${outline}">${dia}</span>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function calAulasMudarMes(delta) {
+  _calAulasRef = new Date(_calAulasRef.getFullYear(), _calAulasRef.getMonth() + delta, 1);
+  renderCalendarioAulas();
+}
+
+function calAulasClicarDia(iso) {
+  const painelAberto = document.getElementById('painel-nova-aula-cal')?.style.display === 'flex';
+  if (painelAberto) {
+    const idx = _calAulasDatasNovaAula.indexOf(iso);
+    if (idx === -1) _calAulasDatasNovaAula.push(iso);
+    else _calAulasDatasNovaAula.splice(idx, 1);
+    _calAulasDatasNovaAula.sort();
+    renderCalendarioAulas();
+    _renderChipsNovaAulaCal();
+    _renderFormNovaAulaCal();
+  } else {
+    _calAulasDiaSel = iso;
+    renderCalendarioAulas();
+    _renderListaDiaCal(iso);
+  }
+}
+
+function _formatarDataLabel(iso) {
+  const [ano, mes, dia] = iso.split('-');
+  return `${parseInt(dia)} de ${MESES_PT[parseInt(mes)-1].toLowerCase()}`;
+}
+
+function _renderListaDiaCal(iso) {
+  const label = document.getElementById('cal-aulas-dia-label');
+  const lista = document.getElementById('cal-aulas-dia-lista');
+  if (!label || !lista) return;
+  const busca = document.getElementById('cal-aulas-busca')?.value.trim();
+  if (busca) return; // busca ativa tem prioridade sobre o dia selecionado
+  label.textContent = iso ? _formatarDataLabel(iso) : 'Selecione um dia';
+  const aulasDoDia = (aulasTurma || []).filter(a => {
+    const d = a.data?.includes('T') ? a.data.split('T')[0] : a.data;
+    return d === iso;
+  });
+  if (!aulasDoDia.length) {
+    lista.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Nenhuma aula nesse dia.</div>`;
+    return;
+  }
+  lista.innerHTML = aulasDoDia.map(a => `
+    <div onclick="editarAula('${a.id}')" style="cursor:pointer;padding:9px 11px;border-radius:8px;background:#F8F6FF;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text);">${a.nome || 'Sem tema'}</span>
+        ${a.habilidade_bncc ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${a.habilidade_bncc}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function calAulasBuscar(termo) {
+  const lista = document.getElementById('cal-aulas-dia-lista');
+  const label = document.getElementById('cal-aulas-dia-label');
+  if (!lista || !label) return;
+  const t = termo.trim().toLowerCase();
+  if (!t) {
+    label.textContent = _calAulasDiaSel ? _formatarDataLabel(_calAulasDiaSel) : 'Selecione um dia';
+    _renderListaDiaCal(_calAulasDiaSel);
+    return;
+  }
+  label.textContent = 'Resultados da busca';
+  const resultados = (aulasTurma || []).filter(a => {
+    const nome = (a.nome || '').toLowerCase();
+    const desc = (a.descricao || '').toLowerCase();
+    const bncc = (a.habilidade_bncc || '').toLowerCase();
+    return nome.includes(t) || desc.includes(t) || bncc.includes(t);
+  });
+  if (!resultados.length) {
+    lista.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Nenhuma aula encontrada.</div>`;
+    return;
+  }
+  lista.innerHTML = resultados.map(a => {
+    const d = a.data?.includes('T') ? a.data.split('T')[0] : a.data;
+    return `
+    <div onclick="editarAula('${a.id}')" style="cursor:pointer;padding:9px 11px;border-radius:8px;background:#F8F6FF;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+        <span style="font-size:12px;font-weight:700;color:var(--text);">${a.nome || 'Sem tema'}</span>
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${d ? _formatarDataLabel(d) : ''}</span>
+      </div>
+      ${a.habilidade_bncc ? `<span style="font-size:10px;color:var(--text-muted);">${a.habilidade_bncc}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function abrirPainelNovaAulaCal() {
+  _calAulasDatasNovaAula = _calAulasDiaSel ? [_calAulasDiaSel] : [];
+  _calAulasModo = 'mesmo';
+  document.getElementById('cal-aulas-busca-wrap').style.display = 'none';
+  document.getElementById('cal-aulas-dia-header').style.display = 'none';
+  document.getElementById('cal-aulas-dia-lista').style.display = 'none';
+  document.getElementById('painel-nova-aula-cal').style.display = 'flex';
+  document.getElementById('painel-nova-aula-alert').style.display = 'none';
+  setModoNovaAulaCal('mesmo');
+  renderCalendarioAulas();
+  _renderChipsNovaAulaCal();
+}
+
+function fecharPainelNovaAulaCal() {
+  document.getElementById('painel-nova-aula-cal').style.display = 'none';
+  document.getElementById('cal-aulas-busca-wrap').style.display = 'block';
+  document.getElementById('cal-aulas-dia-header').style.display = 'flex';
+  document.getElementById('cal-aulas-dia-lista').style.display = 'flex';
+  _calAulasDatasNovaAula = [];
+  renderCalendarioAulas();
+  _renderListaDiaCal(_calAulasDiaSel);
+}
+
+function _renderChipsNovaAulaCal() {
+  const wrap = document.getElementById('painel-nova-aula-chips');
+  if (!wrap) return;
+  if (!_calAulasDatasNovaAula.length) {
+    wrap.innerHTML = `<span style="font-size:11px;color:var(--text-muted);">Clique nos dias do calendário para marcar as datas.</span>`;
+    return;
+  }
+  wrap.innerHTML = _calAulasDatasNovaAula.map(iso => {
+    const [, mes, dia] = iso.split('-');
+    return `<span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:#EDE8FF;color:var(--purple);">${dia} ${MESES_PT[parseInt(mes)-1].slice(0,3).toLowerCase()}</span>`;
+  }).join('');
+}
+
+function setModoNovaAulaCal(modo) {
+  _calAulasModo = modo;
+  const btnMesmo = document.getElementById('btn-modo-mesmo-conteudo');
+  const btnInd = document.getElementById('btn-modo-individual');
+  const formMesmo = document.getElementById('painel-nova-aula-form-mesmo');
+  const formInd = document.getElementById('painel-nova-aula-form-individual');
+  if (modo === 'mesmo') {
+    btnMesmo.style.background = 'var(--purple)'; btnMesmo.style.color = '#fff'; btnMesmo.style.fontWeight = '700';
+    btnInd.style.background = 'none'; btnInd.style.color = 'var(--text-muted)'; btnInd.style.fontWeight = '600';
+    formMesmo.style.display = 'flex';
+    formInd.style.display = 'none';
+  } else {
+    btnInd.style.background = 'var(--purple)'; btnInd.style.color = '#fff'; btnInd.style.fontWeight = '700';
+    btnMesmo.style.background = 'none'; btnMesmo.style.color = 'var(--text-muted)'; btnMesmo.style.fontWeight = '600';
+    formInd.style.display = 'flex';
+    formMesmo.style.display = 'none';
+    _renderFormNovaAulaCal();
+  }
+}
+
+function _renderFormNovaAulaCal() {
+  if (_calAulasModo !== 'individual') return;
+  const wrap = document.getElementById('painel-nova-aula-form-individual');
+  if (!wrap) return;
+  if (!_calAulasDatasNovaAula.length) {
+    wrap.innerHTML = `<span style="font-size:11px;color:var(--text-muted);">Marque ao menos uma data.</span>`;
+    return;
+  }
+  wrap.innerHTML = _calAulasDatasNovaAula.map(iso => `
+    <div data-iso="${iso}" style="border:1.5px solid var(--border);border-radius:8px;padding:10px;">
+      <p style="font-size:12px;font-weight:700;color:var(--text);margin:0 0 6px;">${_formatarDataLabel(iso)}</p>
+      <input class="nac-ind-tema" placeholder="Tema" style="width:100%;box-sizing:border-box;margin-bottom:6px;">
+      <textarea class="nac-ind-conteudo" rows="2" placeholder="Conteúdo, estratégias, recursos..."
+        style="width:100%;padding:8px 10px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:6px;"></textarea>
+      <input class="nac-ind-bncc" placeholder="Habilidade BNCC (opcional)" style="width:100%;box-sizing:border-box;">
+    </div>
+  `).join('');
+}
+
+async function salvarNovaAulaCal() {
+  const alertEl = document.getElementById('painel-nova-aula-alert');
+  alertEl.style.display = 'none';
+  if (!_calAulasDatasNovaAula.length) {
+    alertEl.textContent = 'Marque ao menos uma data no calendário.';
+    alertEl.style.display = 'block';
+    return;
+  }
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const btn = document.getElementById('btn-salvar-nova-aula-cal');
+  const bodies = [];
+
+  if (_calAulasModo === 'mesmo') {
+    const tema = document.getElementById('nac-tema').value.trim();
+    const conteudo = document.getElementById('nac-conteudo').value.trim();
+    const bncc = document.getElementById('nac-bncc').value.trim();
+    if (!tema) { alertEl.textContent = 'Informe o tema da aula.'; alertEl.style.display = 'block'; return; }
+    _calAulasDatasNovaAula.forEach(iso => {
+      bodies.push({
+        data: iso, nome: tema, descricao: conteudo, status: 'pendente',
+        turma_id: turmaAtiva.id, turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
+        professor_id: profData.id, habilidade_bncc: bncc || null
+      });
+    });
+  } else {
+    const cards = document.querySelectorAll('#painel-nova-aula-form-individual [data-iso]');
+    let algumVazio = false;
+    cards.forEach(card => {
+      const iso = card.dataset.iso;
+      const tema = card.querySelector('.nac-ind-tema').value.trim();
+      const conteudo = card.querySelector('.nac-ind-conteudo').value.trim();
+      const bncc = card.querySelector('.nac-ind-bncc').value.trim();
+      if (!tema) { algumVazio = true; return; }
+      bodies.push({
+        data: iso, nome: tema, descricao: conteudo, status: 'pendente',
+        turma_id: turmaAtiva.id, turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
+        professor_id: profData.id, habilidade_bncc: bncc || null
+      });
+    });
+    if (algumVazio || !bodies.length) {
+      alertEl.textContent = 'Informe o tema de cada data.';
+      alertEl.style.display = 'block';
+      return;
+    }
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Criando...';
+  try {
+    const res = await api('aulas', { method: 'POST', body: JSON.stringify(bodies) }) || [];
+    const novas = res.length ? res : bodies.map((b, i) => ({ ...b, id: `${Date.now()}_${i}` }));
+    novas.forEach(n => { aulasTurma.push(n); chamadaCacheSet(n.id, false); });
+    cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
+    if (typeof mostrarToast === 'function') mostrarToast(`${novas.length} aula(s) criada(s)!`);
+    fecharPainelNovaAulaCal();
+    renderCalendarioAulas();
+    renderListaAulas();
+    atualizarContadorAulas();
+  } catch (e) {
+    alertEl.textContent = 'Erro ao criar aula(s). Tente novamente.';
+    alertEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Criar aula';
+  }
+}
+
+// Inicializa o calendário assim que a lista de aulas é (re)carregada
+(function _hookCalendarioAulas() {
+  const _origCarregarAulas = carregarAulas;
+  carregarAulas = async function(...args) {
+    await _origCarregarAulas.apply(this, args);
+    if (!_calAulasDiaSel) {
+      const hoje = new Date();
+      _calAulasDiaSel = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    }
+    renderCalendarioAulas();
+    _renderListaDiaCal(_calAulasDiaSel);
+  };
+  window.carregarAulas = carregarAulas;
+})();
