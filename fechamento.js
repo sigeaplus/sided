@@ -410,14 +410,15 @@ async function confirmarFecharTrimestre(tdId, disciplina, btn) {
     const body = {
       turma_disciplina_id: tdId,
       turma_id: turmaId || null,
-      professor_id: profData.id,
       trimestre: ftTriAtivo,
       fechado_em: new Date().toISOString()
     };
-    if (disciplina) body.disciplina = disciplina;
     await api('trimestres_fechados', { method: 'POST', body: JSON.stringify(body) });
     mostrarToast('Trimestre fechado com sucesso!');
+    btn.textContent = '✓ Fechado!';
+    btn.style.background = '#22C55E';
     Object.keys(_bloqueioCache).forEach(k => { if (k.endsWith(`::${ftTriAtivo}`)) delete _bloqueioCache[k]; });
+    await new Promise(r => setTimeout(r, 900));
     await carregarDadosFechamento(profData, ftTriAtivo);
   } catch(e) {
     btn.disabled = false;
