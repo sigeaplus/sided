@@ -215,28 +215,33 @@ async function carregarDadosFechamento(profData, tri) {
          || []);
     const aulas = Array.isArray(_aulasRaw) ? _aulasRaw : [];
     const totalAulasCriadas = aulas.length;
-    // Antes: 1 query por aula (N+1). Agora: 1 única query buscando todas
+    // Antes: 1 query por aula (N+1). Depois: 1 única query buscando todas
     // as chamadas das aulas dessa turma de uma vez, em lotes de 100 ids
     // para não estourar limite de URL do Supabase.
+    // IMPORTANTE: cada aula tem 1 linha de chamada POR ALUNO, então o
+    // total de linhas (aulas x alunos) facilmente ultrapassa o limite
+    // padrão de 1000 linhas do PostgREST/Supabase — por isso pagina-se
+    // cada lote de ids com Range até esgotar os registros, em vez de
+    // confiar numa única página.
     let aulasComChamada = 0;
     if (totalAulasCriadas > 0) {
       const aulaIds = aulas.map(a => a.id);
       const LOTE = 100;
+      const PAGINA = 1000;
       const idsComChamada = new Set();
       for (let i = 0; i < aulaIds.length; i += LOTE) {
         const loteIds = aulaIds.slice(i, i + LOTE);
-        console.log('[DIAG fechamento] lote de aulaIds enviado:', loteIds.length, loteIds);
-        let registros = [];
-        try {
-          registros = await api(`chamadas?aula_id=in.(${loteIds.join(',')})&select=aula_id`) || [];
-        } catch (diagErr) {
-          console.error('[DIAG fechamento] ERRO na query de chamadas:', diagErr);
+        let offset = 0;
+        while (true) {
+          const registros = await api(`chamadas?aula_id=in.(${loteIds.join(',')})&select=aula_id`, {
+            headers: { Range: `${offset}-${offset + PAGINA - 1}` }
+          }) || [];
+          registros.forEach(r => idsComChamada.add(r.aula_id));
+          if (registros.length < PAGINA) break;
+          offset += PAGINA;
         }
-        console.log('[DIAG fechamento] registros retornados:', registros.length, registros);
-        registros.forEach(r => idsComChamada.add(r.aula_id));
       }
       aulasComChamada = idsComChamada.size;
-      console.log('[DIAG fechamento] total aulaIds:', aulaIds.length, '| idsComChamada:', idsComChamada.size, '| aulaIds sem chamada:', aulaIds.filter(id => !idsComChamada.has(id)));
     }
     const temPendAulas = aulasComChamada < totalAulasCriadas;
 
