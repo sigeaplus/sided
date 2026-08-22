@@ -136,7 +136,7 @@ let todasTurmaDisciplinas = []; // <-- Nova variável: armazena todas as turma_d
 async function carregarTurmas(profId) {
   const escolaAtivaId = sessionStorage.getItem('escola_ativa_id');
 
-  const tdResult = await api(`turma_disciplinas?professor_id=eq.${profId}&turmas.escola_id=eq.${escolaAtivaId}&select=id,disciplinas(id,nome,nivel),turmas!inner(id,nome,ano,turno,nivel,codigo,escola_id,escolas(nome,codigo_escola))`);
+  const tdResult = await api(`turma_disciplinas?professor_id=eq.${profId}&turmas.escola_id=eq.${escolaAtivaId}&select=id,disciplinas(id,nome,nivel),turmas!inner(id,nome,ano,turno,nivel,codigo,escola_id,periodo_letivo_id,escolas(nome,codigo_escola))`);
 
   if (tdResult && tdResult.length) {
     todasTurmaDisciplinas = tdResult; // <-- Armazena todas as turma_disciplinas!
