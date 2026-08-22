@@ -225,10 +225,18 @@ async function carregarDadosFechamento(profData, tri) {
       const idsComChamada = new Set();
       for (let i = 0; i < aulaIds.length; i += LOTE) {
         const loteIds = aulaIds.slice(i, i + LOTE);
-        const registros = await api(`chamadas?aula_id=in.(${loteIds.join(',')})&select=aula_id`) || [];
+        console.log('[DIAG fechamento] lote de aulaIds enviado:', loteIds.length, loteIds);
+        let registros = [];
+        try {
+          registros = await api(`chamadas?aula_id=in.(${loteIds.join(',')})&select=aula_id`) || [];
+        } catch (diagErr) {
+          console.error('[DIAG fechamento] ERRO na query de chamadas:', diagErr);
+        }
+        console.log('[DIAG fechamento] registros retornados:', registros.length, registros);
         registros.forEach(r => idsComChamada.add(r.aula_id));
       }
       aulasComChamada = idsComChamada.size;
+      console.log('[DIAG fechamento] total aulaIds:', aulaIds.length, '| idsComChamada:', idsComChamada.size, '| aulaIds sem chamada:', aulaIds.filter(id => !idsComChamada.has(id)));
     }
     const temPendAulas = aulasComChamada < totalAulasCriadas;
 
