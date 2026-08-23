@@ -854,7 +854,8 @@ async function salvarAvaliacao() {
     delete _cache[_cacheKey(turmaAtiva.id, 'avaliacoes')];
     // Recarregar com contagem real de notas
     await carregarAvaliacoes();
-    if (typeof mostrarToast === 'function') mostrarToast('Avaliação salva com sucesso!');
+    if (typeof mostrarToastAvaliacao === 'function') mostrarToastAvaliacao();
+    else if (typeof mostrarToast === 'function') mostrarToast('Avaliação salva com sucesso!');
   } catch(e) {
     alEl.textContent = `Erro ao salvar. ${e?.message || ''}`.trim();
     alEl.style.display = 'block';

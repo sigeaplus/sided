@@ -1806,7 +1806,8 @@ async function salvarNovaAulaCal() {
     const novas = res.length ? res : bodies.map((b, i) => ({ ...b, id: `${Date.now()}_${i}` }));
     novas.forEach(n => { aulasTurma.push(n); chamadaCacheSet(n.id, false); });
     cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
-    if (typeof mostrarToast === 'function') mostrarToast(`${novas.length} aula(s) criada(s)!`);
+    if (typeof mostrarToastAula === 'function') mostrarToastAula(novas.length);
+    else if (typeof mostrarToast === 'function') mostrarToast(`${novas.length} aula(s) criada(s)!`);
     fecharPainelNovaAulaCal();
     renderCalendarioAulas();
     renderListaAulas();
