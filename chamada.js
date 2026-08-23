@@ -527,9 +527,12 @@ function _toastComMascote(id, extraHtml, imgB64) {
   let t = document.getElementById(id);
   if (!t) { t = document.createElement('div'); t.id = id; document.body.appendChild(t); }
   t.style.cssText = isMobile
-    ? 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;'
-    : 'position:fixed;bottom:0;right:32px;transform:translateY(110%);z-index:9999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;';
-  t.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;"><img src="data:image/png;base64,${imgB64 || _TOAST_MASCOTE_B64}" style="width:120px;" alt=""/>${extraHtml || ''}</div>`;
+    ? 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(30px);z-index:999999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;'
+    : 'position:fixed;bottom:0;right:32px;transform:translateY(110%);z-index:999999;opacity:0;transition:all 0.4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;';
+  // onerror garante que, se a imagem (base64) estiver corrompida ou não
+  // carregar por qualquer motivo, o card de texto ainda assim apareça —
+  // a imagem quebrada some em vez de impedir a exibição do toast inteiro.
+  t.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;"><img src="data:image/png;base64,${imgB64 || _TOAST_MASCOTE_B64}" style="width:120px;" alt="" onerror="this.style.display='none'"/>${extraHtml || ''}</div>`;
   t.style.opacity = '1';
   t.style.transform = isMobile ? 'translateX(-50%) translateY(0)' : 'translateY(0)';
   clearTimeout(t._hide);
@@ -556,7 +559,7 @@ function mostrarToastChamada(copiadas) {
   const linhaExtra = copiadas > 0
     ? `<div style="font-size:12px;color:#A78BFA;margin-top:4px;font-weight:600;text-align:center;">+${copiadas} aula${copiadas>1?'s':''} do mesmo dia preenchida${copiadas>1?'s':''} automaticamente</div>`
     : '';
-  const extra = _pilulaTexto('Chamada lançada!') + linhaExtra;
+  const extra = _pilulaTexto('Chamada registrada com sucesso') + linhaExtra;
   _toastComMascote('toast-chamada', extra);
 }
 
