@@ -647,6 +647,10 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
             <button onclick="event.stopPropagation();editarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="${isGrupo ? 'Editar grupo' : 'Editar'}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
+            ${isGrupo ? '' : `
+            <button onclick="event.stopPropagation();duplicarAvaliacao('${a.id}')" style="background:none;border:none;cursor:pointer;color:var(--purple);padding:2px;display:flex;align-items:center;" title="Clonar avaliação para outra(s) turma(s)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>`}
           </div>
           <div style="font-size:13px;color:var(--text);line-height:1.8;">
             ${_isNotaFinal(a) ? '' : `Valor Total: <strong>${a.pontos}</strong><br>`}

@@ -2292,6 +2292,33 @@
   </div>
 </div>
 
+<!-- MODAL COPIAR AVALIAÇÃO -->
+<div class="modal-overlay" id="modal-copiar-avaliacao" onclick="if(event.target===this)this.classList.remove('open')" style="z-index:9000;">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Clonar avaliação para outras turmas</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="copiar-avaliacao-nome"></div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('modal-copiar-avaliacao').classList.remove('open')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Selecione uma ou mais turmas destino:</div>
+      <div id="copiar-avaliacao-turmas-lista"></div>
+      <div id="copiar-avaliacao-conflitos" style="display:none;font-size:12px;color:#92400E;background:#FEF3C7;border-radius:8px;padding:8px 12px;margin-top:10px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="document.getElementById('modal-copiar-avaliacao').classList.remove('open')">Cancelar</button>
+      <button class="btn-save" id="btn-confirmar-copia-avaliacao" onclick="confirmarCopiarAvaliacao()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Clonar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- TELA FECHAR DIVISÃO — página própria sobreposta -->
 <div id="modal-fechar-tri" style="display:none;position:fixed;inset:0;z-index:9000;background:#F4F2FF;overflow-y:auto;">
 
@@ -2690,6 +2717,142 @@ window.confirmarCopiarAula = async function() {
     if (typeof mostrarToast === 'function') mostrarToast('Erro ao copiar: ' + (e.message || 'tente novamente.'));
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copiar'; }
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLONAR AVALIAÇÃO — mesmo padrão de "Clonar aula" (duplicarAula/confirmarCopiarAula)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+window.avaliacaoParaCopiar = window.avaliacaoParaCopiar || null;
+
+window.duplicarAvaliacao = async function(avalId) {
+  try {
+    if (typeof api !== 'function') { alert('Erro: Sistema ainda carregando. Aguarde e tente novamente.'); return; }
+    const aval = await api(`avaliacoes?id=eq.${avalId}&select=*`);
+    if (!aval || !aval.length) throw new Error('Avaliação original não encontrada');
+    const avalOriginal = aval[0];
+    await garantirTodasTurmas();
+    if (!todasTurmas || todasTurmas.length === 0) { alert('Erro: Não foi possível carregar as turmas. Verifique sua conexão e tente recarregar a página.'); return; }
+    window.avaliacaoParaCopiar = avalOriginal;
+    const lista = document.getElementById('copiar-avaliacao-turmas-lista');
+    const turmasOutras = todasTurmas.filter(t => String(t.id) !== String(avalOriginal.turma_id));
+    lista.innerHTML = turmasOutras.map(t => `
+      <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);cursor:pointer;margin-bottom:6px;">
+        <input type="checkbox" value="${t.id}" style="margin:0;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${t.nome}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${t.disciplina} - ${t.ano}º ano</div>
+        </div>
+      </label>`).join('');
+    document.getElementById('copiar-avaliacao-nome').textContent = avalOriginal.nome;
+    const conflitosEl = document.getElementById('copiar-avaliacao-conflitos');
+    if (conflitosEl) { conflitosEl.style.display = 'none'; conflitosEl.textContent = ''; }
+    const modalEl = document.getElementById('modal-copiar-avaliacao');
+    if (modalEl) {
+      if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
+      modalEl.classList.add('open');
+    }
+  } catch(error) {
+    alert('Erro ao preparar clonagem: ' + error.message);
+  }
+};
+
+window.confirmarCopiarAvaliacao = async function() {
+  const checkboxes = document.querySelectorAll('#copiar-avaliacao-turmas-lista input[type="checkbox"]:checked');
+  if (!checkboxes.length) { if (typeof mostrarToast === 'function') mostrarToast('Selecione pelo menos uma turma.'); return; }
+  const avalOriginal = window.avaliacaoParaCopiar;
+  if (!avalOriginal) { if (typeof mostrarToast === 'function') mostrarToast('Erro: Nenhuma avaliação selecionada.'); return; }
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const btn = document.getElementById('btn-confirmar-copia-avaliacao');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;"></span>Clonando...'; }
+  const conflitosEl = document.getElementById('copiar-avaliacao-conflitos');
+  try {
+    const turmasDestino = Array.from(checkboxes).map(cb => cb.value);
+    const tdIdMap = {};
+    await Promise.all(turmasDestino.map(async turmaId => { tdIdMap[turmaId] = await _buscarTurmaDisciplinaId(turmaId); }));
+
+    // Checar conflito: turma destino já possui avaliação com mesmo nome + trimestre (+ disciplina, se houver)
+    const turmasComConflito = [];
+    const turmasParaCriar = [];
+    await Promise.all(turmasDestino.map(async turmaId => {
+      try {
+        let query = `avaliacoes?turma_id=eq.${turmaId}&trimestre=eq.${avalOriginal.trimestre}&nome=eq.${encodeURIComponent(avalOriginal.nome)}&select=id`;
+        if (avalOriginal.disciplina) query += `&disciplina=eq.${encodeURIComponent(avalOriginal.disciplina)}`;
+        const existentes = await api(query);
+        if (existentes && existentes.length) turmasComConflito.push(turmaId);
+        else turmasParaCriar.push(turmaId);
+      } catch(e) {
+        // Se a checagem falhar, não bloqueia — segue para criação
+        turmasParaCriar.push(turmaId);
+      }
+    }));
+
+    if (!turmasParaCriar.length) {
+      if (typeof mostrarToast === 'function') mostrarToast('Todas as turmas selecionadas já possuem essa avaliação.');
+      if (conflitosEl) {
+        const nomesConflito = turmasComConflito.map(id => (todasTurmas.find(t => String(t.id) === String(id))?.nome) || id).join(', ');
+        conflitosEl.textContent = `Não clonado (já existe): ${nomesConflito}`;
+        conflitosEl.style.display = 'block';
+      }
+      return;
+    }
+
+    const copias = turmasParaCriar.map(turmaId => {
+      const tdId = tdIdMap[turmaId] || null;
+      return {
+        nome: avalOriginal.nome,
+        pontos: avalOriginal.pontos,
+        trimestre: avalOriginal.trimestre,
+        tipo: avalOriginal.tipo,
+        turma_id: turmaId,
+        professor_id: profData.id,
+        ...(tdId ? { turma_disciplina_id: tdId } : {}),
+        ...(avalOriginal.disciplina ? { disciplina: avalOriginal.disciplina } : {}),
+      };
+    });
+
+    // Tentar insert; se falhar (ex: turma_disciplina_id NOT NULL ou RLS), tenta sem o campo
+    let res;
+    try {
+      res = await api('avaliacoes', { method: 'POST', body: JSON.stringify(copias), headers: { 'Prefer': 'return=representation' } });
+    } catch(eInsert) {
+      console.warn('[Clonar avaliação] Falhou com turma_disciplina_id, tentando sem:', eInsert.message || eInsert);
+      const copiasSemTd = copias.map(c => { const { turma_disciplina_id, ...rest } = c; return rest; });
+      res = await api('avaliacoes', { method: 'POST', body: JSON.stringify(copiasSemTd), headers: { 'Prefer': 'return=representation' } });
+    }
+
+    if (!res) throw new Error('Sem resposta da API. Verifique permissões da turma destino.');
+    const criadas = Array.isArray(res) && res.length > 0 ? res : copias.map((c, i) => ({ ...c, id: `temp_${Date.now()}_${i}` }));
+
+    // Invalidar cache das turmas destino para forçar rebusca ao abri-las
+    new Set(criadas.map(a => String(a.turma_id))).forEach(id => { if (typeof cacheInvalidar === 'function') cacheInvalidar(id); });
+    // Se a turma ativa estiver entre as destino (não deveria, já que a original é excluída da lista, mas por segurança)
+    if (turmasParaCriar.includes(String(turmaAtiva?.id))) { if (typeof carregarAvaliacoes === 'function') await carregarAvaliacoes(); }
+
+    const nomesCriadas = turmasParaCriar.map(id => (todasTurmas.find(t => String(t.id) === String(id))?.nome) || id).join(', ');
+    if (typeof mostrarToast === 'function') mostrarToast(`✓ Avaliação clonada para: ${nomesCriadas}`);
+
+    if (conflitosEl) {
+      if (turmasComConflito.length) {
+        const nomesConflito = turmasComConflito.map(id => (todasTurmas.find(t => String(t.id) === String(id))?.nome) || id).join(', ');
+        conflitosEl.textContent = `Não clonado (já existe avaliação equivalente): ${nomesConflito}`;
+        conflitosEl.style.display = 'block';
+      } else {
+        conflitosEl.style.display = 'none';
+      }
+    }
+
+    if (!turmasComConflito.length) {
+      const modal = document.getElementById('modal-copiar-avaliacao');
+      if (modal) modal.classList.remove('open');
+      window.avaliacaoParaCopiar = null;
+    }
+  } catch(e) {
+    console.error('Erro ao clonar avaliação:', e);
+    if (typeof mostrarToast === 'function') mostrarToast('Erro ao clonar: ' + (e.message || 'tente novamente.'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Clonar'; }
   }
 };
 
