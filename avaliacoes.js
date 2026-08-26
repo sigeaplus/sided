@@ -422,6 +422,13 @@ function _mapaFilhosGrupos() {
 }
 function _isGrupoTipo(tipo) { return tipo === 'soma' || tipo === 'media'; }
 function _isNotaFinal(aval) { return aval && typeof aval.nome === 'string' && aval.nome.startsWith('__NOTA_FINAL__'); }
+// Formata "YYYY-MM-DD" (vindo do <input type="date">) como "DD/MM/AAAA", sem problemas de fuso horário
+function _formatarDataAval(dataStr) {
+  if (!dataStr) return '';
+  const [ano, mes, dia] = dataStr.split('-');
+  if (!ano || !mes || !dia) return dataStr;
+  return `${dia}/${mes}/${ano}`;
+}
 function _nomeExibicaoAval(aval) { return _isNotaFinal(aval) ? aval.nome.replace('__NOTA_FINAL__', '') || 'Nota Final' : aval.nome; }
 function _tipoExibicaoAval(aval) {
   if (!aval) return 'normal';
@@ -486,6 +493,11 @@ function selecionarTipoAvaliacao(btn) {
   const pontosRow = document.querySelector('.field-row');
   if (nomeField) nomeField.style.display = isNotaFinal ? 'none' : '';
   if (pontosRow) pontosRow.style.display = isNotaFinal ? 'none' : '';
+
+  // Data: só faz sentido para avaliação normal/recuperação (prova/trabalho com data marcada).
+  // Grupos (soma/média) e Nota Final não têm data própria.
+  const dataField = document.getElementById('aval-field-data');
+  if (dataField) dataField.style.display = (isGrupo || isNotaFinal) ? 'none' : '';
 
   if (isGrupo) _renderChecklistGrupo();
 }
@@ -579,6 +591,14 @@ function filtrarTriSelect(val) {
   Promise.resolve(carregarAvaliacoes()).finally(() => { if (typeof hideLoading === 'function') hideLoading(); });
 }
 
+// Ordenação é puramente de exibição — os dados já estão carregados em memória,
+// então só re-renderiza (sem nova consulta ao banco).
+function ordenarAvaliacoesSelect(val) {
+  const sel = document.getElementById('sel-aval-ordenar');
+  if (sel) sel.value = val;
+  renderAvaliacoes(avaliacoesTurma, window._contPorAval || {}, alunosTurma.length);
+}
+
 function filtrarTri(el) {
   document.querySelectorAll('.chip[data-grupo="tri"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -613,6 +633,23 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
     el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px;">Nenhuma avaliação cadastrada</div>';
     return;
   }
+
+  // Ordenação (dentro de cada trimestre, que continua sendo o agrupamento principal)
+  const ordem = document.getElementById('sel-aval-ordenar')?.value || 'data_desc';
+  const comparators = {
+    data_desc:  (a, b) => (b.data || '').localeCompare(a.data || ''),
+    data_asc:   (a, b) => (a.data || '').localeCompare(b.data || ''),
+    az:         (a, b) => _nomeExibicaoAval(a).localeCompare(_nomeExibicaoAval(b), 'pt-BR', { sensitivity: 'base' }),
+    za:         (a, b) => _nomeExibicaoAval(b).localeCompare(_nomeExibicaoAval(a), 'pt-BR', { sensitivity: 'base' }),
+    modificacao:(a, b) => (b.updated_at || b.created_at || '').localeCompare(a.updated_at || a.created_at || ''),
+    pendentes:  (a, b) => {
+      const lancA = contPorAval[a.id] || 0, lancB = contPorAval[b.id] || 0;
+      const statusA = lancA === 0 ? 0 : lancA < totalAlunos ? 1 : 2; // vazia/pendente antes de lançada
+      const statusB = lancB === 0 ? 0 : lancB < totalAlunos ? 1 : 2;
+      return statusA - statusB;
+    },
+  };
+  listaFiltrada = [...listaFiltrada].sort(comparators[ordem] || comparators.data_desc);
 
   const nomesTri = { 1: '1º Trimestre', 2: '2º Trimestre', 3: '3º Trimestre' };
   const grupos = {};
@@ -656,7 +693,9 @@ function renderAvaliacoes(lista, contPorAval, totalAlunos) {
             ${_isNotaFinal(a) ? '' : `Valor Total: <strong>${a.pontos}</strong><br>`}
             Tipo: <strong>${_labelTipo(tipoExibicao)}</strong><br>
             Divisão: <strong>${nomesTri[a.trimestre] || ''}</strong>
+            ${a.data ? `<br>Data: <strong>${_formatarDataAval(a.data)}</strong>` : ''}
           </div>
+          ${a.observacoes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);">${a.observacoes}</div>` : ''}
           ${isGrupo ? `
             <div style="display:flex;gap:8px;margin-top:10px;">
               <button class="btn-entrar-grupo" onclick="event.stopPropagation();entrarNoGrupo('${a.id}')">→ Entrar</button>
@@ -693,6 +732,8 @@ async function abrirModalAvaliacao(data) {
   document.getElementById('aval-pontos').value = data?.pontos || '';
   document.getElementById('aval-tri').value = data?.trimestre || detectarTrimestreAtual().tri || '1';
   document.getElementById('aval-tipo').value = tipoAtual;
+  document.getElementById('aval-data').value = data?.data || '';
+  document.getElementById('aval-observacoes').value = data?.observacoes || '';
   const _avalAlert = document.getElementById('aval-alert'); _avalAlert.style.display = 'none'; _avalAlert.textContent = '';
   grupoComposicaoSelecionada = editandoAvalId ? [..._obterConfigGrupo(editandoAvalId).children] : [];
 
@@ -763,7 +804,10 @@ async function salvarAvaliacao() {
   const nome = document.getElementById('aval-nome').value.trim();
   const pontos = parseFloat(document.getElementById('aval-pontos').value);
   const tipo = document.getElementById('aval-tipo').value;
+  const dataAval = document.getElementById('aval-data').value || null;
+  const observacoes = document.getElementById('aval-observacoes').value.trim() || null;
   if (tipo !== 'confirmar_nota' && (!nome || !pontos)) { alEl.textContent = 'Preencha nome e pontos.'; alEl.style.display = 'block'; btn.disabled = false; return; }
+  if (!_isGrupoTipo(tipo) && tipo !== 'confirmar_nota' && !dataAval) { alEl.textContent = 'Preencha a data da avaliação.'; alEl.style.display = 'block'; btn.disabled = false; return; }
   if (_isGrupoTipo(tipo) && !grupoComposicaoSelecionada.length) {
     alEl.textContent = 'Selecione ao menos uma sub-avaliação para o grupo.';
     alEl.style.display = 'block';
@@ -833,7 +877,9 @@ async function salvarAvaliacao() {
     turma_id: turmaAtiva.id,
     turma_disciplina_id: turmaDisciplinaIdParaSalvar,
     professor_id: profData.id,
-    ...(disciplina ? { disciplina } : {})
+    ...(disciplina ? { disciplina } : {}),
+    ...((!_isGrupoTipo(tipo) && tipo !== 'confirmar_nota') ? { data: dataAval } : {}),
+    observacoes
   };
   try {
     if (editandoAvalId) {

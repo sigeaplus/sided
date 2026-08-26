@@ -1410,6 +1410,19 @@
           </select>
         </div>
 
+        <!-- Seletor de ordenação -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+          <div style="font-size:13px;color:var(--text-muted);">Ordenar por:</div>
+          <select id="sel-aval-ordenar" onchange="ordenarAvaliacoesSelect(this.value)" style="padding:7px 16px;background:var(--white);border:1.5px solid var(--border);border-radius:20px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--text);outline:none;cursor:pointer;">
+            <option value="data_desc">Data (mais recente)</option>
+            <option value="data_asc">Data (mais antiga)</option>
+            <option value="az">Nome (A-Z)</option>
+            <option value="za">Nome (Z-A)</option>
+            <option value="modificacao">Última modificação</option>
+            <option value="pendentes">Pendentes primeiro</option>
+          </select>
+        </div>
+
         <!-- Contador verde -->
         <div style="background:#D4EDDA;border-radius:12px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
           <span style="font-size:13px;color:#155724;">Total de <strong>notas registradas</strong></span>
@@ -1922,6 +1935,14 @@
             <option value="3">3º Trimestre</option>
           </select>
         </div>
+      </div>
+      <div class="field" id="aval-field-data">
+        <label>Data *</label>
+        <input id="aval-data" type="date"/>
+      </div>
+      <div class="field">
+        <label>Observações <span style="font-weight:400;color:var(--text-muted);">(opcional)</span></label>
+        <textarea id="aval-observacoes" rows="2" placeholder="Ex: Trazer calculadora, consulta ao caderno permitida..." style="width:100%;font-family:'Sora',sans-serif;font-size:13px;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;outline:none;resize:vertical;box-sizing:border-box;"></textarea>
       </div>
       <div class="field">
         <label>Tipo</label>
@@ -2809,6 +2830,8 @@ window.confirmarCopiarAvaliacao = async function() {
         professor_id: profData.id,
         ...(tdId ? { turma_disciplina_id: tdId } : {}),
         ...(avalOriginal.disciplina ? { disciplina: avalOriginal.disciplina } : {}),
+        ...(avalOriginal.data ? { data: avalOriginal.data } : {}),
+        ...(avalOriginal.observacoes ? { observacoes: avalOriginal.observacoes } : {}),
       };
     });
 
