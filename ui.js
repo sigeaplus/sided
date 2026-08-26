@@ -27,8 +27,33 @@ function mostrarToast(msg, tipo = 'sucesso') {
 // Atalho semântico para erro — usar no lugar de mostrarToast('...', 'erro')
 function mostrarErro(msg) { mostrarToast(msg, 'erro'); }
 
-function fecharModal(id) { document.getElementById(id).classList.remove('open'); }
+// Tira o foco de qualquer input/textarea/select ativo, forçando o teclado
+// virtual do celular a fechar de verdade. Sem isso, em iOS Safari e em vários
+// WebViews Android, o teclado pode ficar "preso" (visualmente já sumiu, mas o
+// layout/viewport continua recolhido) depois que um modal fecha via JS — daí
+// os toques seguintes caem fora da posição real dos botões até o usuário
+// tocar várias vezes ou a tela ser forçada a reajustar.
+function liberarFoco() {
+  if (document.activeElement && typeof document.activeElement.blur === 'function' && document.activeElement !== document.body) {
+    document.activeElement.blur();
+  }
+}
+
+function fecharModal(id) { liberarFoco(); document.getElementById(id).classList.remove('open'); }
 function fecharModalOutside(e, id) { if (e.target === document.getElementById(id)) fecharModal(id); }
+
+// Rede de segurança global: qualquer toque em botão/link enquanto um campo de
+// texto (input/textarea/select) ainda está com foco libera esse foco ANTES do
+// onclick do botão rodar (fase de captura). Cobre todos os botões de
+// Salvar/Confirmar/Cancelar do app de uma vez, sem precisar editar cada um.
+document.addEventListener('pointerdown', (e) => {
+  const ativo = document.activeElement;
+  if (!ativo || ativo === document.body) return;
+  const editavel = ativo.matches?.('input, textarea, select, [contenteditable="true"]');
+  if (!editavel) return;
+  const alvoBtn = e.target.closest?.('button, a, [onclick], [role="button"]');
+  if (alvoBtn && alvoBtn !== ativo) liberarFoco();
+}, true);
 
 // ── SISTEMA GLOBAL DE LOADING ────────────────────────────────────────────────
 // Overlay único reutilizado por toda troca de turma/tela/contexto.
