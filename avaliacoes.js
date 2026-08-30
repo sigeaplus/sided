@@ -1204,10 +1204,21 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 };
 
 function configurarNavegacaoNotas() {
-  // Regra igual em mobile e desktop: Enter/"próximo" do teclado mantém a coluna.
-  // Enter em "nota-X" (data-col="nota") vai para a próxima "nota-Y".
-  // Enter em "rec-X"  (data-col="rec")  vai para a próxima "rec-Y".
-  // Nunca pula de uma coluna pra outra.
+  // Regra igual em mobile e desktop: ao avançar pro próximo campo, mantém a
+  // coluna. Nota → próxima Nota. Recuperação → próxima Recuperação.
+  //
+  // NÃO dá pra confiar em interceptar o Enter/"avançar" do teclado: em
+  // muitos teclados virtuais (confirmado em teste real), apertar esse botão
+  // não dispara keydown, beforeinput nem input nenhum — o navegador só move
+  // o foco sozinho, na ordem física do DOM, sem gerar nenhum evento de
+  // teclado que o JS consiga ver antes. Não tem o que interceptar.
+  //
+  // Por isso a estratégia é outra: observamos onde o foco POUSA (evento
+  // "focusin"). Se o campo que acabou de ganhar foco é da coluna errada
+  // (ex.: o professor estava em "Nota" e o navegador levou pra
+  // "Recuperação" do mesmo aluno, por estarem lado a lado no DOM),
+  // corrigimos na mesma hora, redirecionando pro próximo campo da coluna
+  // certa. Isso funciona não importa como o navegador decidiu mover o foco.
   const cards = Array.from(document.querySelectorAll('.nota-aluno-card'));
 
   const listaNotas = [];
@@ -1239,47 +1250,64 @@ function configurarNavegacaoNotas() {
     return null;
   };
 
-  // Um único listener por input — nada de clone. Marcamos com um dataset
-  // flag pra não duplicar o listener em re-renders (cada renderNotasAlunos
-  // recria o HTML do zero, então normalmente nem duplicaria, mas por
-  // segurança mantemos a guarda).
-  const registrar = (lista) => {
+  // _ultimaColunaFocada: qual coluna o professor estava digitando antes do
+  // foco pousar no campo atual. Guardado no dataset do próprio card (não em
+  // variável de módulo) pra sobreviver a re-renders de outras partes da tela.
+  let ultimaColuna = null; // 'nota' | 'rec' | null
+
+  const tratarChegadaFoco = (inp) => {
+    const colunaDoInput = inp.dataset.col; // 'nota' ou 'rec'
+    if (!colunaDoInput) { ultimaColuna = null; return; }
+
+    // Se é a primeira vez (professor clicou manualmente) ou o campo já é
+    // da coluna esperada, não mexe — só atualiza o rastreador.
+    if (ultimaColuna === null || ultimaColuna === colunaDoInput) {
+      ultimaColuna = colunaDoInput;
+      return;
+    }
+
+    // O navegador pousou o foco na coluna errada (ex.: estava em "nota" e
+    // caiu em "rec" do mesmo aluno). Redireciona pro próximo campo da
+    // coluna em que o professor estava.
+    const listaCorreta = ultimaColuna === 'nota' ? listaNotas : listaRec;
+    const idxAtualNaListaErrada = (colunaDoInput === 'nota' ? listaNotas : listaRec).indexOf(inp);
+    // Usa a posição do card atual (mesmo índice de aluno) como referência,
+    // já que listaNotas e listaRec são construídas na mesma ordem de cards.
+    const idxReferencia = idxAtualNaListaErrada >= 0 ? idxAtualNaListaErrada : 0;
+    const prox = proximoValido(listaCorreta, idxReferencia);
+    if (prox) {
+      // Espera o focusin atual assentar antes de forçar o novo foco —
+      // evita conflito de focar em cima de um evento de foco ainda em curso.
+      setTimeout(() => { prox.focus(); prox.select(); }, 0);
+    }
+  };
+
+  const registrar = (lista, coluna) => {
     lista.forEach((inp) => {
-      if (inp.dataset.navEnterOk === '1') return; // já tem listener, não duplica
-      inp.dataset.navEnterOk = '1';
+      inp.dataset.col = coluna;
+      if (inp.dataset.navFocusOk === '1') return; // já tem listener, não duplica
+      inp.dataset.navFocusOk = '1';
 
-      const navegar = (e) => {
-        e.preventDefault();
-        if (typeof e.stopPropagation === 'function') e.stopPropagation();
-        const idxAtual = lista.indexOf(inp);
-        const prox = proximoValido(lista, idxAtual);
-        if (!prox) return;
-        prox.focus();
-        prox.select();
-      };
+      inp.addEventListener('focusin', function() {
+        tratarChegadaFoco(inp);
+      });
 
-      // Desktop / teclado físico: dispara keydown com Enter normalmente.
+      // Continua funcionando normalmente para quem tem teclado físico
+      // (dispara keydown de verdade) — caminho direto, sem depender do
+      // redirecionamento por focusin.
       inp.addEventListener('keydown', function(e) {
         const ehEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
         if (!ehEnter) return;
-        navegar(e);
-      });
-
-      // Mobile: o teclado numérico virtual costuma NÃO disparar keydown/Enter
-      // de forma confiável em <input type="number">. O evento que realmente
-      // chega nesse caso, no Chrome/Android e no Safari/iOS, é "beforeinput"
-      // com inputType "insertLineBreak" — disparado antes do valor mudar,
-      // mesmo em campos numéricos que não aceitam quebra de linha. Usamos
-      // ele como caminho mobile, sem precisar trocar type="number".
-      inp.addEventListener('beforeinput', function(e) {
-        if (e.inputType !== 'insertLineBreak') return;
-        navegar(e);
+        e.preventDefault();
+        const idxAtual = lista.indexOf(inp);
+        const prox = proximoValido(lista, idxAtual);
+        if (prox) { prox.focus(); prox.select(); }
       });
     });
   };
 
-  registrar(listaNotas);
-  registrar(listaRec);
+  registrar(listaNotas, 'nota');
+  registrar(listaRec, 'rec');
 }
 
 // ── LANÇAMENTO DE NOTAS POR ALUNO (modal individual) ──────────────────────────
