@@ -1204,12 +1204,10 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 };
 
 function configurarNavegacaoNotas() {
-  // Regra igual em mobile e desktop: Enter mantém a coluna.
+  // Regra igual em mobile e desktop: Enter/"próximo" do teclado mantém a coluna.
   // Enter em "nota-X" (data-col="nota") vai para a próxima "nota-Y".
   // Enter em "rec-X"  (data-col="rec")  vai para a próxima "rec-Y".
-  // Nunca pula de uma coluna pra outra — cada input só navega dentro
-  // do próprio grupo, independente de como os cards ficam empilhados
-  // no layout mobile.
+  // Nunca pula de uma coluna pra outra.
   const cards = Array.from(document.querySelectorAll('.nota-aluno-card'));
 
   const listaNotas = [];
@@ -1232,50 +1230,36 @@ function configurarNavegacaoNotas() {
     document.querySelectorAll('input[data-col="rec"], input[id^="rec-"]').forEach(inp => listaRec.push(inp));
   }
 
+  const proximoValido = (lista, indexAtual) => {
+    for (let passo = 1; passo <= lista.length; passo++) {
+      const idx = (indexAtual + passo) % lista.length;
+      const candidato = lista[idx];
+      if (!candidato.disabled && !candidato.readOnly) return candidato;
+    }
+    return null;
+  };
+
+  // Um único listener por input, apenas em "keydown" — nada de keyup, nada de
+  // clone. Ouvir os dois eventos causava saltos duplos no teclado mobile
+  // (o keyup do Enter chegava depois do foco já ter mudado pro próximo
+  // input, disparando uma segunda navegação e "vazando" pra coluna errada).
+  // Marcamos com um dataset flag pra não duplicar o listener em re-renders.
   const registrar = (lista) => {
-    // Clonar para remover listeners antigos (evita empilhar handlers a cada render)
-    const clones = lista.map((inp) => {
-      const c = inp.cloneNode(true);
-      inp.parentNode.replaceChild(c, inp);
-      return c;
-    });
-    // Pula inputs desabilitados/readonly ao navegar (ex.: nota bloqueada por "não realizado")
-    const proximoValido = (indexAtual) => {
-      for (let passo = 1; passo <= clones.length; passo++) {
-        const idx = (indexAtual + passo) % clones.length;
-        const candidato = clones[idx];
-        if (!candidato.disabled && !candidato.readOnly) return candidato;
-      }
-      return null;
-    };
-    const irParaProximo = (i) => {
-      const prox = proximoValido(i);
-      if (!prox) return;
-      prox.focus();
-      prox.select();
-    };
-    clones.forEach((inp, i) => {
-      // No mobile, o teclado numérico costuma não disparar keydown/Enter de
-      // forma confiável — o botão "avançar" do teclado gera keyCode 13 sem
-      // sempre popular e.key, ou nem chega a keydown. Escutamos keydown E
-      // keyup, checando key/keyCode/which, e sempre bloqueamos o
-      // comportamento nativo de avanço do teclado (que seguiria a ordem do
-      // DOM e pularia de "nota" pra "rec" do mesmo aluno, em vez de manter
-      // a coluna).
-      const ehEnter = (e) => e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
-      let jaTratadoNesteEnter = false;
+    lista.forEach((inp, i) => {
+      if (inp.dataset.navEnterOk === '1') return; // já tem listener, não duplica
+      inp.dataset.navEnterOk = '1';
       inp.addEventListener('keydown', function(e) {
-        if (!ehEnter(e)) return;
+        const ehEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
+        if (!ehEnter) return;
         e.preventDefault();
         e.stopPropagation();
-        jaTratadoNesteEnter = true;
-        irParaProximo(i);
-      });
-      inp.addEventListener('keyup', function(e) {
-        if (!ehEnter(e)) return;
-        e.preventDefault();
-        if (jaTratadoNesteEnter) { jaTratadoNesteEnter = false; return; }
-        irParaProximo(i);
+        // índice recalculado no momento do evento (não capturado no closure
+        // antigo), pra sempre navegar na coluna certa mesmo se a lista mudou
+        const idxAtual = lista.indexOf(inp);
+        const prox = proximoValido(lista, idxAtual);
+        if (!prox) return;
+        prox.focus();
+        prox.select();
       });
     });
   };
