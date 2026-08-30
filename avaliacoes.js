@@ -1251,33 +1251,44 @@ function configurarNavegacaoNotas() {
   };
 
   // _ultimaColunaFocada: qual coluna o professor estava digitando antes do
-  // foco pousar no campo atual. Guardado no dataset do próprio card (não em
-  // variável de módulo) pra sobreviver a re-renders de outras partes da tela.
+  // foco pousar no campo atual. Usado só quando o foco muda SEM toque
+  // direto no destino — ou seja, quando foi o navegador que moveu sozinho.
   let ultimaColuna = null; // 'nota' | 'rec' | null
 
   const tratarChegadaFoco = (inp) => {
     const colunaDoInput = inp.dataset.col; // 'nota' ou 'rec'
+    const foiToqueDireto = inp.dataset.tocadoAgora === '1';
+    inp.dataset.tocadoAgora = '0'; // consome a marca de toque
+
     if (!colunaDoInput) { ultimaColuna = null; return; }
 
-    // Se é a primeira vez (professor clicou manualmente) ou o campo já é
-    // da coluna esperada, não mexe — só atualiza o rastreador.
+    // O professor tocou/clicou DIRETO nesse campo — é escolha dele, nunca
+    // redireciona. Só atualiza o rastreador pra refletir onde ele está agora.
+    // Isso é o que faltava: sem essa checagem, um clique manual proposital
+    // do professor (ex.: pulando de "Recuperação" de um aluno pra "Nota" de
+    // outro de propósito) era confundido com o navegador pulando sozinho, e
+    // o campo era "puxado" de volta contra a vontade do professor.
+    if (foiToqueDireto) {
+      ultimaColuna = colunaDoInput;
+      return;
+    }
+
+    // Se é a primeira vez ou o campo já é da coluna esperada, não mexe —
+    // só atualiza o rastreador.
     if (ultimaColuna === null || ultimaColuna === colunaDoInput) {
       ultimaColuna = colunaDoInput;
       return;
     }
 
-    // O navegador pousou o foco na coluna errada (ex.: estava em "nota" e
-    // caiu em "rec" do mesmo aluno). Redireciona pro próximo campo da
-    // coluna em que o professor estava.
+    // Chegou aqui sem toque direto E mudando de coluna: foi o navegador que
+    // pousou o foco sozinho na coluna errada (ex.: estava em "nota" e caiu
+    // em "rec" do mesmo aluno). Redireciona pro próximo campo da coluna em
+    // que o professor estava digitando.
     const listaCorreta = ultimaColuna === 'nota' ? listaNotas : listaRec;
     const idxAtualNaListaErrada = (colunaDoInput === 'nota' ? listaNotas : listaRec).indexOf(inp);
-    // Usa a posição do card atual (mesmo índice de aluno) como referência,
-    // já que listaNotas e listaRec são construídas na mesma ordem de cards.
     const idxReferencia = idxAtualNaListaErrada >= 0 ? idxAtualNaListaErrada : 0;
     const prox = proximoValido(listaCorreta, idxReferencia);
     if (prox) {
-      // Espera o focusin atual assentar antes de forçar o novo foco —
-      // evita conflito de focar em cima de um evento de foco ainda em curso.
       setTimeout(() => { prox.focus(); prox.select(); }, 0);
     }
   };
@@ -1287,6 +1298,14 @@ function configurarNavegacaoNotas() {
       inp.dataset.col = coluna;
       if (inp.dataset.navFocusOk === '1') return; // já tem listener, não duplica
       inp.dataset.navFocusOk = '1';
+
+      // Marca quando o próprio campo recebeu um toque/clique direto do
+      // usuário, ANTES do focusin correspondente disparar — assim
+      // conseguimos diferenciar clique manual de navegação automática do
+      // navegador (que nunca gera pointerdown/mousedown no destino).
+      inp.addEventListener('pointerdown', function() { inp.dataset.tocadoAgora = '1'; });
+      inp.addEventListener('mousedown', function() { inp.dataset.tocadoAgora = '1'; });
+      inp.addEventListener('touchstart', function() { inp.dataset.tocadoAgora = '1'; });
 
       inp.addEventListener('focusin', function() {
         tratarChegadaFoco(inp);
