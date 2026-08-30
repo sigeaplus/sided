@@ -1139,7 +1139,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
       <div class="nota-row-inputs">
         <div class="nota-inline-group">
           <span class="nota-inline-label">${isConfirmar ? 'Nota somada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
-          <input class="nota-input-pill" id="nota-${a.id}" type="number" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
+          <input class="nota-input-pill" id="nota-${a.id}" data-col="nota" type="number" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
             value="${isConfirmar ? (somaTri[a.id] || 0).toFixed(2) : (n.nota !== undefined && n.nota !== null ? n.nota : '')}"
             placeholder="–"
             ${n.nao_realizado ? 'disabled' : ''}
@@ -1148,7 +1148,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
         </div>
         <div class="nota-inline-group">
           <span class="nota-inline-label" style="${isConfirmar ? 'color:#7C3AED;font-weight:700;' : ''}">${isConfirmar ? 'Nota final:' : 'Recuperação Paralela:'}</span>
-          <input class="nota-input-pill" id="rec-${a.id}" type="number" min="0" step="0.5"
+          <input class="nota-input-pill" id="rec-${a.id}" data-col="rec" type="number" min="0" step="0.5"
             value="${n.recuperacao_paralela !== undefined && n.recuperacao_paralela !== null ? n.recuperacao_paralela : ''}"
             placeholder="${isConfirmar ? 'Inserir nota final' : '–'}"
             style="${isConfirmar ? 'border-color:#7C3AED;font-weight:700;color:#7C3AED;' : ''}"
@@ -1204,8 +1204,12 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
 };
 
 function configurarNavegacaoNotas() {
-  // Enter em "nota-X" vai para "nota-Y" (próximo aluno)
-  // Enter em "rec-X"  vai para "rec-Y"  (próximo aluno)
+  // Regra igual em mobile e desktop: Enter mantém a coluna.
+  // Enter em "nota-X" (data-col="nota") vai para a próxima "nota-Y".
+  // Enter em "rec-X"  (data-col="rec")  vai para a próxima "rec-Y".
+  // Nunca pula de uma coluna pra outra — cada input só navega dentro
+  // do próprio grupo, independente de como os cards ficam empilhados
+  // no layout mobile.
   const cards = Array.from(document.querySelectorAll('.nota-aluno-card'));
 
   const listaNotas = [];
@@ -1214,29 +1218,42 @@ function configurarNavegacaoNotas() {
   cards.forEach(card => {
     const alunoId = (card.id || '').replace('ncard-', '');
     if (!alunoId) return;
-    const inputNota = document.getElementById(`nota-${alunoId}`);
-    const inputRec  = document.getElementById(`rec-${alunoId}`);
+    const inputNota = card.querySelector('[data-col="nota"]') || document.getElementById(`nota-${alunoId}`);
+    const inputRec  = card.querySelector('[data-col="rec"]')  || document.getElementById(`rec-${alunoId}`);
     if (inputNota) listaNotas.push(inputNota);
     if (inputRec)  listaRec.push(inputRec);
   });
 
-  // Fallback
+  // Fallback (sem cards renderizados ainda)
   if (!listaNotas.length) {
-    document.querySelectorAll('input[id^="nota-"]').forEach(inp => listaNotas.push(inp));
+    document.querySelectorAll('input[data-col="nota"], input[id^="nota-"]').forEach(inp => listaNotas.push(inp));
+  }
+  if (!listaRec.length) {
+    document.querySelectorAll('input[data-col="rec"], input[id^="rec-"]').forEach(inp => listaRec.push(inp));
   }
 
   const registrar = (lista) => {
-    // Clonar para remover listeners antigos
-    const clones = lista.map((inp, i) => {
+    // Clonar para remover listeners antigos (evita empilhar handlers a cada render)
+    const clones = lista.map((inp) => {
       const c = inp.cloneNode(true);
       inp.parentNode.replaceChild(c, inp);
       return c;
     });
+    // Pula inputs desabilitados/readonly ao navegar (ex.: nota bloqueada por "não realizado")
+    const proximoValido = (indexAtual) => {
+      for (let passo = 1; passo <= clones.length; passo++) {
+        const idx = (indexAtual + passo) % clones.length;
+        const candidato = clones[idx];
+        if (!candidato.disabled && !candidato.readOnly) return candidato;
+      }
+      return null;
+    };
     clones.forEach((inp, i) => {
       inp.addEventListener('keydown', function(e) {
         if (e.key !== 'Enter') return;
         e.preventDefault();
-        const prox = clones[(i + 1) % clones.length];
+        const prox = proximoValido(i);
+        if (!prox) return;
         prox.focus();
         prox.select();
       });
