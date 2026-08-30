@@ -1239,27 +1239,41 @@ function configurarNavegacaoNotas() {
     return null;
   };
 
-  // Um único listener por input, apenas em "keydown" — nada de keyup, nada de
-  // clone. Ouvir os dois eventos causava saltos duplos no teclado mobile
-  // (o keyup do Enter chegava depois do foco já ter mudado pro próximo
-  // input, disparando uma segunda navegação e "vazando" pra coluna errada).
-  // Marcamos com um dataset flag pra não duplicar o listener em re-renders.
+  // Um único listener por input — nada de clone. Marcamos com um dataset
+  // flag pra não duplicar o listener em re-renders (cada renderNotasAlunos
+  // recria o HTML do zero, então normalmente nem duplicaria, mas por
+  // segurança mantemos a guarda).
   const registrar = (lista) => {
-    lista.forEach((inp, i) => {
+    lista.forEach((inp) => {
       if (inp.dataset.navEnterOk === '1') return; // já tem listener, não duplica
       inp.dataset.navEnterOk = '1';
-      inp.addEventListener('keydown', function(e) {
-        const ehEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
-        if (!ehEnter) return;
+
+      const navegar = (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        // índice recalculado no momento do evento (não capturado no closure
-        // antigo), pra sempre navegar na coluna certa mesmo se a lista mudou
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
         const idxAtual = lista.indexOf(inp);
         const prox = proximoValido(lista, idxAtual);
         if (!prox) return;
         prox.focus();
         prox.select();
+      };
+
+      // Desktop / teclado físico: dispara keydown com Enter normalmente.
+      inp.addEventListener('keydown', function(e) {
+        const ehEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
+        if (!ehEnter) return;
+        navegar(e);
+      });
+
+      // Mobile: o teclado numérico virtual costuma NÃO disparar keydown/Enter
+      // de forma confiável em <input type="number">. O evento que realmente
+      // chega nesse caso, no Chrome/Android e no Safari/iOS, é "beforeinput"
+      // com inputType "insertLineBreak" — disparado antes do valor mudar,
+      // mesmo em campos numéricos que não aceitam quebra de linha. Usamos
+      // ele como caminho mobile, sem precisar trocar type="number".
+      inp.addEventListener('beforeinput', function(e) {
+        if (e.inputType !== 'insertLineBreak') return;
+        navegar(e);
       });
     });
   };
