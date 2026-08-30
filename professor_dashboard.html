@@ -711,8 +711,14 @@
 
       /* Campos de nota — mobile compacto */
       .nota-aluno-card { padding: 14px 16px; border-radius: 18px; }
-      .nota-row-inputs { flex-wrap: wrap; gap: 10px; }
+      /* Stack vertical: cada grupo (label + pill) em sua própria linha,
+         label e valor nas pontas — evita quebra desalinhada do flex-wrap */
+      .nota-row-inputs { flex-direction: column; align-items: stretch; gap: 10px; }
+      .nota-inline-group { justify-content: space-between; width: 100%; }
       .nota-inline-label { font-size: 12px; }
+      .nota-input-pill { width: 84px; }
+      .nota-row-footer { flex-wrap: wrap; gap: 8px; }
+      .nao-realizado-wrap { flex-wrap: wrap; }
 
       /* Chamada — linhas mais compactas */
       .aluno-row { padding: 10px 12px; }
@@ -783,6 +789,7 @@
     /* Telas muito pequenas */
     @media (max-width: 360px) {
       .nota-row-inputs { flex-direction: column; gap: 8px; }
+      .nota-input-pill { width: 76px; }
       .icone-circulo { width: 40px; height: 40px; }
       .icone-acao span { font-size: 11px; }
     }
@@ -826,8 +833,7 @@
       .sidebar .btn-sair:hover { color: #fff !important; }
       /* Chips de filtro das aulas em wrap menor */
       .filtros-row { gap: 6px; }
-      /* Notas: recuperação paralela em linha separada */
-      .nota-row-inputs { flex-wrap: wrap; }
+      /* Notas: já empilhado em coluna pela regra acima; nada extra aqui. */
     }
   </style>
   <meta name="mobile-web-app-capable" content="yes"/>
