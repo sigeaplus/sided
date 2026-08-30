@@ -1139,7 +1139,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
       <div class="nota-row-inputs">
         <div class="nota-inline-group">
           <span class="nota-inline-label">${isConfirmar ? 'Nota somada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
-          <input class="nota-input-pill" id="nota-${a.id}" data-col="nota" type="number" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
+          <input class="nota-input-pill" id="nota-${a.id}" data-col="nota" type="number" inputmode="decimal" enterkeyhint="next" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
             value="${isConfirmar ? (somaTri[a.id] || 0).toFixed(2) : (n.nota !== undefined && n.nota !== null ? n.nota : '')}"
             placeholder="–"
             ${n.nao_realizado ? 'disabled' : ''}
@@ -1148,7 +1148,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
         </div>
         <div class="nota-inline-group">
           <span class="nota-inline-label" style="${isConfirmar ? 'color:#7C3AED;font-weight:700;' : ''}">${isConfirmar ? 'Nota final:' : 'Recuperação Paralela:'}</span>
-          <input class="nota-input-pill" id="rec-${a.id}" data-col="rec" type="number" min="0" step="0.5"
+          <input class="nota-input-pill" id="rec-${a.id}" data-col="rec" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="0.5"
             value="${n.recuperacao_paralela !== undefined && n.recuperacao_paralela !== null ? n.recuperacao_paralela : ''}"
             placeholder="${isConfirmar ? 'Inserir nota final' : '–'}"
             style="${isConfirmar ? 'border-color:#7C3AED;font-weight:700;color:#7C3AED;' : ''}"
@@ -1248,14 +1248,34 @@ function configurarNavegacaoNotas() {
       }
       return null;
     };
+    const irParaProximo = (i) => {
+      const prox = proximoValido(i);
+      if (!prox) return;
+      prox.focus();
+      prox.select();
+    };
     clones.forEach((inp, i) => {
+      // No mobile, o teclado numérico costuma não disparar keydown/Enter de
+      // forma confiável — o botão "avançar" do teclado gera keyCode 13 sem
+      // sempre popular e.key, ou nem chega a keydown. Escutamos keydown E
+      // keyup, checando key/keyCode/which, e sempre bloqueamos o
+      // comportamento nativo de avanço do teclado (que seguiria a ordem do
+      // DOM e pularia de "nota" pra "rec" do mesmo aluno, em vez de manter
+      // a coluna).
+      const ehEnter = (e) => e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
+      let jaTratadoNesteEnter = false;
       inp.addEventListener('keydown', function(e) {
-        if (e.key !== 'Enter') return;
+        if (!ehEnter(e)) return;
         e.preventDefault();
-        const prox = proximoValido(i);
-        if (!prox) return;
-        prox.focus();
-        prox.select();
+        e.stopPropagation();
+        jaTratadoNesteEnter = true;
+        irParaProximo(i);
+      });
+      inp.addEventListener('keyup', function(e) {
+        if (!ehEnter(e)) return;
+        e.preventDefault();
+        if (jaTratadoNesteEnter) { jaTratadoNesteEnter = false; return; }
+        irParaProximo(i);
       });
     });
   };
