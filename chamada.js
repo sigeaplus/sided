@@ -4,6 +4,9 @@
 let dataChamadaAtiva = null;
 let _modoInversoChamada = false;
 let _faltasPorAlunoAtual = {};
+let _justificativasTemp = {}; // { alunoId: { tipo, detalhes, observacoes } }
+let _justAlunoAtivo = null; // aluno cuja justificativa está sendo editada no modal
+let _abonadasTemp = {}; // { alunoId: true } — falta registrada mas fora do contador
 
 // ── DIA DA SEMANA NA CHAMADA ─────────────────────────────────────────────────
 function _atualizarDiaSemChamada(dataISO) {
@@ -227,18 +230,36 @@ async function carregarChamadaDeAulaEspecifica(aulaId, aulasOrdenadas) {
   const [chamadaSalva, todasFaltas] = await Promise.all([
     api(`chamadas?aula_id=eq.${aulaData.id}&select=*`),
     (alunosTurma.length && _aulasIds.length)
-      ? api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&aula_id=in.(${_aulasIds.join(',')})&presente=eq.false&select=aluno_id`)
+      ? api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&aula_id=in.(${_aulasIds.join(',')})&presente=eq.false&select=aluno_id,falta_abonada`)
       : Promise.resolve([])
   ]);
 
   const mapSalvo = {};
   (chamadaSalva || []).forEach(c => { mapSalvo[c.aluno_id] = c.presente; });
 
+  // Faltas abonadas são registradas normalmente mas não somam no contador.
   const faltasPorAluno = {};
-  (todasFaltas || []).forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id] || 0) + 1; });
+  (todasFaltas || []).forEach(f => {
+    if (f.falta_abonada) return;
+    faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id] || 0) + 1;
+  });
   _faltasPorAlunoAtual = faltasPorAluno;
 
   alunosTurma.forEach(a => { chamadaTemp[a.id] = mapSalvo[a.id] !== undefined ? mapSalvo[a.id] : true; });
+
+  // Recarregar justificativas e abonos já salvos para esta aula
+  _justificativasTemp = {};
+  _abonadasTemp = {};
+  (chamadaSalva || []).forEach(c => {
+    if (c.falta_justificada) {
+      _justificativasTemp[c.aluno_id] = {
+        tipo: c.tipo_justificativa || '',
+        detalhes: c.detalhes_justificativa || '',
+        observacoes: c.observacoes_justificativa || ''
+      };
+    }
+    if (c.falta_abonada) _abonadasTemp[c.aluno_id] = true;
+  });
 
   const jaSalva = (chamadaSalva || []).length > 0;
   chamadaCacheSet(aulaData.id, jaSalva);
@@ -260,9 +281,12 @@ async function carregarChamadaDeAulaEspecifica(aulaId, aulasOrdenadas) {
 function renderListaChamada(faltasPorAluno) {
   document.getElementById('chamada-list').innerHTML = alunosTurma.map((a, i) => {
     const presente = chamadaTemp[a.id];
+    const justificada = !presente && !!_justificativasTemp[a.id];
+    const abonada = !presente && !!_abonadasTemp[a.id];
     const faltas = faltasPorAluno ? (faltasPorAluno[a.id] || 0) : 0;
+    const corFundo = presente ? '#fff' : (abonada ? '#DBEAFE' : (justificada ? '#FEF3C7' : '#FEE2E2'));
     return `
-    <div class="chamada-aluno-row ${presente ? '' : 'faltou'}" id="row-${a.id}" style="display:grid;grid-template-columns:1fr 90px 60px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);background:${presente ? '#fff' : '#FEE2E2'};">
+    <div class="chamada-aluno-row ${presente ? '' : 'faltou'}" id="row-${a.id}" style="display:grid;grid-template-columns:1fr 90px auto;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);background:${corFundo};">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:40px;height:40px;border-radius:50%;background:#5A3480;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
@@ -273,15 +297,26 @@ function renderListaChamada(faltasPorAluno) {
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span style="font-size:13px;font-weight:400;color:var(--text);">${a.codigo_simade || ''}</span>
           <span onclick="abrirHistoricoPresenca('${a.id}','${a.nome_completo.replace(/'/g,"\\'")}');event.stopPropagation();" style="font-size:14px;font-weight:700;color:var(--purple);text-decoration:underline;cursor:pointer;">${a.nome_completo}${tagRemanejado(a)}</span>
+          ${justificada ? `<span style="font-size:10px;font-weight:700;color:#92400E;background:#FDE68A;border-radius:10px;padding:2px 8px;">Justificada</span>` : ''}
+          ${abonada ? `<span style="font-size:10px;font-weight:700;color:#1E40AF;background:#BFDBFE;border-radius:10px;padding:2px 8px;">Abonada</span>` : ''}
         </div>
       </div>
       <div style="text-align:center;font-size:13px;font-weight:700;color:${faltas > 0 ? '#E24B4A' : 'var(--text-muted)'};">${faltas}</div>
-      <div style="text-align:center;">
-        <button onclick="togglePresenca('${a.id}')" id="btn-p-${a.id}" style="width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;margin:0 auto;background:${presente ? '#DCFCE7' : '#FEE2E2'};">
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+        <button onclick="togglePresenca('${a.id}')" id="btn-p-${a.id}" style="width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${presente ? '#DCFCE7' : '#FEE2E2'};">
           ${presente
             ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
             : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
         </button>
+        ${!presente ? `
+        <button onclick="abrirJustificarFalta('${a.id}');event.stopPropagation();" id="btn-just-${a.id}" title="${justificada ? 'Editar justificativa' : 'Justificar falta'}"
+          style="width:28px;height:28px;border-radius:50%;border:1.5px solid ${justificada ? '#F59E0B' : 'var(--border)'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${justificada ? '#FEF3C7' : '#fff'};">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${justificada ? '#92400E' : 'var(--text-muted)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+        </button>
+        <button onclick="toggleAbonarFalta('${a.id}');event.stopPropagation();" id="btn-abon-${a.id}" title="${abonada ? 'Remover abono (voltar a contar falta)' : 'Abonar falta (não conta no contador)'}"
+          style="width:28px;height:28px;border-radius:50%;border:1.5px solid ${abonada ? '#3B82F6' : 'var(--border)'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${abonada ? '#DBEAFE' : '#fff'};">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${abonada ? '#1E40AF' : 'var(--text-muted)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+        </button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -362,19 +397,11 @@ function _chamadaTeclado(e) {
 }
 
 // Atualiza visualmente uma row sem re-renderizar a lista inteira
+// Como o botão "Justificar" só existe na row quando o aluno está faltoso,
+// não dá para só trocar estilos aqui — precisa re-renderizar a lista inteira.
 function _chamadaAtualizarRow(alunoId, presente) {
-  const btn = document.getElementById('btn-p-' + alunoId);
-  const row = document.getElementById('row-' + alunoId);
-  if (btn) {
-    btn.style.background = presente ? '#DCFCE7' : '#FEE2E2';
-    btn.innerHTML = presente
-      ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-      : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  }
-  if (row) {
-    row.style.background = presente ? '#fff' : '#FEE2E2';
-    row.classList.toggle('faltou', !presente);
-  }
+  if (presente) { delete _justificativasTemp[alunoId]; delete _abonadasTemp[alunoId]; }
+  renderListaChamada(_faltasPorAlunoAtual);
   renderizarFaltosos();
   const todosPresentes = alunosTurma.every(a => chamadaTemp[a.id]);
   const toggle = document.getElementById('toggle-todos');
@@ -413,9 +440,9 @@ function toggleTodosPresentes(checked) {
   renderizarFaltosos();
   // rebuscar faltas para exibir correto
   if (alunosTurma.length) {
-    api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&presente=eq.false&select=aluno_id`).then(faltas => {
+    api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&presente=eq.false&select=aluno_id,falta_abonada`).then(faltas => {
       const faltasPorAluno = {};
-      (faltas||[]).forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id]||0)+1; });
+      (faltas||[]).forEach(f => { if (!f.falta_abonada) faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id]||0)+1; });
       _faltasPorAlunoAtual = faltasPorAluno;
       renderListaChamada(faltasPorAluno);
       renderizarFaltosos();
@@ -442,9 +469,9 @@ function toggleModoInversoChamada() {
   renderListaChamada(null);
   renderizarFaltosos();
   if (alunosTurma.length) {
-    api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&presente=eq.false&select=aluno_id`).then(faltas => {
+    api(`chamadas?aluno_id=in.(${alunosTurma.map(a=>a.id).join(',')})&presente=eq.false&select=aluno_id,falta_abonada`).then(faltas => {
       const faltasPorAluno = {};
-      (faltas||[]).forEach(f => { faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id]||0)+1; });
+      (faltas||[]).forEach(f => { if (!f.falta_abonada) faltasPorAluno[f.aluno_id] = (faltasPorAluno[f.aluno_id]||0)+1; });
       _faltasPorAlunoAtual = faltasPorAluno;
       renderListaChamada(faltasPorAluno);
       renderizarFaltosos();
@@ -460,12 +487,104 @@ function atualizarToggleVisual(checked) {
   thumb.style.transform = checked ? 'translateX(18px)' : 'translateX(0)';
 }
 
+// ── JUSTIFICAR FALTA ─────────────────────────────────────────────────────────
+// ── ABONAR FALTA ─────────────────────────────────────────────────────────────
+// A falta continua registrada normalmente (presente=false), só deixa de ser
+// somada no contador de faltas do aluno.
+function toggleAbonarFalta(alunoId) {
+  if (_abonadasTemp[alunoId]) {
+    delete _abonadasTemp[alunoId];
+  } else {
+    _abonadasTemp[alunoId] = true;
+  }
+  // Recalcula o contador local imediatamente, sem esperar recarregar do banco
+  const jaContava = _faltasPorAlunoAtual[alunoId] || 0;
+  if (_abonadasTemp[alunoId]) {
+    // passou a ser abonada: tira 1 do contador (se ainda tiver saldo)
+    _faltasPorAlunoAtual[alunoId] = Math.max(0, jaContava - 1);
+  } else {
+    // deixou de ser abonada: volta a contar
+    _faltasPorAlunoAtual[alunoId] = jaContava + 1;
+  }
+  renderListaChamada(_faltasPorAlunoAtual);
+  renderizarFaltosos();
+}
+
+function abrirJustificarFalta(alunoId) {
+  const aluno = alunosTurma.find(a => a.id === alunoId);
+  if (!aluno) return;
+  _justAlunoAtivo = alunoId;
+
+  const existente = _justificativasTemp[alunoId] || { tipo: '', detalhes: '', observacoes: '' };
+  document.getElementById('just-aluno-nome').textContent = aluno.nome_completo;
+  document.getElementById('just-tipo').value = existente.tipo;
+  document.getElementById('just-detalhes').value = existente.detalhes;
+  document.getElementById('just-observacoes').value = existente.observacoes;
+  const alertEl = document.getElementById('just-alert');
+  alertEl.style.display = 'none';
+  alertEl.textContent = '';
+
+  document.getElementById('modal-justificar-falta').classList.add('open');
+}
+
+function fecharJustificarFalta() {
+  document.getElementById('modal-justificar-falta').classList.remove('open');
+  _justAlunoAtivo = null;
+}
+
+function salvarJustificativaFalta() {
+  const alunoId = _justAlunoAtivo;
+  if (!alunoId) return;
+
+  const tipo = document.getElementById('just-tipo').value;
+  const detalhes = document.getElementById('just-detalhes').value.trim();
+  const observacoes = document.getElementById('just-observacoes').value.trim();
+  const alertEl = document.getElementById('just-alert');
+
+  if (!tipo) {
+    alertEl.textContent = 'Selecione o tipo da justificativa.';
+    alertEl.style.display = 'block';
+    return;
+  }
+  if (!detalhes || detalhes.length < 5) {
+    alertEl.textContent = 'Os detalhes devem ter ao menos 5 caracteres.';
+    alertEl.style.display = 'block';
+    return;
+  }
+
+  _justificativasTemp[alunoId] = { tipo, detalhes, observacoes };
+  fecharJustificarFalta();
+
+  renderListaChamada(_faltasPorAlunoAtual);
+  renderizarFaltosos();
+}
+
+// Monta a linha de `chamadas` para um aluno, incluindo os campos de
+// justificativa (só preenchidos quando o aluno está faltoso E tem
+// justificativa registrada em _justificativasTemp) e o abono de falta
+// (falta continua presente=false, só não soma no contador).
+function _linhaChamadaAluno(aulaId, aluno) {
+  const presente = chamadaTemp[aluno.id] !== false;
+  const just = !presente ? _justificativasTemp[aluno.id] : null;
+  const abonada = !presente && !!_abonadasTemp[aluno.id];
+  return {
+    aula_id: aulaId,
+    aluno_id: aluno.id,
+    presente,
+    falta_justificada: !!just,
+    tipo_justificativa: just ? just.tipo : null,
+    detalhes_justificativa: just ? just.detalhes : null,
+    observacoes_justificativa: just ? (just.observacoes || null) : null,
+    falta_abonada: abonada
+  };
+}
+
 async function salvarChamada() {
   const tri = detectarTrimestreAtual().tri;
   if (await verificarBloqueio(tri)) return;
   const aulaId = document.getElementById('btn-salvar-chamada-wrap')._aulaId;
   const aulaAtual = aulasTurma.find(a => a.id === aulaId);
-  const rows = alunosTurma.map(a => ({ aula_id: aulaId, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
+  const rows = alunosTurma.map(a => _linhaChamadaAluno(aulaId, a));
 
   if (typeof showLoading === 'function') showLoading('Salvando chamada...');
 
@@ -500,7 +619,7 @@ async function salvarChamada() {
     // quando havia múltiplas aulas no mesmo dia.
     const tarefas = [_salvarChamadaDeAula(aulaId, rows)];
     outrasMesmoDia.forEach(outra => {
-      const rowsOutra = alunosTurma.map(a => ({ aula_id: outra.id, aluno_id: a.id, presente: chamadaTemp[a.id] !== false }));
+      const rowsOutra = alunosTurma.map(a => _linhaChamadaAluno(outra.id, a));
       tarefas.push(_salvarChamadaDeAula(outra.id, rowsOutra));
     });
     await Promise.all(tarefas);
@@ -586,21 +705,13 @@ window.mostrarToastAula = mostrarToastAula;
 function togglePresenca(alunoId) {
   chamadaTemp[alunoId] = !chamadaTemp[alunoId];
   const presente = chamadaTemp[alunoId];
-  const btn = document.getElementById('btn-p-' + alunoId);
-  const row = document.getElementById('row-' + alunoId);
-  if (btn) {
-    btn.style.background = presente ? '#DCFCE7' : '#FEE2E2';
-    btn.innerHTML = presente
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-  }
-  if (row) {
-    row.style.background = presente ? '#fff' : '#F0FFF4';
-    row.classList.toggle('faltou', !presente);
-  }
-  
+  // Se voltou a ficar presente, justificativa/abono de falta não fazem mais sentido
+  if (presente) { delete _justificativasTemp[alunoId]; delete _abonadasTemp[alunoId]; }
+  // Re-renderiza a lista inteira: o botão "Justificar" só existe quando
+  // o aluno está faltoso, então não dá pra só trocar estilos da row.
+  renderListaChamada(_faltasPorAlunoAtual);
   renderizarFaltosos();
-  
+
   // Atualizar toggle todos
   const todosPresentes = alunosTurma.every(a => chamadaTemp[a.id]);
   const toggle = document.getElementById('toggle-todos');

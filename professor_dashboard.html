@@ -1989,6 +1989,47 @@
   </div>
 </div>
 
+<!-- MODAL JUSTIFICAR FALTA -->
+<div class="modal-overlay" id="modal-justificar-falta" onclick="fecharModalOutside(event,'modal-justificar-falta')">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Justificar Falta</div>
+        <div id="just-aluno-nome" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="fecharJustificarFalta()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="just-alert" style="display:none;" class="alert-box error"></div>
+      <div class="field">
+        <label>Tipo *</label>
+        <select id="just-tipo">
+          <option value="">Selecione...</option>
+          <option value="atestado">Atestado</option>
+          <option value="mandado_judicial">Mandado Judicial</option>
+          <option value="suspenso">Suspenso</option>
+          <option value="liberado">Liberado</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Detalhes *</label>
+        <textarea id="just-detalhes" style="width:100%;min-height:70px;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;" placeholder="Descreva o motivo da justificativa..."></textarea>
+      </div>
+      <div class="field">
+        <label>Observações (opcional)</label>
+        <textarea id="just-observacoes" style="width:100%;min-height:50px;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;" placeholder="Observações adicionais..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="fecharJustificarFalta()">Cancelar</button>
+      <button class="btn-save" onclick="salvarJustificativaFalta()">Salvar Justificativa</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL LANÇAMENTO DE NOTAS POR ALUNO -->
 <div class="modal-overlay" id="modal-notas-aluno" onclick="fecharModalOutside(event,'modal-notas-aluno')" style="z-index:9200;">
   <div class="modal" style="max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;">
