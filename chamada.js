@@ -286,7 +286,7 @@ function renderListaChamada(faltasPorAluno) {
     const faltas = faltasPorAluno ? (faltasPorAluno[a.id] || 0) : 0;
     const corFundo = presente ? '#fff' : (abonada ? '#DBEAFE' : (justificada ? '#FEF3C7' : '#FEE2E2'));
     return `
-    <div class="chamada-aluno-row ${presente ? '' : 'faltou'}" id="row-${a.id}" style="display:grid;grid-template-columns:1fr 90px auto;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);background:${corFundo};">
+    <div class="chamada-aluno-row ${presente ? '' : 'faltou'}" id="row-${a.id}" style="display:grid;grid-template-columns:1fr 90px 76px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--border);background:${corFundo};">
       <div style="display:flex;align-items:center;gap:12px;">
         <div style="width:40px;height:40px;border-radius:50%;background:#5A3480;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
@@ -312,10 +312,6 @@ function renderListaChamada(faltasPorAluno) {
         <button onclick="abrirJustificarFalta('${a.id}');event.stopPropagation();" id="btn-just-${a.id}" title="${justificada ? 'Editar justificativa' : 'Justificar falta'}"
           style="width:28px;height:28px;border-radius:50%;border:1.5px solid ${justificada ? '#F59E0B' : 'var(--border)'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${justificada ? '#FEF3C7' : '#fff'};">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${justificada ? '#92400E' : 'var(--text-muted)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
-        </button>
-        <button onclick="toggleAbonarFalta('${a.id}');event.stopPropagation();" id="btn-abon-${a.id}" title="${abonada ? 'Remover abono (voltar a contar falta)' : 'Abonar falta (não conta no contador)'}"
-          style="width:28px;height:28px;border-radius:50%;border:1.5px solid ${abonada ? '#3B82F6' : 'var(--border)'};cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${abonada ? '#DBEAFE' : '#fff'};">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${abonada ? '#1E40AF' : 'var(--text-muted)'}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
         </button>` : ''}
       </div>
     </div>`;
@@ -487,29 +483,7 @@ function atualizarToggleVisual(checked) {
   thumb.style.transform = checked ? 'translateX(18px)' : 'translateX(0)';
 }
 
-// ── JUSTIFICAR FALTA ─────────────────────────────────────────────────────────
-// ── ABONAR FALTA ─────────────────────────────────────────────────────────────
-// A falta continua registrada normalmente (presente=false), só deixa de ser
-// somada no contador de faltas do aluno.
-function toggleAbonarFalta(alunoId) {
-  if (_abonadasTemp[alunoId]) {
-    delete _abonadasTemp[alunoId];
-  } else {
-    _abonadasTemp[alunoId] = true;
-  }
-  // Recalcula o contador local imediatamente, sem esperar recarregar do banco
-  const jaContava = _faltasPorAlunoAtual[alunoId] || 0;
-  if (_abonadasTemp[alunoId]) {
-    // passou a ser abonada: tira 1 do contador (se ainda tiver saldo)
-    _faltasPorAlunoAtual[alunoId] = Math.max(0, jaContava - 1);
-  } else {
-    // deixou de ser abonada: volta a contar
-    _faltasPorAlunoAtual[alunoId] = jaContava + 1;
-  }
-  renderListaChamada(_faltasPorAlunoAtual);
-  renderizarFaltosos();
-}
-
+// ── JUSTIFICAR FALTA (com opção de abonar) ───────────────────────────────────
 function abrirJustificarFalta(alunoId) {
   const aluno = alunosTurma.find(a => a.id === alunoId);
   if (!aluno) return;
@@ -520,6 +494,7 @@ function abrirJustificarFalta(alunoId) {
   document.getElementById('just-tipo').value = existente.tipo;
   document.getElementById('just-detalhes').value = existente.detalhes;
   document.getElementById('just-observacoes').value = existente.observacoes;
+  document.getElementById('just-abonar').checked = !!_abonadasTemp[alunoId];
   const alertEl = document.getElementById('just-alert');
   alertEl.style.display = 'none';
   alertEl.textContent = '';
@@ -539,6 +514,7 @@ function salvarJustificativaFalta() {
   const tipo = document.getElementById('just-tipo').value;
   const detalhes = document.getElementById('just-detalhes').value.trim();
   const observacoes = document.getElementById('just-observacoes').value.trim();
+  const abonar = document.getElementById('just-abonar').checked;
   const alertEl = document.getElementById('just-alert');
 
   if (!tipo) {
@@ -552,7 +528,22 @@ function salvarJustificativaFalta() {
     return;
   }
 
+  const jaAbonada = !!_abonadasTemp[alunoId];
   _justificativasTemp[alunoId] = { tipo, detalhes, observacoes };
+  // Só pode abonar quando há justificativa — por isso o checkbox vive dentro
+  // deste modal em vez de ser uma ação isolada na row.
+  if (abonar) {
+    _abonadasTemp[alunoId] = true;
+  } else {
+    delete _abonadasTemp[alunoId];
+  }
+  // Ajusta o contador local na hora, sem esperar recarregar do banco
+  if (abonar && !jaAbonada) {
+    _faltasPorAlunoAtual[alunoId] = Math.max(0, (_faltasPorAlunoAtual[alunoId] || 0) - 1);
+  } else if (!abonar && jaAbonada) {
+    _faltasPorAlunoAtual[alunoId] = (_faltasPorAlunoAtual[alunoId] || 0) + 1;
+  }
+
   fecharJustificarFalta();
 
   renderListaChamada(_faltasPorAlunoAtual);
