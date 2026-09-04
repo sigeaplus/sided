@@ -530,6 +530,21 @@
     .modal-footer { padding: 0 22px 22px; display: flex; gap: 10px; justify-content: flex-end; }
 
     .field { margin-bottom: 14px; }
+
+    /* ── Cards de habilidade BNCC (Planejamento) ── */
+    .hab-plan-card { display:flex; flex-direction:column; gap:8px; padding:14px 16px; border:1.5px solid var(--border); border-radius:12px; background:var(--white); margin:0 10px 10px 0; width:100%; max-width:340px; box-sizing:border-box; }
+    .hab-plan-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .hab-plan-codigo { font-size:12px; font-weight:700; color:#3B4FE4; font-family:'Space Mono',monospace; }
+    .hab-plan-trimestre { font-size:10px; font-weight:700; color:#7C3AED; background:#F3E8FF; border-radius:20px; padding:3px 9px; white-space:nowrap; }
+    .hab-plan-descricao { font-size:12.5px; color:var(--text); line-height:1.4; }
+    .hab-plan-tags { display:flex; flex-wrap:wrap; gap:6px; }
+    .hab-plan-tag { font-size:10.5px; font-weight:600; color:var(--text-muted); background:#F1F5F9; border-radius:20px; padding:3px 9px; }
+    .hab-plan-actions { display:flex; align-items:center; justify-content:flex-end; gap:4px; border-top:1px solid var(--border); padding-top:8px; margin-top:2px; }
+    .hab-plan-action-btn { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border:none; border-radius:7px; background:none; color:var(--text-muted); cursor:pointer; transition:background 0.15s, color 0.15s; }
+    .hab-plan-action-btn:hover { background:#F1F5F9; }
+    .hab-plan-action-btn.action-vincular:hover { color:#3B4FE4; }
+    .hab-plan-action-btn.action-editar:hover { color:#7C3AED; }
+    .hab-plan-action-btn.action-excluir:hover { color:#DC2626; }
     .field label { display: block; font-size: 11px; font-weight: 600; color: var(--purple); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
     .field input, .field select { width: 100%; padding: 10px 12px; background: #F8F6FF; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Sora', sans-serif; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.2s; }
     .field input:focus, .field select:focus { border-color: var(--purple); }
@@ -1659,20 +1674,21 @@
             Nova habilidade
           </button>
         </div>
-        <div id="planejamento-habilidades-lista" style="display:flex;flex-wrap:wrap;"></div>
+        <div id="planejamento-habilidades-lista" style="display:flex;flex-wrap:wrap;gap:0;"></div>
       </div>
     </div>
 
-    <!-- ── Modal: nova habilidade BNCC (Planejamento) ── -->
+    <!-- ── Modal: criar/editar habilidade BNCC (Planejamento) ── -->
     <div class="modal-overlay" id="modal-habilidade-planejamento" onclick="fecharModalOutside(event,'modal-habilidade-planejamento')">
       <div class="modal">
         <div class="modal-header">
-          <div class="modal-title">Nova habilidade BNCC</div>
+          <div class="modal-title" id="hab-plan-titulo">Nova habilidade BNCC</div>
           <button class="modal-close" onclick="fecharModal('modal-habilidade-planejamento')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
         <div class="modal-body">
+          <input type="hidden" id="hab-plan-id" value="">
           <div id="hab-plan-alert" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:9px 12px;font-size:12px;color:#B91C1C;margin-bottom:14px;"></div>
           <div class="field">
             <label>Código *</label>
@@ -1696,6 +1712,32 @@
         </div>
         <div class="modal-footer">
           <button id="btn-salvar-habilidade-plan" onclick="salvarHabilidadePlanejamento()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#3B4FE4;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Modal: vincular habilidade a outra turma (Planejamento) ── -->
+    <div class="modal-overlay" id="modal-vincular-habilidade" onclick="fecharModalOutside(event,'modal-vincular-habilidade')">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Vincular a outra turma</div>
+          <button class="modal-close" onclick="fecharModal('modal-vincular-habilidade')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="vinc-hab-id" value="">
+          <div id="vinc-hab-alert" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:9px 12px;font-size:12px;color:#B91C1C;margin-bottom:14px;"></div>
+          <div id="vinc-hab-preview" style="background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--text-muted);"></div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Turma / disciplina de destino *</label>
+            <select id="vinc-hab-turma-disciplina">
+              <option value="">Selecione a turma...</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-confirmar-vinculo-hab" onclick="confirmarVinculoHabilidadePlanejamento()" style="flex:1;padding:11px;border-radius:9px;border:none;background:#3B4FE4;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Vincular</button>
         </div>
       </div>
     </div>

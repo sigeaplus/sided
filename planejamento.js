@@ -161,11 +161,22 @@ window.planejamentoHandleFile = planejamentoHandleFile;
 // ═════════════════════════════════════════════════════════════════════════════
 // CADASTRO MANUAL DE HABILIDADES BNCC
 // Tabela: habilidades_planejamento (turma_disciplina_id, codigo, descricao,
-// divisao_id, temas[]). CRUD: criar, listar, deletar. Sem edição — se precisar
-// corrigir algo, deleta e recria.
+// divisao_id, temas[]). Modelo N:1 — uma linha por turma. Vincular a outra
+// turma = INSERT (cópia) com novo turma_disciplina_id, nunca uma tabela N:N.
+// Editar = PATCH no registro atual (não afeta cópias em outras turmas nem
+// aula_habilidades, que referencia o id fixo do registro).
+// CRUD: criar (POST), editar (PATCH), vincular a outra turma (POST cópia),
+// deletar (DELETE).
 // ═════════════════════════════════════════════════════════════════════════════
 
 let _habilidadesPlanejamentoCache = [];
+const _nomesTrimestre = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
+
+function _nomeTrimestrePorDivisaoId(divisaoId) {
+  const d = (_divisoesCache || []).find(d => String(d.id) === String(divisaoId));
+  if (!d) return '';
+  return _nomesTrimestre[d.ordem] || d.valor || `Divisão ${d.ordem}`;
+}
 
 async function carregarHabilidadesPlanejamento() {
   const tdId = turmaDisciplinaAtiva?.id;
@@ -183,6 +194,10 @@ async function carregarHabilidadesPlanejamento() {
   if (typeof window._habilidadesAulaInvalidarCache === 'function') window._habilidadesAulaInvalidarCache();
 }
 
+function _habilidadePlanejamentoPorId(id) {
+  return _habilidadesPlanejamentoCache.find(h => String(h.id) === String(id));
+}
+
 function _renderHabilidadesPlanejamento() {
   const wrap = document.getElementById('planejamento-habilidades-lista');
   if (!wrap) return;
@@ -191,41 +206,70 @@ function _renderHabilidadesPlanejamento() {
     return;
   }
   wrap.innerHTML = _habilidadesPlanejamentoCache.map(h => {
-    const descTrunc = (h.descricao || '').length > 60 ? h.descricao.slice(0, 60) + '…' : (h.descricao || '');
-    return `<div style="display:inline-flex;align-items:center;gap:8px;padding:7px 10px 7px 12px;border:1.5px solid var(--border);border-radius:20px;background:var(--white);margin:0 8px 8px 0;max-width:100%;">
-      <span style="font-size:11px;font-weight:700;color:#3B4FE4;font-family:'Space Mono',monospace;white-space:nowrap;">${h.codigo}</span>
-      <span style="font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${(descTrunc || '').replace(/</g,'&lt;')}</span>
-      <button onclick="removerHabilidadePlanejamento('${h.id}')" title="Remover" style="padding:2px;border:none;background:none;color:#DC2626;cursor:pointer;display:flex;align-items:center;flex-shrink:0;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-      </button>
+    const trimestre = _nomeTrimestrePorDivisaoId(h.divisao_id);
+    const descricao = (h.descricao || '').replace(/</g, '&lt;');
+    const tags = (h.temas || []).map(t =>
+      `<span class="hab-plan-tag">${String(t).replace(/</g,'&lt;')}</span>`
+    ).join('');
+    return `<div class="hab-plan-card">
+      <div class="hab-plan-card-top">
+        <span class="hab-plan-codigo">${h.codigo}</span>
+        ${trimestre ? `<span class="hab-plan-trimestre">${trimestre}</span>` : ''}
+      </div>
+      <div class="hab-plan-descricao">${descricao}</div>
+      ${tags ? `<div class="hab-plan-tags">${tags}</div>` : ''}
+      <div class="hab-plan-actions">
+        <button class="hab-plan-action-btn action-vincular" title="Vincular a outra turma" onclick="abrirModalVinculoHabilidadePlanejamento('${h.id}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07l-1.29 1.29"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07l1.29-1.29"/></svg>
+        </button>
+        <button class="hab-plan-action-btn action-editar" title="Editar" onclick="abrirModalHabilidadePlanejamento('${h.id}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="hab-plan-action-btn action-excluir" title="Excluir" onclick="removerHabilidadePlanejamento('${h.id}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
     </div>`;
   }).join('');
 }
 
-function abrirModalHabilidadePlanejamento() {
+// ── Modal unificado: criar / editar ──────────────────────────────────────────
+// Sem id → cria (POST). Com id → edita (PATCH), preenchendo os campos primeiro.
+function abrirModalHabilidadePlanejamento(id) {
   const modal = document.getElementById('modal-habilidade-planejamento');
   if (!modal) return;
-  document.getElementById('hab-plan-codigo').value = '';
-  document.getElementById('hab-plan-descricao').value = '';
-  document.getElementById('hab-plan-temas').value = '';
+
+  const h = id ? _habilidadePlanejamentoPorId(id) : null;
+
+  document.getElementById('hab-plan-id').value = h ? h.id : '';
+  document.getElementById('hab-plan-titulo').textContent = h ? 'Editar habilidade BNCC' : 'Nova habilidade BNCC';
+  document.getElementById('hab-plan-codigo').value = h ? (h.codigo || '') : '';
+  document.getElementById('hab-plan-descricao').value = h ? (h.descricao || '') : '';
+  document.getElementById('hab-plan-temas').value = h ? (h.temas || []).join(', ') : '';
   document.getElementById('hab-plan-alert').style.display = 'none';
+
   _preencherSelectDivisoesPlanejamento();
+  if (h) document.getElementById('hab-plan-divisao').value = h.divisao_id || '';
+
+  const btn = document.getElementById('btn-salvar-habilidade-plan');
+  if (btn) btn.textContent = h ? 'Salvar alterações' : 'Salvar';
+
   modal.classList.add('open');
 }
 
 function _preencherSelectDivisoesPlanejamento() {
   const sel = document.getElementById('hab-plan-divisao');
   if (!sel) return;
-  const nomesTri = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
   const divisoes = _divisoesCache || [];
   sel.innerHTML = '<option value="">Selecione a divisão...</option>' +
-    divisoes.map(d => `<option value="${d.id}">${nomesTri[d.ordem] || d.valor || ('Divisão ' + d.ordem)}</option>`).join('');
+    divisoes.map(d => `<option value="${d.id}">${_nomesTrimestre[d.ordem] || d.valor || ('Divisão ' + d.ordem)}</option>`).join('');
 }
 
 async function salvarHabilidadePlanejamento() {
   const alEl = document.getElementById('hab-plan-alert');
   alEl.style.display = 'none';
 
+  const id = document.getElementById('hab-plan-id').value;
   const codigo = document.getElementById('hab-plan-codigo').value.trim();
   const descricao = document.getElementById('hab-plan-descricao').value.trim();
   const divisaoId = document.getElementById('hab-plan-divisao').value;
@@ -237,24 +281,28 @@ async function salvarHabilidadePlanejamento() {
   if (!divisaoId) { alEl.textContent = 'Selecione a divisão.'; alEl.style.display = 'block'; return; }
   if (!temas.length) { alEl.textContent = 'Informe ao menos um tema (separado por vírgula).'; alEl.style.display = 'block'; return; }
 
-  const tdId = turmaDisciplinaAtiva?.id;
-  if (!tdId) { alEl.textContent = 'Nenhuma turma/disciplina ativa.'; alEl.style.display = 'block'; return; }
-
   const btn = document.getElementById('btn-salvar-habilidade-plan');
-  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = id ? 'Salvando...' : 'Salvando...'; }
 
   try {
-    await api('habilidades_planejamento', {
-      method: 'POST',
-      body: JSON.stringify({
-        turma_disciplina_id: tdId,
-        codigo,
-        descricao,
-        divisao_id: divisaoId,
-        temas,
-      }),
-    });
-    mostrarToast('✅ Habilidade cadastrada!');
+    if (id) {
+      // Edição: PATCH no registro atual. Não mexe em turma_disciplina_id,
+      // então não afeta cópias em outras turmas nem aula_habilidades (que
+      // referencia este id fixo).
+      await api(`habilidades_planejamento?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ codigo, descricao, divisao_id: divisaoId, temas }),
+      });
+      mostrarToast('✅ Habilidade atualizada!');
+    } else {
+      const tdId = turmaDisciplinaAtiva?.id;
+      if (!tdId) { alEl.textContent = 'Nenhuma turma/disciplina ativa.'; alEl.style.display = 'block'; return; }
+      await api('habilidades_planejamento', {
+        method: 'POST',
+        body: JSON.stringify({ turma_disciplina_id: tdId, codigo, descricao, divisao_id: divisaoId, temas }),
+      });
+      mostrarToast('✅ Habilidade cadastrada!');
+    }
     fecharModal('modal-habilidade-planejamento');
     await carregarHabilidadesPlanejamento();
   } catch (e) {
@@ -262,7 +310,7 @@ async function salvarHabilidadePlanejamento() {
     alEl.textContent = 'Erro ao salvar. Tente novamente.';
     alEl.style.display = 'block';
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+    if (btn) { btn.disabled = false; btn.textContent = id ? 'Salvar alterações' : 'Salvar'; }
   }
 }
 
@@ -278,7 +326,82 @@ async function removerHabilidadePlanejamento(id) {
   }
 }
 
+// ── Modal: vincular a outra turma (cópia via POST) ───────────────────────────
+// Não cria vínculo N:N. Duplica a linha da habilidade com o turma_disciplina_id
+// de destino — vira um registro independente, com seu próprio id.
+function abrirModalVinculoHabilidadePlanejamento(id) {
+  const h = _habilidadePlanejamentoPorId(id);
+  if (!h) return;
+
+  const modal = document.getElementById('modal-vincular-habilidade');
+  if (!modal) return;
+
+  document.getElementById('vinc-hab-id').value = id;
+  document.getElementById('vinc-hab-alert').style.display = 'none';
+  document.getElementById('vinc-hab-preview').innerHTML =
+    `<span style="font-weight:700;color:#3B4FE4;font-family:'Space Mono',monospace;">${h.codigo}</span> — ${(h.descricao || '').replace(/</g,'&lt;')}`;
+
+  _preencherSelectTurmasVinculoPlanejamento(h.turma_disciplina_id);
+
+  modal.classList.add('open');
+}
+
+function _preencherSelectTurmasVinculoPlanejamento(tdIdAtual) {
+  const sel = document.getElementById('vinc-hab-turma-disciplina');
+  if (!sel) return;
+  const lista = window.todasTurmaDisciplinas || [];
+  const opcoes = lista
+    .filter(td => String(td.id) !== String(tdIdAtual)) // não oferece a turma de origem
+    .map(td => {
+      const turma = td.turmas?.nome || '';
+      const disc = td.disciplinas?.nome || '';
+      const label = [turma, disc].filter(Boolean).join(' · ');
+      return `<option value="${td.id}">${label}</option>`;
+    });
+  sel.innerHTML = '<option value="">Selecione a turma...</option>' + opcoes.join('');
+}
+
+async function confirmarVinculoHabilidadePlanejamento() {
+  const alEl = document.getElementById('vinc-hab-alert');
+  alEl.style.display = 'none';
+
+  const id = document.getElementById('vinc-hab-id').value;
+  const tdDestino = document.getElementById('vinc-hab-turma-disciplina').value;
+  const h = _habilidadePlanejamentoPorId(id);
+
+  if (!h) { alEl.textContent = 'Habilidade não encontrada.'; alEl.style.display = 'block'; return; }
+  if (!tdDestino) { alEl.textContent = 'Selecione a turma de destino.'; alEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('btn-confirmar-vinculo-hab');
+  if (btn) { btn.disabled = true; btn.textContent = 'Vinculando...'; }
+
+  try {
+    // INSERT (cópia): novo id, novo turma_disciplina_id, mesmo conteúdo.
+    // Registro totalmente independente do original a partir daqui.
+    await api('habilidades_planejamento', {
+      method: 'POST',
+      body: JSON.stringify({
+        turma_disciplina_id: tdDestino,
+        codigo: h.codigo,
+        descricao: h.descricao,
+        divisao_id: h.divisao_id,
+        temas: h.temas || [],
+      }),
+    });
+    mostrarToast('✅ Habilidade vinculada à turma selecionada!');
+    fecharModal('modal-vincular-habilidade');
+  } catch (e) {
+    console.error('[PLANEJAMENTO] Erro ao vincular habilidade:', e);
+    alEl.textContent = 'Erro ao vincular. Tente novamente.';
+    alEl.style.display = 'block';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Vincular'; }
+  }
+}
+
 window.carregarHabilidadesPlanejamento = carregarHabilidadesPlanejamento;
 window.abrirModalHabilidadePlanejamento = abrirModalHabilidadePlanejamento;
 window.salvarHabilidadePlanejamento = salvarHabilidadePlanejamento;
 window.removerHabilidadePlanejamento = removerHabilidadePlanejamento;
+window.abrirModalVinculoHabilidadePlanejamento = abrirModalVinculoHabilidadePlanejamento;
+window.confirmarVinculoHabilidadePlanejamento = confirmarVinculoHabilidadePlanejamento;
