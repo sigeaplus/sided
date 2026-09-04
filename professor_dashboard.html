@@ -913,7 +913,7 @@
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
         Calendário escolar
       </button>
-      <button onclick="fecharSidebar(); abrirPagina('plano-curso')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
+      <button onclick="fecharSidebar(); abrirPagina('planejamento')" class="stb" style="background:rgba(255,255,255,0.12);color:#fff;border-color:transparent;">
         <span class="stb-icon" style="background:rgba(255,255,255,0.15);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
         Plano de curso
       </button>
@@ -1609,63 +1609,81 @@
       </div>
     </div>
 
-    <div id="pagina-plano-curso" style="display:none;padding:24px 28px;">
+    <div id="pagina-planejamento" style="display:none;padding:24px 28px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
         <div>
-          <div style="font-size:16px;font-weight:700;color:var(--text);">Plano de Curso</div>
-          <div id="plano-turma-label" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+          <div style="font-size:16px;font-weight:700;color:var(--text);">Planejamento</div>
+          <div id="planejamento-turma-label" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <label id="plano-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#BE185D';this.style.color='#BE185D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
+          <label id="planejamento-btn-trocar" style="display:none;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;border:1.5px solid var(--border);background:none;color:var(--text-muted);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;" onmouseover="this.style.borderColor='#BE185D';this.style.color='#BE185D'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)'">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Adicionar mais arquivos
-            <input id="plano-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planoHandleFile(this)" />
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px solid #E0E7FF;background:#F0F4FF;cursor:pointer;font-size:12px;font-weight:600;color:#3B4FE4;transition:all 0.2s;">
-            <input id="plano-process-ai" type="checkbox" style="accent-color:#3B4FE4;cursor:pointer;width:16px;height:16px;" checked />
-            Processar com IA
+            <input id="planejamento-input-trocar" type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planejamentoHandleFile(this)" />
           </label>
         </div>
       </div>
 
-      <div id="plano-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;border:2px dashed var(--border);border-radius:16px;gap:14px;background:#F8FAFF;">
+      <div id="planejamento-empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:340px;border:2px dashed var(--border);border-radius:16px;gap:14px;background:#F8FAFF;">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Nenhum plano de curso enviado ainda</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text-muted);">Nenhum arquivo de planejamento enviado ainda</div>
         <label style="display:flex;align-items:center;gap:7px;padding:11px 22px;border-radius:10px;border:none;background:#BE185D;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.15s;" onmouseover="this.style.opacity=0.85" onmouseout="this.style.opacity=1">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Enviar um ou mais planos de curso (PDF ou imagem)
-          <input type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planoHandleFile(this)" />
+          Enviar um ou mais arquivos (PDF ou imagem)
+          <input type="file" accept="application/pdf,image/png,image/jpeg" multiple style="display:none;" onchange="planejamentoHandleFile(this)" />
         </label>
         <div style="font-size:11px;color:var(--text-muted);">PDF ou PNG/JPG · selecione vários arquivos de uma vez · máx. 50 MB cada</div>
       </div>
 
-      <div id="plano-viewer" style="display:none;">
-        <div id="plano-link-mob" style="display:none;margin-bottom:10px;">
-          <a id="plano-link-mob-a" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;background:#EAF1FF;border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--purple);text-decoration:none;">
+      <div id="planejamento-viewer" style="display:none;">
+        <div id="planejamento-link-mob" style="display:none;margin-bottom:10px;">
+          <a id="planejamento-link-mob-a" href="#" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:10px;background:#EAF1FF;border:1.5px solid var(--border);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;color:var(--purple);text-decoration:none;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Abrir plano de curso em nova aba
+            Abrir arquivo em nova aba
           </a>
         </div>
-        <iframe id="plano-iframe" style="width:100%;height:72vh;min-height:400px;border:1.5px solid var(--border);border-radius:12px;background:#fff;" title="Plano de Curso"></iframe>
-        <img id="plano-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Plano de Curso" />
-        <div id="plano-arquivos-lista" style="display:none;margin-top:18px;gap:10px;flex-wrap:wrap;"></div>
+        <iframe id="planejamento-iframe" style="width:100%;height:72vh;min-height:400px;border:1.5px solid var(--border);border-radius:12px;background:#fff;" title="Planejamento"></iframe>
+        <img id="planejamento-img" style="display:none;width:100%;border:1.5px solid var(--border);border-radius:12px;" alt="Planejamento" />
+        <div id="planejamento-arquivos-lista" style="display:none;margin-top:18px;gap:10px;flex-wrap:wrap;"></div>
+      </div>
 
-        <!-- ── Pesquisador de Habilidades BNCC ── -->
-        <div style="margin-top:28px;border-top:1.5px solid var(--border);padding-top:22px;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B4FE4" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <span style="font-size:13px;font-weight:700;color:var(--text);">Pesquisar habilidade do plano</span>
+      <!-- ── Habilidades BNCC cadastradas (cadastro manual) ── -->
+      <div style="margin-top:28px;border-top:1.5px solid var(--border);padding-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3B4FE4" stroke-width="2.2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            <span style="font-size:13px;font-weight:700;color:var(--text);">Habilidades BNCC cadastradas</span>
           </div>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <input id="pesq-bncc-input" type="text" placeholder="Buscar por código ou palavra-chave (ex: EF06MA, frações, texto...)"
-              style="flex:1;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
-              onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
-              oninput="pesquisarHabilidadesPlano()"
-              onkeydown="if(event.key==='Enter') pesquisarHabilidadesPlano()" />
-          </div>
-          <div id="pesq-bncc-resultado"></div>
+          <button onclick="abrirModalHabilidadePlanejamento()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:none;background:#3B4FE4;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Nova habilidade
+          </button>
         </div>
+        <div id="planejamento-habilidades-lista" style="display:flex;flex-wrap:wrap;"></div>
+      </div>
+    </div>
 
+    <!-- ── Modal: nova habilidade BNCC (Planejamento) ── -->
+    <div id="modal-habilidade-planejamento" class="modal">
+      <div class="modal-content" style="max-width:460px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <span style="font-size:15px;font-weight:700;color:var(--text);">Nova habilidade BNCC</span>
+          <button onclick="fecharModal('modal-habilidade-planejamento')" style="border:none;background:none;color:var(--text-muted);cursor:pointer;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="hab-plan-alert" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:9px 12px;font-size:12px;color:#B91C1C;margin-bottom:12px;"></div>
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">Código *</label>
+        <input id="hab-plan-codigo" type="text" placeholder="Ex: EF05LP11" style="width:100%;box-sizing:border-box;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Space Mono',monospace;font-size:13px;color:var(--text);outline:none;margin-bottom:12px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">Descrição *</label>
+        <textarea id="hab-plan-descricao" rows="3" placeholder="Descrição da habilidade" style="width:100%;box-sizing:border-box;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:12px;"></textarea>
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">Divisão *</label>
+        <select id="hab-plan-divisao" style="width:100%;box-sizing:border-box;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;margin-bottom:12px;">
+          <option value="">Selecione a divisão...</option>
+        </select>
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:5px;">Temas *</label>
+        <input id="hab-plan-temas" type="text" placeholder="Separe por vírgula: ex. leitura, interpretação" style="width:100%;box-sizing:border-box;padding:9px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;margin-bottom:16px;">
+        <button id="btn-salvar-habilidade-plan" onclick="salvarHabilidadePlanejamento()" style="width:100%;padding:11px;border-radius:9px;border:none;background:#3B4FE4;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Salvar</button>
       </div>
     </div>
 
@@ -1782,9 +1800,9 @@
             Calendário escolar
           </button>
 
-          <button onclick="abrirPagina('plano-curso')" class="stb" data-c="#BE185D">
+          <button onclick="abrirPagina('planejamento')" class="stb" data-c="#BE185D">
             <span class="stb-icon" style="background:#FDF2F8;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#BE185D" stroke-width="2.2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-            Plano de curso
+            Planejamento
           </button>
         </div>
 
@@ -1866,30 +1884,18 @@
           onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       </div>
 
-      <!-- Habilidade BNCC (opcional) -->
+      <!-- Habilidades BNCC (opcional) — multi-seleção via chips -->
       <div class="field">
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Habilidade BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional)</span></span>
+          <span>Habilidades BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional)</span></span>
         </label>
-        <div style="display:flex;gap:6px;">
-          <input id="aula-bncc" placeholder="Ex: EF06MA01 ou palavra-chave"
-            style="flex:1;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
-            onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
-            oninput="onBnccInput()"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();buscarBNCC();}if(event.key==='Escape'){_bnccFecharDropdown();}"/>
-          <button onclick="buscarBNCC()"
-            style="padding:9px 14px;border-radius:8px;border:1.5px solid var(--purple);background:var(--purple-light);color:var(--purple);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all 0.15s;flex-shrink:0;"
-            onmouseover="this.style.background='var(--purple)';this.style.color='#fff'"
-            onmouseout="this.style.background='var(--purple-light)';this.style.color='var(--purple)'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:3px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            Buscar
-          </button>
-        </div>
-        <div id="bncc-loading" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text-muted);">
-          <div style="width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--purple);border-radius:50%;animation:spin 0.7s linear infinite;"></div>
-          <span id="bncc-loading-msg">Buscando...</span>
-        </div>
-        <div id="bncc-resultado" style="display:none;margin-top:8px;padding:10px 12px;background:#F0F9FF;border:1.5px solid #BAE6FD;border-radius:8px;font-size:12px;color:var(--text);line-height:1.5;"></div>
+        <div id="aula-bncc-chips" style="display:none;margin-bottom:6px;"></div>
+        <input id="aula-bncc" placeholder="Digite o código ou palavra-chave para buscar..."
+          style="width:100%;box-sizing:border-box;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
+          oninput="onBnccInput()"
+          onkeydown="if(event.key==='Escape'){_fecharDropdownHabilidadesAula();}"/>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">As habilidades disponíveis são as cadastradas no módulo Planejamento da turma.</div>
       </div>
 
       <!-- Status info -->
@@ -2586,9 +2592,8 @@
   </div>
 </div>
 <link rel="stylesheet" href="/chamada.css">
-<script src="/server/google-ai-client.js"></script>
 <script src="/calendario_plano.js"></script>
-<script src="/plano-ia.js"></script>
+<script src="/planejamento.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0165550fb88c4ce',t:'MTc3OTczMDkxMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 
@@ -2624,9 +2629,11 @@
       </div>
 
       <div class="field">
-        <label>Habilidade BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional — aplicada a todas)</span></label>
-        <input id="multi-aulas-bncc" placeholder="Ex: EF07HI03"
-          style="width:100%;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;"/>
+        <label>Habilidades BNCC <span style="font-size:10px;color:var(--text-muted);font-weight:400;">(opcional — aplicadas a todas)</span></label>
+        <div id="multi-aulas-bncc-chips" style="display:none;margin-bottom:6px;"></div>
+        <input id="multi-aulas-bncc" placeholder="Digite o código ou palavra-chave para buscar..."
+          style="width:100%;box-sizing:border-box;padding:10px 12px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:13px;color:var(--text);outline:none;"
+          oninput="onMultiAulaBnccInput()"/>
       </div>
 
       <div class="field">
@@ -2734,6 +2741,7 @@ window.confirmarCopiarAula = async function() {
     const turmasDestino = Array.from(checkboxes).map(cb => cb.value).filter(v => v !== '_self');
     const tdIdMap = {};
     await Promise.all(turmasDestino.map(async turmaId => { tdIdMap[turmaId] = await _buscarTurmaDisciplinaId(turmaId); }));
+    const origemPorIndice = []; // mesmo índice de `copias` — id da aula original correspondente
     for (const aulaId of aulasParaCopiarIds) {
       let aulaOriginal = window.aulaParaCopiar;
       if (!aulaOriginal || String(aulaOriginal.id) !== String(aulaId)) {
@@ -2754,9 +2762,9 @@ window.confirmarCopiarAula = async function() {
           nome: aulaOriginal.nome, descricao: aulaOriginal.descricao || '', status,
           turma_id: turmaDestinoId, professor_id: profData.id,
           ...(tdId ? { turma_disciplina_id: tdId } : {}),
-          ...(aulaOriginal.habilidade_bncc ? { habilidade_bncc: aulaOriginal.habilidade_bncc } : {}),
           ...(aulaOriginal.disciplina ? { disciplina: aulaOriginal.disciplina } : {}),
         });
+        origemPorIndice.push(aulaOriginal.id);
       }
     }
     if (!copias.length) { if (typeof mostrarToast === 'function') mostrarToast('Nenhuma aula para copiar.'); return; }
@@ -2773,6 +2781,27 @@ window.confirmarCopiarAula = async function() {
 
     if (!res) throw new Error('Sem resposta da API. Verifique permissoes da turma destino.');
     const criadas = Array.isArray(res) && res.length > 0 ? res : copias.map((c, i) => ({ ...c, id: `temp_${Date.now()}_${i}` }));
+
+    // Copia as habilidades BNCC vinculadas (aula_habilidades) do original para cada cópia criada
+    try {
+      const idsOrigemUnicos = [...new Set(origemPorIndice)];
+      const vinculosOrigem = await api(`aula_habilidades?aula_id=in.(${idsOrigemUnicos.join(',')})&select=aula_id,habilidade_id`) || [];
+      const habilidadesPorOrigem = {};
+      vinculosOrigem.forEach(v => {
+        (habilidadesPorOrigem[v.aula_id] = habilidadesPorOrigem[v.aula_id] || []).push(v.habilidade_id);
+      });
+      const novosVinculos = [];
+      criadas.forEach((copia, i) => {
+        const idsHabilidades = habilidadesPorOrigem[origemPorIndice[i]] || [];
+        idsHabilidades.forEach(habilidadeId => novosVinculos.push({ aula_id: copia.id, habilidade_id: habilidadeId }));
+      });
+      if (novosVinculos.length) {
+        await api('aula_habilidades', { method: 'POST', body: JSON.stringify(novosVinculos) });
+      }
+    } catch (eVinculos) {
+      console.warn('[Duplicar] Falha ao copiar habilidades BNCC vinculadas:', eVinculos.message || eVinculos);
+    }
+
     if (copiaNaMesmaTurma) {
       criadas.filter(a => String(a.turma_id) === String(turmaAtiva?.id)).forEach(a => { aulasTurma.push(a); if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false); });
       if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
@@ -3168,13 +3197,33 @@ window.confirmarTransferirAulas = async function() {
         turma_id: destino.turmaId,
         ...(tdIdDestino ? { turma_disciplina_id: tdIdDestino } : {}),
         professor_id: professorDestinoId,
-        ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
         ...(a.disciplina ? { disciplina: a.disciplina } : {}),
       }));
 
       const criadas = await api('aulas', { method: 'POST', body: JSON.stringify(novasAulas), headers: { 'Prefer': 'return=representation' } });
       const aulasCriadas = Array.isArray(criadas) && criadas.length > 0 ? criadas : novasAulas.map((a, i) => ({ ...a, id: `temp_${Date.now()}_${i}` }));
       totalCriadas += aulasCriadas.length;
+
+      // Copia as habilidades BNCC vinculadas (aula_habilidades) das aulas originais
+      try {
+        const idsOrigemUnicos = [...new Set(aulasOriginais.map(a => a.id))];
+        const vinculosOrigem = await api(`aula_habilidades?aula_id=in.(${idsOrigemUnicos.join(',')})&select=aula_id,habilidade_id`) || [];
+        const habilidadesPorOrigem = {};
+        vinculosOrigem.forEach(v => {
+          (habilidadesPorOrigem[v.aula_id] = habilidadesPorOrigem[v.aula_id] || []).push(v.habilidade_id);
+        });
+        const novosVinculos = [];
+        aulasCriadas.forEach((aulaNova, i) => {
+          if (String(aulaNova.id).startsWith('temp_')) return;
+          const idsHabilidades = habilidadesPorOrigem[aulasOriginais[i]?.id] || [];
+          idsHabilidades.forEach(habilidadeId => novosVinculos.push({ aula_id: aulaNova.id, habilidade_id: habilidadeId }));
+        });
+        if (novosVinculos.length) {
+          await api('aula_habilidades', { method: 'POST', body: JSON.stringify(novosVinculos) });
+        }
+      } catch (eVinculos) {
+        console.warn('[Transferir] Falha ao copiar habilidades BNCC vinculadas:', eVinculos.message || eVinculos);
+      }
 
       // Copiar chamadas
       if (copiarChamada) {

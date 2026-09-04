@@ -109,14 +109,14 @@ async function carregarRelatorio(tri) {
           if (!n) return { nota: null, naoRealizado: false, recuperacaoParalela: null };
           return { nota: n.nota, naoRealizado: n.nao_realizado, recuperacaoParalela: n.recuperacao_paralela };
         });
-        // Soma das notas normais + recuperação paralela de cada avaliação
-        const somaBase = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.nota || 0)), 0);
-        const somaRecPar = notasAluno.reduce((s, n) => s + (n.naoRealizado ? 0 : Number(n.recuperacaoParalela || 0)), 0);
+        // "Não realizado" zera apenas a nota; a recuperação paralela sempre conta.
+        const somaBase = notasAluno.reduce((s, n) => s + (!n.naoRealizado ? Number(n.nota || 0) : 0), 0);
+        const somaRecPar = notasAluno.reduce((s, n) => s + Number(n.recuperacaoParalela || 0), 0);
         // Soma das notas da avaliação de recuperação trimestral
         const somaRecup = avalRecup.reduce((s, av) => {
           const n = notasMap[a.id]?.[av.id];
           return s + (n && !n.nao_realizado && n.nota !== null ? Number(n.nota) : 0)
-                   + (n && !n.nao_realizado && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
+                   + (n && n.recuperacao_paralela !== null ? Number(n.recuperacao_paralela || 0) : 0);
         }, 0);
         const somaCalc = somaBase + somaRecPar + somaRecup;
         // Usar nota confirmada se existir
@@ -439,7 +439,7 @@ async function abrirFichaAluno(alunoId) {
       avNorm.forEach(av => {
         const n = mapNotas[av.id];
         if (n && !n.nao_realizado && n.nota !== null) somaAno += Number(n.nota);
-        if (n && !n.nao_realizado && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) somaAno += Number(n.recuperacao_paralela);
+        if (n && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) somaAno += Number(n.recuperacao_paralela);
       });
     }
     totalEsperadoAno += maxPorTri[tri];
@@ -479,7 +479,7 @@ async function abrirFichaAluno(alunoId) {
       somaTri = avNorm.reduce((s, av) => {
         const n = mapNotas[av.id];
         const notaVal = (n && !n.nao_realizado && n.nota !== null) ? Number(n.nota) : 0;
-        const recVal = (n && !n.nao_realizado && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) ? Number(n.recuperacao_paralela) : 0;
+        const recVal = (n && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) ? Number(n.recuperacao_paralela) : 0;
         return s + notaVal + recVal;
       }, 0);
     }
@@ -506,8 +506,8 @@ async function abrirFichaAluno(alunoId) {
       linhasNotas = avNorm.map(av => {
         const n = mapNotas[av.id];
         const nota = n && !n.nao_realizado && n.nota !== null ? Number(n.nota).toFixed(1) : (n?.nao_realizado ? 'N.R.' : '—');
-        const recPar = (n && !n.nao_realizado && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined)
-          ? `<span style="font-size:10px;color:#0F766E;font-weight:600;"> +${Number(n.recuperacao_paralela).toFixed(1)} rec.par.</span>`
+        const recPar = (n && n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined)
+          ? `<span style="font-size:10px;color:${Number(n.recuperacao_paralela) < 0 ? '#C0392B' : '#0F766E'};font-weight:600;"> ${Number(n.recuperacao_paralela) >= 0 ? '+' : ''}${Number(n.recuperacao_paralela).toFixed(1)} rec.par.</span>`
           : '';
         return `<tr><td style="padding:6px 0;color:var(--text);">${av.nome}</td><td style="text-align:right;font-weight:600;color:var(--text);">${nota}${recPar}</td></tr>`;
       }).join('');
@@ -585,7 +585,7 @@ async function abrirFichaAluno(alunoId) {
         soma = avNorm.reduce((s, av) => {
           const n = mapNotas[av.id];
           const nv = (n && !n.nao_realizado && n.nota !== null) ? Number(n.nota) : 0;
-          const rv = (n && !n.nao_realizado && n.recuperacao_paralela != null) ? Number(n.recuperacao_paralela) : 0;
+          const rv = (n && n.recuperacao_paralela != null) ? Number(n.recuperacao_paralela) : 0;
           return s + nv + rv;
         }, 0);
       }

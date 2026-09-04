@@ -101,8 +101,10 @@ async function sincronizarTotalTrimestre(alunoId, turmaDisciplinaId, trimestre) 
         `notas?avaliacao_id=in.(${ids.join(',')})&aluno_id=eq.${alunoId}&select=nota,recuperacao_paralela,nao_realizado,ausente`
       ) || [];
       todasNotas.forEach(n => {
-        if (n.nao_realizado || n.ausente) return;
-        if (n.nota !== null && n.nota !== undefined) total += Number(n.nota);
+        if (n.ausente) return;
+        // "Não realizado" zera apenas a nota da avaliação em si; a recuperação paralela
+        // (ex. desconto/correção aplicada por fora) sempre conta, mesmo com a caixa marcada.
+        if (!n.nao_realizado && n.nota !== null && n.nota !== undefined) total += Number(n.nota);
         if (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) total += Number(n.recuperacao_paralela);
       });
     }

@@ -693,6 +693,16 @@ let aulaParaCopiar = null;
 window.aulaParaCopiar = window.aulaParaCopiar || null;
 
 // ── carregarAulas ────────────────────────────────────────────────────────────
+// Mapa em memória aula_id -> "COD1, COD2" (habilidades vinculadas via
+// aula_habilidades), usado pelo calendário lateral (lista do dia e busca)
+// para exibir/filtrar sem precisar de fetch síncrono por aula.
+let _habilidadesTextoPorAula = {};
+
+async function _carregarHabilidadesTextoPorAula() {
+  const ids = (aulasTurma || []).map(a => a.id);
+  _habilidadesTextoPorAula = ids.length ? await _buscarHabilidadesTextoParaAulas(ids) : {};
+}
+
 async function carregarAulas(forcarReload = false) {
   if (forcarReload) cacheInvalidar(turmaAtiva.id);
   await carregarDivisoesDaTurma(turmaAtiva); // garante _divisoesCache pronto antes de qualquer trimestreDeAula()
@@ -704,6 +714,7 @@ async function carregarAulas(forcarReload = false) {
     turmaAtiva.id, 'aulas', 30000
   );
   await sincronizarCachesChamada();
+  await _carregarHabilidadesTextoPorAula();
   recalcularStatusLocal();
   _inicializarFiltroDiaSemAulas();
   renderListaAulas();
@@ -753,10 +764,15 @@ window.abrirModalAula = function(data) {
   document.getElementById('aula-status').value = data ? calcularStatusAuto(data.data, data.id) : 'futura';
   document.getElementById('aula-alert').style.display = 'none';
 
-  // Campo BNCC
+  // Campo de habilidades BNCC — multi-seleção via chips
+  _habilidadesAulaSelecionadas = [];
   const bnccInput = document.getElementById('aula-bncc');
-  if (bnccInput) bnccInput.value = data?.habilidade_bncc || '';
-  _limparBnccResultado();
+  if (bnccInput) bnccInput.value = '';
+  _renderChipsHabilidadesAula();
+  _fecharDropdownHabilidadesAula();
+  if (editandoAulaId) {
+    _carregarHabilidadesDaAula(editandoAulaId);
+  }
 
   const campoDisc = document.getElementById('aula-campo-disciplina');
   const selDisc = document.getElementById('aula-disciplina');
@@ -780,7 +796,7 @@ window.abrirModalAula = function(data) {
   atualizarCalendario('cal-aula');
 };
 
-// ─── 2. PATCH: salvarAula — inclui habilidade_bncc no body ─────────────────
+// ─── 2. PATCH: salvarAula — vínculos de habilidades via aula_habilidades ────
 //  Substitua a função salvarAula original por esta:
 window.salvarAula = async function() {
   const tri = detectarTrimestreAtual().tri;
@@ -815,7 +831,6 @@ window.salvarAula = async function() {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const statusAuto = calcularStatusAuto(dataISO, editandoAulaId);
   const discVal = isFundamentalI() ? (document.getElementById('aula-disciplina')?.value || null) : null;
-  const bnccVal = document.getElementById('aula-bncc')?.value.trim() || null;
 
   const body = {
     data: dataISO,
@@ -826,10 +841,10 @@ window.salvarAula = async function() {
     turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
     professor_id: profData.id,
     ...(discVal ? { disciplina: discVal } : {}),
-    ...(bnccVal ? { habilidade_bncc: bnccVal } : { habilidade_bncc: null }),
   };
 
   try {
+    let aulaId = editandoAulaId;
     if (editandoAulaId) {
       await api(`aulas?id=eq.${editandoAulaId}`, { method: 'PATCH', body: JSON.stringify(body) });
       const idx = aulasTurma.findIndex(a => a.id === editandoAulaId);
@@ -837,9 +852,11 @@ window.salvarAula = async function() {
     } else {
       const res = await api('aulas', { method: 'POST', body: JSON.stringify(body) });
       const nova = (res && res[0]) ? res[0] : { ...body, id: Date.now() };
+      aulaId = nova.id;
       aulasTurma.push(nova);
       chamadaCacheSet(nova.id, false);
     }
+    await _salvarVinculosHabilidadesAula(aulaId, _habilidadesAulaSelecionadas);
     cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     fecharModal('modal-aula');
     renderListaAulas();
@@ -853,43 +870,95 @@ window.salvarAula = async function() {
   btn.disabled = false;
 };
 
-// ─── 3. BNCC helpers ────────────────────────────────────────────────────────
-function _limparBnccResultado() {
-  const el = document.getElementById('bncc-resultado');
-  if (el) el.style.display = 'none';
-  _bnccFecharDropdown();
-}
+// ─── 3. HABILIDADES BNCC — multi-seleção via chips ─────────────────────────
+// Substitui o antigo autocomplete/busca semântica por texto livre. Agora as
+// habilidades vêm da tabela habilidades_planejamento (cadastradas manualmente
+// no módulo Planejamento) e o vínculo aula↔habilidade é many-to-many via
+// aula_habilidades.
 
-// ── Cache local das habilidades do plano ──────────────────────────────────────
-let _bnccCache = null;
-let _bnccCacheTurma = null;
+let _habilidadesAulaSelecionadas = []; // [{id, codigo, descricao}, ...]
 
-async function _bnccCarregarCache() {
-  if (_bnccCache && _bnccCacheTurma === turmaAtiva?.id) return _bnccCache;
+// ── Cache local das habilidades cadastradas na turma_disciplina ativa ────────
+let _habilidadesAulaCache = null;
+let _habilidadesAulaCacheTd = null;
+
+async function _habilidadesAulaCarregarCache() {
+  const tdId = turmaDisciplinaAtiva?.id;
+  if (_habilidadesAulaCache && _habilidadesAulaCacheTd === tdId) return _habilidadesAulaCache;
   try {
-    const rows = await api(`plano_bncc?turma_id=eq.${turmaAtiva?.id}&order=codigo.asc&limit=100`);
-    _bnccCache = rows || [];
-    _bnccCacheTurma = turmaAtiva?.id;
+    const rows = await api(`habilidades_planejamento?turma_disciplina_id=eq.${tdId}&order=codigo.asc&limit=200`);
+    _habilidadesAulaCache = rows || [];
+    _habilidadesAulaCacheTd = tdId;
   } catch (_) {
-    _bnccCache = [];
+    _habilidadesAulaCache = [];
   }
-  return _bnccCache;
+  return _habilidadesAulaCache;
 }
 
-window._bnccInvalidarCache = function() {
-  _bnccCache = null;
-  _bnccCacheTurma = null;
+window._habilidadesAulaInvalidarCache = function() {
+  _habilidadesAulaCache = null;
+  _habilidadesAulaCacheTd = null;
 };
 
-// ── Autocomplete dropdown ─────────────────────────────────────────────────────
-let _bnccDropdownEl = null;
+// ── Carrega os vínculos já existentes de uma aula (modo edição) ──────────────
+async function _carregarHabilidadesDaAula(aulaId) {
+  try {
+    const rows = await api(
+      `aula_habilidades?aula_id=eq.${aulaId}&select=habilidade_id,habilidades_planejamento(id,codigo,descricao)`
+    ) || [];
+    _habilidadesAulaSelecionadas = rows
+      .map(r => r.habilidades_planejamento)
+      .filter(Boolean)
+      .map(h => ({ id: h.id, codigo: h.codigo, descricao: h.descricao }));
+  } catch (e) {
+    console.error('[HABILIDADES AULA] Erro ao carregar vínculos:', e);
+    _habilidadesAulaSelecionadas = [];
+  }
+  _renderChipsHabilidadesAula();
+}
 
-function _bnccCriarDropdown() {
-  if (_bnccDropdownEl) return _bnccDropdownEl;
+// ── Chips das habilidades selecionadas no formulário ──────────────────────────
+function _renderChipsHabilidadesAula() {
+  const wrap = document.getElementById('aula-bncc-chips');
+  if (!wrap) return;
+  if (!_habilidadesAulaSelecionadas.length) {
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  wrap.style.flexWrap = 'wrap';
+  wrap.style.gap = '6px';
+  wrap.innerHTML = _habilidadesAulaSelecionadas.map(h => `
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;">
+      ${h.codigo}
+      <button type="button" onclick="_removerHabilidadeAula('${h.id}')" style="border:none;background:none;color:#3B4FE4;cursor:pointer;padding:0;display:flex;align-items:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </span>
+  `).join('');
+}
+
+window._removerHabilidadeAula = function(habilidadeId) {
+  _habilidadesAulaSelecionadas = _habilidadesAulaSelecionadas.filter(h => String(h.id) !== String(habilidadeId));
+  _renderChipsHabilidadesAula();
+};
+
+function _adicionarHabilidadeAula(h) {
+  if (_habilidadesAulaSelecionadas.some(sel => String(sel.id) === String(h.id))) return;
+  _habilidadesAulaSelecionadas.push({ id: h.id, codigo: h.codigo, descricao: h.descricao });
+  _renderChipsHabilidadesAula();
+}
+
+// ── Autocomplete dropdown (busca entre as habilidades cadastradas) ───────────
+let _habilidadesAulaDropdownEl = null;
+
+function _criarDropdownHabilidadesAula() {
+  if (_habilidadesAulaDropdownEl) return _habilidadesAulaDropdownEl;
   const inp = document.getElementById('aula-bncc');
   if (!inp) return null;
   const d = document.createElement('div');
-  d.id = 'bncc-autocomplete-dropdown';
+  d.id = 'habilidades-aula-dropdown';
   d.style.cssText = `
     position:absolute;z-index:9999;background:var(--white);
     border:1.5px solid var(--border);border-radius:10px;
@@ -902,31 +971,26 @@ function _bnccCriarDropdown() {
     wrap.style.position = 'relative';
   }
   wrap?.appendChild(d);
-  _bnccDropdownEl = d;
+  _habilidadesAulaDropdownEl = d;
   return d;
 }
 
-window._bnccFecharDropdown = function() {
-  if (_bnccDropdownEl) {
-    _bnccDropdownEl.remove();
-    _bnccDropdownEl = null;
+window._fecharDropdownHabilidadesAula = function() {
+  if (_habilidadesAulaDropdownEl) {
+    _habilidadesAulaDropdownEl.remove();
+    _habilidadesAulaDropdownEl = null;
   }
 };
 
-function _bnccRenderDropdown(itens) {
-  const d = _bnccCriarDropdown();
+function _renderDropdownHabilidadesAula(itens) {
+  const d = _criarDropdownHabilidadesAula();
   if (!d) return;
-  if (!itens.length) { _bnccFecharDropdown(); return; }
+  if (!itens.length) { _fecharDropdownHabilidadesAula(); return; }
   d.innerHTML = itens.map(h => `
     <div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;"
       onmouseenter="this.style.background='#F0F4FF'"
       onmouseleave="this.style.background=''"
-      onclick="(function(){
-        var inp=document.getElementById('aula-bncc');
-        if(inp){inp.value='${(h.codigo||'').replace(/'/g,"\'")}';inp.dispatchEvent(new Event('input'));}
-        _bnccFecharDropdown();
-        buscarBNCC();
-      })()">
+      onclick="_selecionarHabilidadeAulaDropdown('${h.id}')">
       <div style="display:flex;align-items:center;gap:8px;">
         <span style="padding:2px 8px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;">${h.codigo||'—'}</span>
         <span style="font-size:12px;color:var(--text);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${(h.descricao||'').replace(/</g,'&lt;')}</span>
@@ -934,168 +998,63 @@ function _bnccRenderDropdown(itens) {
     </div>`).join('');
 }
 
-function _bnccFiltrarLocal(habs, query) {
+window._selecionarHabilidadeAulaDropdown = async function(habilidadeId) {
+  const habs = await _habilidadesAulaCarregarCache();
+  const h = habs.find(x => String(x.id) === String(habilidadeId));
+  if (h) _adicionarHabilidadeAula(h);
+  const inp = document.getElementById('aula-bncc');
+  if (inp) inp.value = '';
+  _fecharDropdownHabilidadesAula();
+};
+
+function _filtrarHabilidadesAulaLocal(habs, query) {
   const q = query.toLowerCase();
-  return habs.filter(h =>
-    (h.codigo||'').toLowerCase().includes(q) ||
-    (h.descricao||'').toLowerCase().includes(q)
-  ).slice(0, 8);
+  return habs
+    .filter(h => !_habilidadesAulaSelecionadas.some(sel => String(sel.id) === String(h.id)))
+    .filter(h =>
+      (h.codigo||'').toLowerCase().includes(q) ||
+      (h.descricao||'').toLowerCase().includes(q)
+    ).slice(0, 8);
 }
 
 // ── Debounce autocomplete ─────────────────────────────────────────────────────
-let _bnccDebounce = null;
+let _habilidadesAulaDebounce = null;
 
 window.onBnccInput = async function() {
-  clearTimeout(_bnccDebounce);
+  clearTimeout(_habilidadesAulaDebounce);
   const query = (document.getElementById('aula-bncc')?.value || '').trim();
-  if (query.length < 2) { _bnccFecharDropdown(); return; }
-  _bnccDebounce = setTimeout(async () => {
-    const habs = await _bnccCarregarCache();
-    const filtrados = _bnccFiltrarLocal(habs, query);
-    _bnccRenderDropdown(filtrados);
-  }, 300);
+  if (query.length < 1) { _fecharDropdownHabilidadesAula(); return; }
+  _habilidadesAulaDebounce = setTimeout(async () => {
+    const habs = await _habilidadesAulaCarregarCache();
+    const filtrados = _filtrarHabilidadesAulaLocal(habs, query);
+    _renderDropdownHabilidadesAula(filtrados);
+  }, 250);
 };
-
-// ── buscarBNCC principal ──────────────────────────────────────────────────────
-window.buscarBNCC = async function() {
-  const query = (document.getElementById('aula-bncc')?.value || '').trim();
-  if (!query) return;
-
-  _bnccFecharDropdown();
-  const resultEl = document.getElementById('bncc-resultado');
-  const loadEl   = document.getElementById('bncc-loading');
-  const loadMsg  = document.getElementById('bncc-loading-msg');
-  if (resultEl) resultEl.style.display = 'none';
-  if (loadEl)   loadEl.style.display = 'flex';
-  if (loadMsg)  loadMsg.textContent = 'Buscando no plano...';
-
-  let encontrado = null;
-
-  // 1º — busca por código OU descrição (texto livre)
-  try {
-    const q = encodeURIComponent(query);
-    const rows = await api(
-      `plano_bncc?turma_id=eq.${turmaAtiva?.id}&or=(codigo.ilike.*${q}*,descricao.ilike.*${q}*)&limit=3`
-    );
-    if (rows?.length) {
-      encontrado = rows.map(r => ({ codigo: r.codigo, descricao: r.descricao, contexto: r.contexto, fonte: 'plano' }));
-    }
-  } catch (_) {}
-
-  // 2º — busca semântica via IA
-  if (!encontrado) {
-    try {
-      const habs = await _bnccCarregarCache();
-      if (habs.length) {
-        if (loadMsg) loadMsg.textContent = 'Buscando com IA...';
-        const resultado = await _bnccBuscarComIA(query, habs);
-        if (resultado?.length) {
-          encontrado = resultado.map(r => ({ ...r, fonte: 'ia' }));
-        }
-      }
-    } catch (_) {}
-  }
-
-  if (loadEl) loadEl.style.display = 'none';
-  if (!resultEl) return;
-  resultEl.style.display = 'block';
-
-  if (encontrado?.length) {
-    const isIA = encontrado[0].fonte === 'ia';
-    resultEl.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:${isIA ? '#5B21B6' : '#166534'};margin-bottom:8px;">
-        ${isIA ? '✨ Sugestão da IA a partir do plano de curso' : '📄 Encontrado no plano de curso'}
-      </div>
-      ${encontrado.map(h => `
-        <div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--white);margin-bottom:6px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-              <span style="padding:2px 8px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;">${h.codigo||'—'}</span>
-              <span style="font-size:12px;color:var(--text);line-height:1.4;">${(h.descricao||'—').replace(/</g,'&lt;')}</span>
-            </div>
-            <button onclick="document.getElementById('aula-bncc').value='${(h.codigo||'').replace(/'/g,"\'")}';document.getElementById('bncc-resultado').style.display='none';"
-              style="padding:4px 11px;border-radius:6px;border:1.5px solid #22C55E;background:#F0FDF4;color:#166534;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;"
-              onmouseover="this.style.background='#22C55E';this.style.color='#fff'"
-              onmouseout="this.style.background='#F0FDF4';this.style.color='#166534'">
-              Usar
-            </button>
-          </div>
-          ${h.contexto ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;border-left:2px solid var(--border);padding-left:8px;line-height:1.5;font-style:italic;">${String(h.contexto).replace(/</g,'&lt;')}</div>` : ''}
-        </div>`).join('')}`;
-  } else {
-    resultEl.innerHTML = `
-      <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:4px;">🔎 Não encontrado no plano</div>
-      <a href="https://www.google.com/search?q=BNCC+habilidade+${encodeURIComponent(query)}" target="_blank"
-        style="font-size:12px;color:var(--purple);font-weight:600;text-decoration:underline;">
-        Pesquisar "${query}" na BNCC via Google →
-      </a>`;
-  }
-};
-
-// ── Busca semântica via Gemini ────────────────────────────────────────────────
-async function _bnccBuscarComIA(query, habilidades) {
-  const key = typeof GEMINI_KEY !== 'undefined' ? GEMINI_KEY : '';
-  if (!key) return null;
-
-  const lista = habilidades.map(h => `${h.codigo}: ${h.descricao}`).join('\n');
-  const prompt = `Você é um assistente de busca de habilidades BNCC.
-Dado um termo de busca e uma lista de habilidades, retorne as 1-2 habilidades mais relevantes.
-Retorne SOMENTE JSON válido, sem markdown:
-[{"codigo":"EFxxMAxx","descricao":"...","contexto":"por que é relevante em 1 frase"}]
-Se nenhuma for relevante, retorne [].
-
-Termo buscado: "${query}"
-
-Habilidades disponíveis no plano:
-${lista}
-
-Retorne as mais relevantes.`;
-
-  const MODELOS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-  ];
-
-  let data = null;
-  for (const modelo of MODELOS) {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
-        })
-      }
-    );
-    if (resp.ok) { data = await resp.json(); break; }
-    console.warn('[BNCC IA] Modelo', modelo, 'falhou:', resp.status);
-  }
-  if (!data) return null;
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  const clean = _geminiExtrairJSON(text, true);
-  if (!clean) return null;
-  const parsed = JSON.parse(clean);
-  return Array.isArray(parsed) && parsed.length ? parsed : null;
-}
 
 // ── Fechar dropdown ao clicar fora ────────────────────────────────────────────
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#aula-bncc') && !e.target.closest('#bncc-autocomplete-dropdown')) {
-    _bnccFecharDropdown();
+  if (!e.target.closest('#aula-bncc') && !e.target.closest('#habilidades-aula-dropdown')) {
+    _fecharDropdownHabilidadesAula();
   }
 }, true);
 
-// ── Hook: invalida cache ao reprocessar plano ─────────────────────────────────
-(function() {
-  const origReprocessar = window.reprocessarPlanoIA;
-  window.reprocessarPlanoIA = async function(...args) {
-    window._bnccInvalidarCache();
-    if (origReprocessar) return origReprocessar.apply(this, args);
-  };
-})();
+// ── Persiste os vínculos aula↔habilidades (delete-then-insert) ───────────────
+async function _salvarVinculosHabilidadesAula(aulaId, habilidadesSelecionadas) {
+  if (!aulaId) return;
+  try {
+    await api(`aula_habilidades?aula_id=eq.${aulaId}`, { method: 'DELETE' });
+  } catch (e) {
+    console.error('[HABILIDADES AULA] Erro ao limpar vínculos antigos:', e);
+  }
+  if (!habilidadesSelecionadas || !habilidadesSelecionadas.length) return;
+  const payload = habilidadesSelecionadas.map(h => ({ aula_id: aulaId, habilidade_id: h.id }));
+  try {
+    await api('aula_habilidades', { method: 'POST', body: JSON.stringify(payload) });
+  } catch (e) {
+    console.error('[HABILIDADES AULA] Erro ao salvar vínculos novos:', e);
+  }
+}
+window._salvarVinculosHabilidadesAula = _salvarVinculosHabilidadesAula;
 
 // ─── 4. MULTI AULAS ─────────────────────────────────────────────────────────
 window.abrirMultiAulas = async function() {
@@ -1115,6 +1074,8 @@ window.abrirMultiAulas = async function() {
     document.getElementById('multi-aulas-tema').value = '';
     document.getElementById('multi-aulas-desc').value = '';
     document.getElementById('multi-aulas-bncc').value = '';
+    _habilidadesMultiAulaSelecionadas = [];
+    _renderChipsHabilidadesMultiAula();
     document.getElementById('multi-aulas-datas').innerHTML = '';
     document.getElementById('multi-aulas-alert').style.display = 'none';
     window._adicionarLinhaDataMulti();
@@ -1164,7 +1125,6 @@ window.salvarMultiAulas = async function() {
     // Validações de campos
     const tema = document.getElementById('multi-aulas-tema').value.trim();
     const desc = document.getElementById('multi-aulas-desc').value.trim();
-    const bncc = document.getElementById('multi-aulas-bncc').value.trim() || null;
 
     if (!tema) { alEl.textContent = 'O tema é obrigatório.'; alEl.style.display = 'block'; return; }
     if (!desc) { alEl.textContent = 'A descrição é obrigatória.'; alEl.style.display = 'block'; return; }
@@ -1192,7 +1152,6 @@ window.salvarMultiAulas = async function() {
       turma_id: turmaAtiva.id,
       turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
       professor_id: profData.id,
-      ...(bncc ? { habilidade_bncc: bncc } : {}),
     }));
 
     const res = await api('aulas', { method: 'POST', body: JSON.stringify(aulasPayload) });
@@ -1201,6 +1160,9 @@ window.salvarMultiAulas = async function() {
       aulasTurma.push(a);
       if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
     });
+    if (_habilidadesMultiAulaSelecionadas.length) {
+      await Promise.all(criadas.map(a => _salvarVinculosHabilidadesAula(a.id, _habilidadesMultiAulaSelecionadas)));
+    }
     if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     fecharModal('modal-multi-aulas');
     if (typeof renderListaAulas === 'function') renderListaAulas();
@@ -1218,6 +1180,117 @@ window.salvarMultiAulas = async function() {
     if (btn) { btn.disabled = false; btn.textContent = 'Criar aulas'; }
   }
 };
+
+// ── Multi-seleção de habilidades no modal de Multi Aulas ──────────────────────
+// Reaproveita o cache de _habilidadesAulaCarregarCache(); mantém seleção própria
+// (aplicada a todas as datas de uma vez ao salvar).
+let _habilidadesMultiAulaSelecionadas = [];
+
+function _renderChipsHabilidadesMultiAula() {
+  const wrap = document.getElementById('multi-aulas-bncc-chips');
+  if (!wrap) return;
+  if (!_habilidadesMultiAulaSelecionadas.length) {
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'flex';
+  wrap.style.flexWrap = 'wrap';
+  wrap.style.gap = '6px';
+  wrap.innerHTML = _habilidadesMultiAulaSelecionadas.map(h => `
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;">
+      ${h.codigo}
+      <button type="button" onclick="_removerHabilidadeMultiAula('${h.id}')" style="border:none;background:none;color:#3B4FE4;cursor:pointer;padding:0;display:flex;align-items:center;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </span>
+  `).join('');
+}
+
+window._removerHabilidadeMultiAula = function(habilidadeId) {
+  _habilidadesMultiAulaSelecionadas = _habilidadesMultiAulaSelecionadas.filter(h => String(h.id) !== String(habilidadeId));
+  _renderChipsHabilidadesMultiAula();
+};
+
+let _multiAulaBnccDropdownEl = null;
+
+function _criarDropdownHabilidadesMultiAula() {
+  if (_multiAulaBnccDropdownEl) return _multiAulaBnccDropdownEl;
+  const inp = document.getElementById('multi-aulas-bncc');
+  if (!inp) return null;
+  const d = document.createElement('div');
+  d.id = 'habilidades-multi-aula-dropdown';
+  d.style.cssText = `
+    position:absolute;z-index:9999;background:var(--white);
+    border:1.5px solid var(--border);border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.12);
+    max-height:220px;overflow-y:auto;min-width:100%;
+    top:calc(100% + 4px);left:0;
+  `;
+  const wrap = inp.parentElement;
+  if (wrap && getComputedStyle(wrap).position === 'static') {
+    wrap.style.position = 'relative';
+  }
+  wrap?.appendChild(d);
+  _multiAulaBnccDropdownEl = d;
+  return d;
+}
+
+window._fecharDropdownHabilidadesMultiAula = function() {
+  if (_multiAulaBnccDropdownEl) {
+    _multiAulaBnccDropdownEl.remove();
+    _multiAulaBnccDropdownEl = null;
+  }
+};
+
+function _renderDropdownHabilidadesMultiAula(itens) {
+  const d = _criarDropdownHabilidadesMultiAula();
+  if (!d) return;
+  if (!itens.length) { window._fecharDropdownHabilidadesMultiAula(); return; }
+  d.innerHTML = itens.map(h => `
+    <div style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);"
+      onmouseenter="this.style.background='#F0F4FF'" onmouseleave="this.style.background=''"
+      onclick="_selecionarHabilidadeMultiAulaDropdown('${h.id}')">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="padding:2px 8px;border-radius:20px;background:#EEF2FF;color:#3B4FE4;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;">${h.codigo||'—'}</span>
+        <span style="font-size:12px;color:var(--text);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${(h.descricao||'').replace(/</g,'&lt;')}</span>
+      </div>
+    </div>`).join('');
+}
+
+window._selecionarHabilidadeMultiAulaDropdown = async function(habilidadeId) {
+  const habs = await _habilidadesAulaCarregarCache();
+  const h = habs.find(x => String(x.id) === String(habilidadeId));
+  if (h && !_habilidadesMultiAulaSelecionadas.some(sel => String(sel.id) === String(h.id))) {
+    _habilidadesMultiAulaSelecionadas.push({ id: h.id, codigo: h.codigo, descricao: h.descricao });
+    _renderChipsHabilidadesMultiAula();
+  }
+  const inp = document.getElementById('multi-aulas-bncc');
+  if (inp) inp.value = '';
+  window._fecharDropdownHabilidadesMultiAula();
+};
+
+let _multiAulaBnccDebounce = null;
+window.onMultiAulaBnccInput = async function() {
+  clearTimeout(_multiAulaBnccDebounce);
+  const query = (document.getElementById('multi-aulas-bncc')?.value || '').trim();
+  if (query.length < 1) { window._fecharDropdownHabilidadesMultiAula(); return; }
+  _multiAulaBnccDebounce = setTimeout(async () => {
+    const habs = await _habilidadesAulaCarregarCache();
+    const q = query.toLowerCase();
+    const filtrados = habs
+      .filter(h => !_habilidadesMultiAulaSelecionadas.some(sel => String(sel.id) === String(h.id)))
+      .filter(h => (h.codigo||'').toLowerCase().includes(q) || (h.descricao||'').toLowerCase().includes(q))
+      .slice(0, 8);
+    _renderDropdownHabilidadesMultiAula(filtrados);
+  }, 250);
+};
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#multi-aulas-bncc') && !e.target.closest('#habilidades-multi-aula-dropdown')) {
+    window._fecharDropdownHabilidadesMultiAula();
+  }
+}, true);
 
 // ─── 5. MENU ⋯ (três pontinhos) ─────────────────────────────────────────────
 window.toggleMenuPontinhos = function(secao, btn) {
@@ -1287,6 +1360,9 @@ const _AULA_PDF_INICIO = '### AULA-SIDED ###';
 const _AULA_PDF_FIM = '### FIM-AULA-SIDED ###';
 
 function _camposBlocoAula(a) {
+  // a._habilidadesTexto é pré-carregado por exportarAulasPDF (aula_habilidades),
+  // com fallback ao campo texto antigo (aulas históricas sem vínculo novo).
+  const bncc = a._habilidadesTexto || a.habilidade_bncc || '';
   return [
     _AULA_PDF_INICIO,
     `ID: ${a.id}`,
@@ -1294,10 +1370,31 @@ function _camposBlocoAula(a) {
     `NOME: ${a.nome || ''}`,
     `STATUS: ${a.status || ''}`,
     `DISCIPLINA: ${a.disciplina || ''}`,
-    `BNCC: ${a.habilidade_bncc || ''}`,
+    `BNCC: ${bncc}`,
     `DESCRICAO: ${(a.descricao || '').replace(/\s*\n\s*/g, ' ')}`,
     _AULA_PDF_FIM,
   ];
+}
+
+// Busca os códigos de habilidades vinculadas (aula_habilidades) para um lote
+// de aulas e retorna um mapa aula_id -> "COD1, COD2".
+async function _buscarHabilidadesTextoParaAulas(aulaIds) {
+  if (!aulaIds || !aulaIds.length) return {};
+  try {
+    const rows = await api(
+      `aula_habilidades?aula_id=in.(${aulaIds.join(',')})&select=aula_id,habilidades_planejamento(codigo)`
+    ) || [];
+    const mapa = {};
+    rows.forEach(r => {
+      const cod = r.habilidades_planejamento?.codigo;
+      if (!cod) return;
+      mapa[r.aula_id] = mapa[r.aula_id] ? `${mapa[r.aula_id]}, ${cod}` : cod;
+    });
+    return mapa;
+  } catch (e) {
+    console.error('[EXPORTAR PDF] Erro ao buscar habilidades:', e);
+    return {};
+  }
 }
 
 async function exportarAulasPDF(lista, nomeArquivo) {
@@ -1306,6 +1403,9 @@ async function exportarAulasPDF(lista, nomeArquivo) {
     return;
   }
   try {
+    const habilidadesTextoMap = await _buscarHabilidadesTextoParaAulas(lista.map(a => a.id));
+    lista.forEach(a => { a._habilidadesTexto = habilidadesTextoMap[a.id] || ''; });
+
     await _garantirJsPDF();
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1410,7 +1510,7 @@ async function _extrairTextoDePDF(file) {
 
 const _MAPA_ROTULOS_AULA_PDF = {
   'DATA:': 'data', 'NOME:': 'nome', 'STATUS:': 'status',
-  'DISCIPLINA:': 'disciplina', 'BNCC:': 'habilidade_bncc', 'DESCRICAO:': 'descricao',
+  'DISCIPLINA:': 'disciplina', 'BNCC:': 'habilidades_bncc_texto', 'DESCRICAO:': 'descricao',
 };
 
 function _parsearAulasDoTextoPDF(texto) {
@@ -1421,7 +1521,7 @@ function _parsearAulasDoTextoPDF(texto) {
 
   linhas.forEach(linha => {
     if (linha === _AULA_PDF_INICIO) {
-      atual = { id_origem: null, data: '', nome: '', status: '', disciplina: '', habilidade_bncc: '', descricao: '' };
+      atual = { id_origem: null, data: '', nome: '', status: '', disciplina: '', habilidades_bncc_texto: '', descricao: '' };
       campoAtual = null;
       return;
     }
@@ -1469,6 +1569,21 @@ window.importarAulasPDF = function() {
   input.click();
 };
 
+// Casa os códigos de texto (separados por vírgula) do BNCC do PDF com as
+// habilidades cadastradas na turma_disciplina ativa. Códigos que não existirem
+// em habilidades_planejamento são ignorados silenciosamente (não bloqueiam a
+// importação — o professor cadastra depois se quiser vincular).
+async function _resolverHabilidadesTextoParaIds(textoBncc) {
+  if (!textoBncc) return [];
+  const codigos = textoBncc.split(',').map(c => c.trim()).filter(Boolean);
+  if (!codigos.length) return [];
+  const habs = await _habilidadesAulaCarregarCache();
+  return codigos
+    .map(cod => habs.find(h => (h.codigo || '').toLowerCase() === cod.toLowerCase()))
+    .filter(Boolean)
+    .map(h => h.id);
+}
+
 async function _processarImportacaoAulasPDF(file) {
   if (typeof mostrarToast === 'function') mostrarToast('Lendo PDF...');
   try {
@@ -1492,7 +1607,6 @@ async function _processarImportacaoAulasPDF(file) {
         turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
         professor_id: profData.id,
         ...(a.disciplina ? { disciplina: a.disciplina } : {}),
-        ...(a.habilidade_bncc ? { habilidade_bncc: a.habilidade_bncc } : {}),
       };
     });
 
@@ -1502,6 +1616,18 @@ async function _processarImportacaoAulasPDF(file) {
       aulasTurma.push(a);
       if (typeof chamadaCacheSet === 'function') chamadaCacheSet(a.id, false);
     });
+
+    // Vincula habilidades reconhecidas (por código) a cada aula importada
+    for (let i = 0; i < criadas.length; i++) {
+      const idsHabilidades = await _resolverHabilidadesTextoParaIds(aulasEncontradas[i]?.habilidades_bncc_texto);
+      if (idsHabilidades.length) {
+        await api('aula_habilidades', {
+          method: 'POST',
+          body: JSON.stringify(idsHabilidades.map(id => ({ aula_id: criadas[i].id, habilidade_id: id }))),
+        });
+      }
+    }
+
     if (typeof cacheSalvar === 'function') cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     if (typeof renderListaAulas === 'function') renderListaAulas();
     if (typeof atualizarContadorAulas === 'function') atualizarContadorAulas();
@@ -1634,14 +1760,16 @@ function _renderListaDiaCal(iso) {
     lista.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Nenhuma aula nesse dia.</div>`;
     return;
   }
-  lista.innerHTML = aulasDoDia.map(a => `
+  lista.innerHTML = aulasDoDia.map(a => {
+    const bncc = _habilidadesTextoPorAula[a.id] || a.habilidade_bncc || '';
+    return `
     <div onclick="editarAula('${a.id}')" style="cursor:pointer;padding:9px 11px;border-radius:8px;background:#F8F6FF;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
         <span style="font-size:12px;font-weight:700;color:var(--text);">${a.nome || 'Sem tema'}</span>
-        ${a.habilidade_bncc ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${a.habilidade_bncc}</span>` : ''}
+        ${bncc ? `<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${bncc}</span>` : ''}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function calAulasBuscar(termo) {
@@ -1658,7 +1786,7 @@ function calAulasBuscar(termo) {
   const resultados = (aulasTurma || []).filter(a => {
     const nome = (a.nome || '').toLowerCase();
     const desc = (a.descricao || '').toLowerCase();
-    const bncc = (a.habilidade_bncc || '').toLowerCase();
+    const bncc = (_habilidadesTextoPorAula[a.id] || a.habilidade_bncc || '').toLowerCase();
     return nome.includes(t) || desc.includes(t) || bncc.includes(t);
   });
   if (!resultados.length) {
@@ -1667,13 +1795,14 @@ function calAulasBuscar(termo) {
   }
   lista.innerHTML = resultados.map(a => {
     const d = a.data?.includes('T') ? a.data.split('T')[0] : a.data;
+    const bncc = _habilidadesTextoPorAula[a.id] || a.habilidade_bncc || '';
     return `
     <div onclick="editarAula('${a.id}')" style="cursor:pointer;padding:9px 11px;border-radius:8px;background:#F8F6FF;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
         <span style="font-size:12px;font-weight:700;color:var(--text);">${a.nome || 'Sem tema'}</span>
         <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${d ? _formatarDataLabel(d) : ''}</span>
       </div>
-      ${a.habilidade_bncc ? `<span style="font-size:10px;color:var(--text-muted);">${a.habilidade_bncc}</span>` : ''}
+      ${bncc ? `<span style="font-size:10px;color:var(--text-muted);">${bncc}</span>` : ''}
     </div>`;
   }).join('');
 }
@@ -1748,7 +1877,7 @@ function _renderFormNovaAulaCal() {
       <input class="nac-ind-tema" placeholder="Tema" style="width:100%;box-sizing:border-box;margin-bottom:6px;">
       <textarea class="nac-ind-conteudo" rows="2" placeholder="Conteúdo, estratégias, recursos..."
         style="width:100%;padding:8px 10px;background:#F8F6FF;border:1.5px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;margin-bottom:6px;"></textarea>
-      <input class="nac-ind-bncc" placeholder="Habilidade BNCC (opcional)" style="width:100%;box-sizing:border-box;">
+      <input class="nac-ind-bncc" placeholder="Código(s) BNCC, separados por vírgula (opcional)" style="width:100%;box-sizing:border-box;">
     </div>
   `).join('');
 }
@@ -1764,6 +1893,7 @@ async function salvarNovaAulaCal() {
   const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
   const btn = document.getElementById('btn-salvar-nova-aula-cal');
   const bodies = [];
+  const bnccTextoPorIndice = []; // mesmo índice de bodies — resolvido após o insert
 
   if (_calAulasModo === 'mesmo') {
     const tema = document.getElementById('nac-tema').value.trim();
@@ -1774,8 +1904,9 @@ async function salvarNovaAulaCal() {
       bodies.push({
         data: iso, nome: tema, descricao: conteudo, status: 'pendente',
         turma_id: turmaAtiva.id, turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
-        professor_id: profData.id, habilidade_bncc: bncc || null
+        professor_id: profData.id
       });
+      bnccTextoPorIndice.push(bncc);
     });
   } else {
     const cards = document.querySelectorAll('#painel-nova-aula-form-individual [data-iso]');
@@ -1789,8 +1920,9 @@ async function salvarNovaAulaCal() {
       bodies.push({
         data: iso, nome: tema, descricao: conteudo, status: 'pendente',
         turma_id: turmaAtiva.id, turma_disciplina_id: turmaDisciplinaAtiva?.id || null,
-        professor_id: profData.id, habilidade_bncc: bncc || null
+        professor_id: profData.id
       });
+      bnccTextoPorIndice.push(bncc);
     });
     if (algumVazio || !bodies.length) {
       alertEl.textContent = 'Informe o tema de cada data.';
@@ -1805,6 +1937,19 @@ async function salvarNovaAulaCal() {
     const res = await api('aulas', { method: 'POST', body: JSON.stringify(bodies) }) || [];
     const novas = res.length ? res : bodies.map((b, i) => ({ ...b, id: `${Date.now()}_${i}` }));
     novas.forEach(n => { aulasTurma.push(n); chamadaCacheSet(n.id, false); });
+
+    // Resolve e vincula habilidades BNCC informadas por código (opcional)
+    for (let i = 0; i < novas.length; i++) {
+      const idsHabilidades = await _resolverHabilidadesTextoParaIds(bnccTextoPorIndice[i]);
+      if (idsHabilidades.length) {
+        await api('aula_habilidades', {
+          method: 'POST',
+          body: JSON.stringify(idsHabilidades.map(id => ({ aula_id: novas[i].id, habilidade_id: id }))),
+        });
+      }
+    }
+    await _carregarHabilidadesTextoPorAula();
+
     cacheSalvar(turmaAtiva.id, 'aulas', aulasTurma);
     if (typeof mostrarToastAula === 'function') mostrarToastAula(novas.length);
     else if (typeof mostrarToast === 'function') mostrarToast(`${novas.length} aula(s) criada(s)!`);

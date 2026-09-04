@@ -83,7 +83,7 @@ async function _carregarContextoTurmaViaDisciplina(td) {
 const todasPaginas = [
   'turma-screen','pagina-aulas','pagina-chamada','pagina-avaliacoes','notas-screen',
   'pagina-relatorio-geral','pagina-mapeamento-sala',
-  'pagina-calendario-escolar','pagina-comunicacao','pagina-plano-curso'
+  'pagina-calendario-escolar','pagina-comunicacao','pagina-planejamento'
 ];
 
 const _abaParaSegmento = {
@@ -93,7 +93,7 @@ const _abaParaSegmento = {
   'relatorio-geral': 'relatorio',
   'mapeamento-sala': 'mapeamento',
   'calendario-escolar': 'calendario',
-  'plano-curso': 'plano-curso'
+  'planejamento': 'planejamento'
 };
 
 const _segmentoParaAba = Object.fromEntries(
@@ -371,11 +371,11 @@ async function _executarAbrirPagina(pagina, opts = {}) {
         document.getElementById('pagina-calendario-escolar').style.display = 'block';
         break;
 
-      case 'plano-curso':
-        atualizarCabecalho({ info: 'Plano de Curso', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
-        atualizarHeaderMobile('Plano de Curso', nome, true, true);
-        if (typeof iniciarPlanoCurso === 'function') await iniciarPlanoCurso();
-        document.getElementById('pagina-plano-curso').style.display = 'block';
+      case 'planejamento':
+        atualizarCabecalho({ info: 'Planejamento', titulo: nome, detalhe: 'Voltar à turma', voltarFn: 'voltarTurma', cor: '#BE185D' });
+        atualizarHeaderMobile('Planejamento', nome, true, true);
+        if (typeof iniciarPlanejamento === 'function') await iniciarPlanejamento();
+        document.getElementById('pagina-planejamento').style.display = 'block';
         break;
 
       default:
