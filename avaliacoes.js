@@ -1067,7 +1067,7 @@ async function abrirNotasGrupo(grupoId) {
               <td style="font-weight:600;">${al.nome_completo}${tagRemanejado(al)}</td>
               ${subAvals.map(sa => {
                 const notaAtual = notasPorAvalAluno[`${sa.id}::${al.id}`]?.nota;
-                return `<td><input id="gnota-${sa.id}-${al.id}" type="number" min="0" max="${Number(sa.pontos || 0)}" step="0.5"
+                return `<td><input id="gnota-${sa.id}-${al.id}" type="number" max="${Number(sa.pontos || 0)}" step="0.5"
                   value="${notaAtual !== null && notaAtual !== undefined ? Number(notaAtual) : ''}"
                   oninput="atualizarTotalGrupoAluno('${al.id}')"
                   style="width:86px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;outline:none;" /></td>`;
@@ -1086,7 +1086,8 @@ function atualizarTotalGrupoAluno(alunoId) {
   if (!modoGrupoNotasAtivo || !modoGrupoNotasAtivo.subAvals?.length) return;
   const valores = modoGrupoNotasAtivo.subAvals.map(sa => Number(document.getElementById(`gnota-${sa.id}-${alunoId}`)?.value || 0));
   const soma = valores.reduce((acc, v) => acc + v, 0);
-  const finalValor = modoGrupoNotasAtivo.tipo === 'media' && valores.length ? (soma / valores.length) : soma;
+  const finalValorBruto = modoGrupoNotasAtivo.tipo === 'media' && valores.length ? (soma / valores.length) : soma;
+  const finalValor = Math.max(0, finalValorBruto);
   const target = document.getElementById(`gtotal-${alunoId}`);
   if (target) target.textContent = finalValor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
@@ -1111,9 +1112,10 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
     const recParalela = (n.recuperacao_paralela !== null && n.recuperacao_paralela !== undefined) ? Number(n.recuperacao_paralela) : 0;
 
     // nota final = soma do trimestre + nota da recuperação + recuperação paralela (igual ao relatório)
-    const notaFinal = isRecup && !n.nao_realizado
+    // valores negativos em nota/recuperação são permitidos e subtraem do total, mas o resultado nunca fica abaixo de 0
+    const notaFinal = Math.max(0, isRecup && !n.nao_realizado
       ? totalNormal + recNota + recParalela
-      : totalNormal;
+      : totalNormal);
 
     const abaixo = notaFinal < mediaMin;
 
@@ -1139,7 +1141,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
       <div class="nota-row-inputs">
         <div class="nota-inline-group">
           <span class="nota-inline-label">${isConfirmar ? 'Nota somada:' : isRecup ? 'Nota da recuperação:' : 'Nota:'}</span>
-          <input class="nota-input-pill" id="nota-${a.id}" data-col="nota" type="number" inputmode="decimal" enterkeyhint="next" min="0" max="${avaliacaoAtiva.pontos}" step="0.5"
+          <input class="nota-input-pill" id="nota-${a.id}" data-col="nota" type="number" inputmode="decimal" enterkeyhint="next" max="${avaliacaoAtiva.pontos}" step="0.5"
             value="${isConfirmar ? (somaTri[a.id] || 0).toFixed(2) : (n.nota !== undefined && n.nota !== null ? n.nota : '')}"
             placeholder="–"
             ${n.nao_realizado ? 'disabled' : ''}
@@ -1148,7 +1150,7 @@ const renderNotasAlunos = (lista, mapNotas, somaTri, mediaMin, isRecup, totalTri
         </div>
         <div class="nota-inline-group">
           <span class="nota-inline-label" style="${isConfirmar ? 'color:#7C3AED;font-weight:700;' : ''}">${isConfirmar ? 'Nota final:' : 'Recuperação Paralela:'}</span>
-          <input class="nota-input-pill" id="rec-${a.id}" data-col="rec" type="number" inputmode="decimal" enterkeyhint="next" min="0" step="0.5"
+          <input class="nota-input-pill" id="rec-${a.id}" data-col="rec" type="number" inputmode="decimal" enterkeyhint="next" step="0.5"
             value="${n.recuperacao_paralela !== undefined && n.recuperacao_paralela !== null ? n.recuperacao_paralela : ''}"
             placeholder="${isConfirmar ? 'Inserir nota final' : '–'}"
             style="${isConfirmar ? 'border-color:#7C3AED;font-weight:700;color:#7C3AED;' : ''}"
@@ -1416,7 +1418,7 @@ async function renderModalNotasAluno() {
             <div style="font-size:13px;font-weight:700;color:${isAtiva ? '#FF8C38' : 'var(--text)'};">${_nomeExibicaoAval(aval)}${isAtiva ? ' <span style="font-size:10px;background:#FF8C38;color:#fff;padding:2px 6px;border-radius:10px;vertical-align:middle;">atual</span>' : ''}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${aval.pontos} pts · ${aval.tipo === 'normal' ? 'Normal' : 'Recuperação'}</div>
           </div>
-          <input id="mna-nota-${aval.id}" type="number" min="0" max="${aval.pontos}" step="0.5"
+          <input id="mna-nota-${aval.id}" type="number" max="${aval.pontos}" step="0.5"
             value="${valNota}" placeholder="–"
             style="width:80px;padding:8px 10px;border:1.5px solid ${isAtiva ? '#FF8C38' : 'var(--border)'};border-radius:8px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:${isAtiva ? '#FF8C38' : 'var(--text)'};text-align:center;outline:none;"
             onfocus="this.style.borderColor='#FF8C38'"
@@ -1717,14 +1719,16 @@ function atualizarTotal(alunoId) {
     const ausChecked = document.getElementById(`aus-${alunoId}`)?.checked || false;
     const notaRecup  = (nrChecked || ausChecked) ? 0 : nota;
     // soma: total do trimestre + nota da recuperação + recuperação paralela
-    const novaTotal = somaTurma + notaRecup + rec;
+    // valores negativos em nota/rec subtraem do total, mas o resultado exibido nunca fica abaixo de 0
+    const novaTotal = Math.max(0, somaTurma + notaRecup + rec);
     const breakdown = (notaRecup > 0 || rec > 0) ? ` <span style="font-size:11px;color:#166534;">(${somaTurma.toFixed(1)} + ${(notaRecup+rec).toFixed(1)} rec.)</span>` : '';
     el.innerHTML = `Nota final: <strong>${novaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>${breakdown}`;
   } else {
     const notaSalva = mapNotas[alunoId]?.nota;
     const notaSalvaNum = (notaSalva !== null && notaSalva !== undefined) ? Number(notaSalva) : 0;
     const totalSemAtual = somaTurma - notaSalvaNum;
-    const totalComNova = totalSemAtual + nota + rec;
+    // valores negativos em nota/rec subtraem do total, mas o resultado exibido nunca fica abaixo de 0
+    const totalComNova = Math.max(0, totalSemAtual + nota + rec);
     el.innerHTML = `Notas do Aluno: <strong>${totalComNova.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>`;
   }
 }
