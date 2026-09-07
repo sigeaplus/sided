@@ -77,6 +77,7 @@ async function iniciarPlanejamento() {
   }
 
   await carregarHabilidadesPlanejamento();
+  await pgInicializar();
 }
 
 function _planejamentoExibirUrl(url, isPdf = false) {
@@ -453,3 +454,217 @@ window.removerHabilidadePlanejamento = removerHabilidadePlanejamento;
 window.abrirModalVincularHabilidade = abrirModalVincularHabilidade;
 window._toggleTurmaVincular = _toggleTurmaVincular;
 window.confirmarVincularHabilidade = confirmarVincularHabilidade;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GERAR PLANO DE AULA / PLANO SEMANAL — integrado à aba Planejamento
+// Reaproveita planos_gerador.js (jsPDF) e planos_assets.js (logo/brasão).
+// Diferente do gerador standalone: usa turmaAtiva/turmaDisciplinaAtiva e a
+// api() já disponíveis no dashboard, sem depender de sessionStorage próprio.
+// ═════════════════════════════════════════════════════════════════════════════
+
+let _pgTurmasProfessor = [];
+let _pgTurmasSelecionadasAula = new Set();
+let _pgTurmasSelecionadasSem = new Set();
+let _pgDiaContador = 0;
+
+function pgMudarAba(aba) {
+  document.getElementById('pg-tab-aula').classList.toggle('pg-tab-active', aba === 'aula');
+  document.getElementById('pg-tab-semanal').classList.toggle('pg-tab-active', aba === 'semanal');
+  document.getElementById('pg-tab-aula').style.background = aba === 'aula' ? '#BE185D' : 'none';
+  document.getElementById('pg-tab-aula').style.color = aba === 'aula' ? '#fff' : 'var(--text-muted)';
+  document.getElementById('pg-tab-aula').style.borderColor = aba === 'aula' ? '#BE185D' : 'var(--border)';
+  document.getElementById('pg-tab-semanal').style.background = aba === 'semanal' ? '#BE185D' : 'none';
+  document.getElementById('pg-tab-semanal').style.color = aba === 'semanal' ? '#fff' : 'var(--text-muted)';
+  document.getElementById('pg-tab-semanal').style.borderColor = aba === 'semanal' ? '#BE185D' : 'var(--border)';
+  document.getElementById('pg-painel-aula').style.display = aba === 'aula' ? 'block' : 'none';
+  document.getElementById('pg-painel-semanal').style.display = aba === 'semanal' ? 'block' : 'none';
+}
+
+async function pgInicializar() {
+  await _garantirJsPDFPlanos();
+  _pgTurmasSelecionadasAula = new Set();
+  _pgTurmasSelecionadasSem = new Set();
+
+  // Preenche professor com o nome da sessão, se disponível
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  const campoProf = document.getElementById('pg-pa-professor');
+  if (campoProf && !campoProf.value) campoProf.value = profData.nome || '';
+
+  // Turma(s) de destino: todas as turma_disciplinas do professor
+  try {
+    const tds = await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,turmas(nome),disciplinas(nome)`) || [];
+    _pgTurmasProfessor = tds.map(td => ({
+      tdId: td.id,
+      turmaNome: td.turmas?.nome || '(turma)',
+      componente: td.disciplinas?.nome || '',
+    }));
+  } catch (e) {
+    console.error('[PLANOS] Erro ao carregar turmas do professor:', e);
+    _pgTurmasProfessor = [];
+  }
+
+  ['aula', 'sem'].forEach(sufixo => {
+    const wrap = document.getElementById(`pg-turmas-lista-${sufixo}`);
+    if (!wrap) return;
+    if (!_pgTurmasProfessor.length) {
+      wrap.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">Nenhuma turma encontrada.</span>';
+      return;
+    }
+    wrap.innerHTML = _pgTurmasProfessor.map(t => `
+      <span class="pg-turma-chip" data-td="${t.tdId}" data-sufixo="${sufixo}" onclick="pgToggleTurmaChip(this)"
+        style="display:inline-flex;align-items:center;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;cursor:pointer;margin:0 6px 6px 0;">
+        ${t.turmaNome}
+      </span>
+    `).join('');
+  });
+
+  // Preenche campos de turma/componente texto com a turma ativa atual, como default
+  const discLabel = turmaDisciplinaAtiva?.disciplinas?.nome || turmaAtiva?.disciplina || '';
+  const campoTurmaAula = document.getElementById('pg-pa-turma');
+  const campoCompAula = document.getElementById('pg-pa-componente');
+  const campoTurmaSem = document.getElementById('pg-ps-turma');
+  const campoCompSem = document.getElementById('pg-ps-componente');
+  if (campoTurmaAula && !campoTurmaAula.value) campoTurmaAula.value = turmaAtiva?.nome || '';
+  if (campoCompAula && !campoCompAula.value) campoCompAula.value = discLabel;
+  if (campoTurmaSem && !campoTurmaSem.value) campoTurmaSem.value = turmaAtiva?.nome || '';
+  if (campoCompSem && !campoCompSem.value) campoCompSem.value = discLabel;
+
+  // Habilidades cadastradas na turma ativa, para os dois selects de atalho
+  const selAula = document.getElementById('pg-hab-select-aula');
+  const selSem = document.getElementById('pg-hab-select-sem');
+  const opcoes = '<option value="">Selecionar habilidade cadastrada...</option>' +
+    (_habilidadesPlanejamentoCache || []).map(h => `<option value="${h.codigo} — ${h.descricao}">${h.codigo}</option>`).join('');
+  if (selAula) selAula.innerHTML = opcoes;
+  if (selSem) selSem.innerHTML = opcoes;
+
+  // Ao menos 2 dias por padrão no plano semanal, só na primeira vez
+  const diasLista = document.getElementById('pg-dias-lista');
+  if (diasLista && !diasLista.children.length) {
+    pgAdicionarDiaSemanal({ titulo: 'SEGUNDA-FEIRA (AULA 01)' });
+    pgAdicionarDiaSemanal({ titulo: 'TERÇA-FEIRA (AULA 02)' });
+  }
+}
+
+function pgToggleTurmaChip(el) {
+  const sufixo = el.dataset.sufixo;
+  const set = sufixo === 'aula' ? _pgTurmasSelecionadasAula : _pgTurmasSelecionadasSem;
+  const td = el.dataset.td;
+  if (set.has(td)) {
+    set.delete(td);
+    el.style.background = 'none'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text)';
+  } else {
+    set.add(td);
+    el.style.background = '#BE185D'; el.style.borderColor = '#BE185D'; el.style.color = '#fff';
+  }
+}
+
+function pgAdicionarDiaSemanal(valores) {
+  _pgDiaContador++;
+  const id = `pg-dia-${_pgDiaContador}`;
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+  wrap.id = id;
+  wrap.style.cssText = 'border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;position:relative;';
+  wrap.innerHTML = `
+    <button type="button" onclick="document.getElementById('${id}').remove()" title="Remover dia"
+      style="position:absolute;top:8px;right:8px;border:none;background:none;color:#DC2626;cursor:pointer;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="field"><label>Título da coluna (dia + aula)</label><input class="pg-dia-titulo" placeholder="Ex: SEGUNDA-FEIRA (AULA 01)" value="${valores?.titulo || ''}"></div>
+    <div class="field"><label>Tema</label><input class="pg-dia-tema" placeholder="Tema da aula deste dia" value="${valores?.tema || ''}"></div>
+    <div class="field"><label>Objetivo</label><textarea class="pg-dia-objetivo" style="min-height:40px;">${valores?.objetivo || ''}</textarea></div>
+    <div class="field"><label>Metodologia</label><textarea class="pg-dia-metodologia" style="min-height:40px;">${valores?.metodologia || ''}</textarea></div>
+    <div class="field"><label>Conteúdo</label><textarea class="pg-dia-conteudo" style="min-height:40px;">${valores?.conteudo || ''}</textarea></div>
+    <div class="field" style="margin-bottom:0;"><label>Observações</label><textarea class="pg-dia-obs" style="min-height:32px;">${valores?.obs || ''}</textarea></div>
+  `;
+  document.getElementById('pg-dias-lista').appendChild(wrap);
+}
+
+async function pgGerarPlanoAula() {
+  const statusEl = document.getElementById('pg-status-aula');
+  statusEl.style.display = 'none';
+  const dados = {
+    professor: document.getElementById('pg-pa-professor').value.trim(),
+    periodo: document.getElementById('pg-pa-periodo').value.trim(),
+    turma: document.getElementById('pg-pa-turma').value.trim(),
+    componente: document.getElementById('pg-pa-componente').value.trim(),
+    tema: document.getElementById('pg-pa-tema').value.trim(),
+    habilidades: document.getElementById('pg-pa-habilidades').value.trim(),
+    objetivo: document.getElementById('pg-pa-objetivo').value.trim(),
+    metodologia: document.getElementById('pg-pa-metodologia').value.trim(),
+    recursos: document.getElementById('pg-pa-recursos').value.trim(),
+    conteudo: document.getElementById('pg-pa-conteudo').value.trim(),
+    avaliacao: document.getElementById('pg-pa-avaliacao').value.trim(),
+    observacoes: document.getElementById('pg-pa-observacoes').value.trim(),
+  };
+  if (!dados.tema) {
+    statusEl.className = 'err'; statusEl.style.cssText += 'background:#FEF2F2;color:#B91C1C;border:1px solid #FCA5A5;display:block;';
+    statusEl.textContent = 'Informe ao menos o Tema para gerar o PDF.';
+    return;
+  }
+  try {
+    const turmasNomes = _pgTurmasSelecionadasAula.size
+      ? _pgTurmasProfessor.filter(t => _pgTurmasSelecionadasAula.has(String(t.tdId))).map(t => t.turmaNome)
+      : [];
+    await gerarPlanoAulaMultiTurma(dados, turmasNomes);
+    statusEl.style.cssText += 'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;display:block;';
+    statusEl.textContent = `✅ PDF gerado${turmasNomes.length > 1 ? ` (${turmasNomes.length} turmas)` : ''}!`;
+  } catch (e) {
+    console.error('[PLANOS] Erro ao gerar plano de aula:', e);
+    statusEl.style.cssText += 'background:#FEF2F2;color:#B91C1C;border:1px solid #FCA5A5;display:block;';
+    statusEl.textContent = 'Erro ao gerar PDF.';
+  }
+}
+
+async function pgGerarPlanoSemanal() {
+  const statusEl = document.getElementById('pg-status-sem');
+  statusEl.style.display = 'none';
+  const diasEls = document.querySelectorAll('#pg-dias-lista > div');
+  const dias = Array.from(diasEls).map(el => ({
+    titulo: el.querySelector('.pg-dia-titulo').value.trim(),
+    tema: el.querySelector('.pg-dia-tema').value.trim(),
+    objetivo: el.querySelector('.pg-dia-objetivo').value.trim(),
+    metodologia: el.querySelector('.pg-dia-metodologia').value.trim(),
+    conteudo: el.querySelector('.pg-dia-conteudo').value.trim(),
+    obs: el.querySelector('.pg-dia-obs').value.trim(),
+  }));
+  const dados = {
+    componente: document.getElementById('pg-ps-componente').value.trim(),
+    turma: document.getElementById('pg-ps-turma').value.trim(),
+    trimestre: document.getElementById('pg-ps-trimestre').value.trim(),
+    ano: document.getElementById('pg-ps-ano').value.trim() || new Date().getFullYear(),
+    periodoInicio: document.getElementById('pg-ps-inicio').value.trim(),
+    periodoFim: document.getElementById('pg-ps-fim').value.trim(),
+    habilidades: document.getElementById('pg-ps-habilidades').value.trim(),
+    dias,
+  };
+  if (!dados.componente) {
+    statusEl.style.cssText += 'background:#FEF2F2;color:#B91C1C;border:1px solid #FCA5A5;display:block;';
+    statusEl.textContent = 'Informe ao menos o Componente curricular.';
+    return;
+  }
+  if (!dias.length) {
+    statusEl.style.cssText += 'background:#FEF2F2;color:#B91C1C;border:1px solid #FCA5A5;display:block;';
+    statusEl.textContent = 'Adicione ao menos um dia/aula.';
+    return;
+  }
+  try {
+    const turmasNomes = _pgTurmasSelecionadasSem.size
+      ? _pgTurmasProfessor.filter(t => _pgTurmasSelecionadasSem.has(String(t.tdId))).map(t => t.turmaNome)
+      : [];
+    await gerarPlanoSemanalMultiTurma(dados, turmasNomes);
+    statusEl.style.cssText += 'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;display:block;';
+    statusEl.textContent = `✅ PDF gerado${turmasNomes.length > 1 ? ` (${turmasNomes.length} turmas)` : ''}!`;
+  } catch (e) {
+    console.error('[PLANOS] Erro ao gerar plano semanal:', e);
+    statusEl.style.cssText += 'background:#FEF2F2;color:#B91C1C;border:1px solid #FCA5A5;display:block;';
+    statusEl.textContent = 'Erro ao gerar PDF.';
+  }
+}
+
+window.pgMudarAba = pgMudarAba;
+window.pgInicializar = pgInicializar;
+window.pgToggleTurmaChip = pgToggleTurmaChip;
+window.pgAdicionarDiaSemanal = pgAdicionarDiaSemanal;
+window.pgGerarPlanoAula = pgGerarPlanoAula;
+window.pgGerarPlanoSemanal = pgGerarPlanoSemanal;
