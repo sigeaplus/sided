@@ -104,11 +104,19 @@ async function carregarChamadaPorData(dataISO) {
 
   // se é feriado ou recesso — mostrar aviso e bloquear
   if (semAula) {
+    // Recesso é exibido em cinza (como um feriado "neutro"); feriados seguem no âmbar padrão
+    const isRecesso = semAula.tipo === 'recesso';
+    const paleta = isRecesso
+      ? { bg: '#F3F4F6', border: '#D1D5DB', texto: '#4B5563' }
+      : { bg: '#FFFBEB', border: '#FCD34D', texto: '#92400E' };
     aviso.style.display = 'block';
+    aviso.style.background = paleta.bg;
+    aviso.style.borderColor = paleta.border;
+    aviso.style.color = paleta.texto;
     const tipos = { feriado_municipal: 'Feriado Municipal', feriado_estadual: 'Feriado Estadual', recesso: 'Recesso' };
     document.getElementById('chamada-aviso').innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${paleta.texto}" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <strong>${tipos[semAula.tipo] || semAula.tipo}</strong>
       </div>
       <div>${semAula.descricao} — Não há aula neste dia.</div>`;

@@ -1682,10 +1682,28 @@ function _calAulasStatusPorData() {
   return mapa;
 }
 
-function renderCalendarioAulas() {
+// Retorna o evento do calendário escolar (feriado/recesso/etc.) que cobre a data ISO, se houver
+function _calAulasEventoDoDia(iso) {
+  if (!feriadosCache || !feriadosCache.length) return null;
+  return feriadosCache.find(e => {
+    const fim = e.data_fim || e.data;
+    return iso >= e.data && iso <= fim;
+  }) || null;
+}
+
+async function renderCalendarioAulas() {
   const grid = document.getElementById('cal-aulas-grid');
   const label = document.getElementById('cal-aulas-mes-ano');
   if (!grid || !label) return;
+
+  // Garante que o calendário escolar (feriados/recessos) esteja carregado
+  if (!feriadosCache.length) {
+    const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+    const escolaId = profData.escolas?.id || profData.escola_id;
+    if (escolaId) {
+      feriadosCache = await api(`calendario_escolar?escola_id=eq.${escolaId}&select=*`) || [];
+    }
+  }
 
   const ano = _calAulasRef.getFullYear();
   const mes = _calAulasRef.getMonth();
@@ -1706,16 +1724,24 @@ function renderCalendarioAulas() {
     const st = statusPorData[iso];
     const selecionado = _calAulasDiaSel === iso;
     const marcado = _calAulasDatasNovaAula.includes(iso);
-    let bg = 'transparent', color = 'var(--text)';
+    const evento = _calAulasEventoDoDia(iso);
+    let bg = 'transparent', color = 'var(--text)', titulo = '';
+    // Aula lançada tem prioridade visual; senão, mostra feriado/recesso do calendário escolar
     if (st?.lecionada) { bg = '#DCFCE7'; color = '#166534'; }
     else if (st?.pendente) { bg = '#FEF3C7'; color = '#92400E'; }
+    else if (evento?.tipo === 'recesso') { bg = '#E5E7EB'; color = '#4B5563'; titulo = `Recesso — ${evento.descricao || ''}`; }
+    else if (evento?.tipo === 'feriado_municipal' || evento?.tipo === 'feriado_estadual') { bg = '#FEE2E2'; color = '#DC2626'; titulo = `Feriado — ${evento.descricao || ''}`; }
     let outline = '';
     if (marcado) outline = 'outline:2px solid var(--purple);outline-offset:-1px;';
     else if (selecionado) outline = 'box-shadow:0 0 0 1.5px var(--purple);';
-    html += `<span onclick="calAulasClicarDia('${iso}')" style="cursor:pointer;font-size:11px;font-weight:600;padding:5px 0;border-radius:50%;background:${bg};color:${color};${outline}">${dia}</span>`;
+    html += `<span onclick="calAulasClicarDia('${iso}')" title="${escHtmlAttr(titulo)}" style="cursor:pointer;font-size:11px;font-weight:600;padding:5px 0;border-radius:50%;background:${bg};color:${color};${outline}">${dia}</span>`;
   }
 
   grid.innerHTML = html;
+}
+
+function escHtmlAttr(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function calAulasMudarMes(delta) {
