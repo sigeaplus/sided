@@ -328,10 +328,13 @@ async function salvarHabilidadePlanejamento() {
 
   try {
     if (_editandoHabilidadeId) {
-      await api(`habilidades_planejamento?id=eq.${_editandoHabilidadeId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ codigo, descricao, divisao_id: divisaoId, temas }),
-      });
+      const payload = { codigo, descricao, divisao_id: divisaoId, temas };
+      const original = _habilidadesPlanejamentoCache.find(x => String(x.id) === String(_editandoHabilidadeId));
+      let irmas = [];
+      try { irmas = await _buscarHabilidadesIrmas(original); }
+      catch (e) { console.warn('[PLANEJAMENTO] Não foi possível buscar habilidades em outras turmas; salvando só nesta.', e); }
+      if (irmas.length) { _abrirEscopoEdicaoHabilidade(_editandoHabilidadeId, payload, original, irmas); return; }
+      await _patchHabilidadePlanejamento(_editandoHabilidadeId, payload);
       mostrarToast('✅ Habilidade atualizada!');
     } else {
       const tdId = turmaDisciplinaAtiva?.id;
@@ -446,6 +449,119 @@ async function confirmarVincularHabilidade() {
   }
 }
 
+// ── Editar habilidade: oferecer aplicar também em outras turmas ──────────────
+// "Irmãs" = habilidades com o MESMO CÓDIGO (antes da edição) em outras turmas
+// do mesmo professor. Não há vínculo no banco entre as cópias; a busca é por código.
+let _edicaoHabPendente = null;
+let _irmasEscopoSelecionadas = new Set();
+
+function _patchHabilidadePlanejamento(id, body) {
+  return api(`habilidades_planejamento?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+async function _buscarHabilidadesIrmas(original) {
+  if (!original?.codigo) return [];
+  const profData = JSON.parse(sessionStorage.getItem('prof_data') || '{}');
+  if (!profData.id) return [];
+  const tds = await api(`turma_disciplinas?professor_id=eq.${profData.id}&select=id,turmas(nome),disciplinas(nome)`) || [];
+  const tdAtualId = turmaDisciplinaAtiva?.id;
+  const outras = tds.filter(td => String(td.id) !== String(tdAtualId));
+  if (!outras.length) return [];
+  const rows = await api(
+    `habilidades_planejamento?codigo=eq.${encodeURIComponent(original.codigo)}` +
+    `&turma_disciplina_id=in.(${outras.map(td => td.id).join(',')})&select=id,turma_disciplina_id,descricao,divisao_id`
+  ) || [];
+  const porTd = {};
+  rows.forEach(r => { porTd[r.turma_disciplina_id] = (porTd[r.turma_disciplina_id] || 0) + 1; });
+  return rows.map(r => {
+    const td = outras.find(x => String(x.id) === String(r.turma_disciplina_id));
+    let label = `${td?.turmas?.nome || '(turma)'} — ${td?.disciplinas?.nome || ''}`;
+    if (porTd[r.turma_disciplina_id] > 1) label += ` · ${(r.descricao || '').slice(0, 25)}`;
+    return { id: r.id, divisao_id: r.divisao_id, label };
+  });
+}
+
+function _abrirEscopoEdicaoHabilidade(id, payload, original, irmas) {
+  _edicaoHabPendente = { id, payload, original, irmas };
+  _irmasEscopoSelecionadas = new Set();
+  document.getElementById('escopo-hab-codigo').textContent = original?.codigo || '';
+  document.getElementById('escopo-hab-alert').style.display = 'none';
+  document.getElementById('escopo-hab-lista').innerHTML = irmas.map(i => `
+      <span class="escopo-hab-chip" data-id="${i.id}" onclick="_toggleIrmaEscopo(this)"
+        style="display:inline-flex;align-items:center;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;cursor:pointer;margin:0 6px 6px 0;">
+        ${i.label}
+      </span>
+    `).join('');
+  _atualizarBotaoEscopoHabilidade();
+  document.getElementById('modal-escopo-edicao-habilidade').classList.add('open');
+}
+
+function _toggleIrmaEscopo(el) {
+  const id = String(el.dataset.id);
+  if (_irmasEscopoSelecionadas.has(id)) {
+    _irmasEscopoSelecionadas.delete(id);
+    el.style.background = 'none'; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text)';
+  } else {
+    _irmasEscopoSelecionadas.add(id);
+    el.style.background = '#3B4FE4'; el.style.borderColor = '#3B4FE4'; el.style.color = '#fff';
+  }
+  _atualizarBotaoEscopoHabilidade();
+}
+
+function _atualizarBotaoEscopoHabilidade() {
+  const btn = document.getElementById('escopo-hab-btn-selecionadas');
+  if (!btn) return;
+  const n = _irmasEscopoSelecionadas.size;
+  btn.disabled = n === 0;
+  btn.style.opacity = n === 0 ? '0.5' : '1';
+  btn.textContent = n === 0 ? 'Aplicar às selecionadas' : `Aplicar também em ${n} turma${n > 1 ? 's' : ''}`;
+}
+
+function cancelarEscopoEdicaoHabilidade() {
+  _edicaoHabPendente = null;
+  fecharModal('modal-escopo-edicao-habilidade');
+}
+
+async function confirmarEscopoEdicaoHabilidade(aplicarNasSelecionadas) {
+  const p = _edicaoHabPendente;
+  if (!p) return;
+  const ids = aplicarNasSelecionadas ? Array.from(_irmasEscopoSelecionadas) : [];
+  if (aplicarNasSelecionadas && !ids.length) return;
+  const alEl = document.getElementById('escopo-hab-alert');
+  alEl.style.display = 'none';
+  const btnSel = document.getElementById('escopo-hab-btn-selecionadas');
+  const btnUma = document.getElementById('escopo-hab-btn-uma');
+  if (btnSel) btnSel.disabled = true;
+  if (btnUma) btnUma.disabled = true;
+  try {
+    await _patchHabilidadePlanejamento(p.id, p.payload); // esta turma primeiro
+    const resultados = await Promise.allSettled(ids.map(irmaId => {
+      const irma = p.irmas.find(x => String(x.id) === String(irmaId));
+      const body = { codigo: p.payload.codigo, descricao: p.payload.descricao, temas: p.payload.temas };
+      // A divisão só acompanha se a cópia ainda estava na mesma divisão da original
+      if (irma && String(irma.divisao_id) === String(p.original?.divisao_id)) body.divisao_id = p.payload.divisao_id;
+      return _patchHabilidadePlanejamento(irmaId, body);
+    }));
+    const falhas = resultados.filter(r => r.status === 'rejected').length;
+    if (falhas) {
+      mostrarToast(`⚠️ Atualizada nesta turma; ${falhas} de ${ids.length} outras turmas falharam.`);
+    } else {
+      mostrarToast(ids.length ? `✅ Habilidade atualizada em ${ids.length + 1} turmas!` : '✅ Habilidade atualizada!');
+    }
+    _edicaoHabPendente = null;
+    fecharModal('modal-escopo-edicao-habilidade');
+    fecharModal('modal-habilidade-planejamento');
+    await carregarHabilidadesPlanejamento();
+  } catch (e) {
+    console.error('[PLANEJAMENTO] Erro ao salvar habilidade (escopo):', e);
+    alEl.textContent = 'Erro ao salvar. Tente novamente.';
+    alEl.style.display = 'block';
+  } finally {
+    if (btnUma) btnUma.disabled = false;
+    _atualizarBotaoEscopoHabilidade();
+  }
+}
+
 window.carregarHabilidadesPlanejamento = carregarHabilidadesPlanejamento;
 window.abrirModalHabilidadePlanejamento = abrirModalHabilidadePlanejamento;
 window._toggleTurmaExtraCriacao = _toggleTurmaExtraCriacao;
@@ -454,6 +570,9 @@ window.removerHabilidadePlanejamento = removerHabilidadePlanejamento;
 window.abrirModalVincularHabilidade = abrirModalVincularHabilidade;
 window._toggleTurmaVincular = _toggleTurmaVincular;
 window.confirmarVincularHabilidade = confirmarVincularHabilidade;
+window._toggleIrmaEscopo = _toggleIrmaEscopo;
+window.cancelarEscopoEdicaoHabilidade = cancelarEscopoEdicaoHabilidade;
+window.confirmarEscopoEdicaoHabilidade = confirmarEscopoEdicaoHabilidade;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GERAR PLANO DE AULA / PLANO SEMANAL — integrado à aba Planejamento

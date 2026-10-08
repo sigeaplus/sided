@@ -1729,6 +1729,29 @@
       </div>
     </div>
 
+    <!-- ── Modal: editar habilidade — aplicar também a outras turmas ── -->
+    <div class="modal-overlay" id="modal-escopo-edicao-habilidade" onclick="fecharModalOutside(event,'modal-escopo-edicao-habilidade')">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">Aplicar a outras turmas?</div>
+          <button class="modal-close" onclick="cancelarEscopoEdicaoHabilidade()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="escopo-hab-alert" style="display:none;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:9px 12px;font-size:12px;color:#B91C1C;margin-bottom:14px;"></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            A habilidade <span id="escopo-hab-codigo" style="font-family:'Space Mono',monospace;font-weight:700;color:#3B4FE4;"></span> também existe em outras turmas. Aplicar a alteração também em:
+          </div>
+          <div id="escopo-hab-lista" style="display:flex;flex-wrap:wrap;"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="escopo-hab-btn-uma" onclick="confirmarEscopoEdicaoHabilidade(false)" style="flex:1;padding:11px;border-radius:9px;border:none;background:#F1F5F9;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Só esta turma</button>
+          <button id="escopo-hab-btn-selecionadas" onclick="confirmarEscopoEdicaoHabilidade(true)" style="flex:1;padding:11px;border-radius:9px;border:none;background:#3B4FE4;color:#fff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Aplicar às selecionadas</button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- TELA DE NOTAS — separada, fora do pagina-avaliacoes -->
     <div id="notas-screen" style="display:none;">
